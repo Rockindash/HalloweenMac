@@ -38,6 +38,29 @@ enum DockLocator {
         return nil
     }
 
+    // MARK: Is the Dock showing right now?
+
+    /// The Dock keeps a window at Dock level that is on screen only while the Dock can be seen.
+    /// In a full-screen app (or with auto-hide) the Dock slides away and that window goes off screen.
+    /// Window positions and owners are readable without Screen Recording permission.
+    static func isDockOnScreen() -> Bool {
+        guard let dockPID = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.processIdentifier
+        else { return true }
+        let dockLevel = Int(CGWindowLevelForKey(.dockWindow))
+
+        func hasDockWindow(_ options: CGWindowListOption) -> Bool {
+            guard let windows = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else { return false }
+            return windows.contains { window in
+                (window[kCGWindowOwnerPID as String] as? Int).map { pid_t($0) } == dockPID
+                    && (window[kCGWindowLayer as String] as? Int) == dockLevel
+            }
+        }
+
+        // If this macOS version has no such window at all, don't hide anything.
+        guard hasDockWindow([.optionAll]) else { return true }
+        return hasDockWindow([.optionOnScreenOnly])
+    }
+
     // MARK: Estimating the width (no permissions needed)
 
     /// The Dock is centered and as wide as its icons. Without Accessibility access we can't

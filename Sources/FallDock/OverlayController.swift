@@ -44,6 +44,9 @@ final class OverlayController {
 
     private var timer: Timer?
     private var hoverTimer: Timer?
+    private var dockWatchTimer: Timer?
+    private var dockShowing = true
+    private var isHiding = false
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -71,6 +74,13 @@ final class OverlayController {
         }
         timer?.tolerance = 0.5
 
+        // The Dock slides away in full-screen apps (and with auto-hide), so check often
+        // whether it's on screen. This check is cheap; the full re-measure above is not.
+        dockWatchTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.watchDock() }
+        }
+        dockWatchTimer?.tolerance = 0.05
+
         // Watching the pointer needs no special permission (only key presses do).
         globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
             Task { @MainActor in self?.updateHover() }
@@ -85,12 +95,21 @@ final class OverlayController {
 
     /// Re-measures the Dock and moves, shows or hides the overlay.
     func refresh(force: Bool = false) {
-        guard Settings.showPumpkins, let dock = DockLocator.locate() else {
+        dockShowing = DockLocator.isDockOnScreen()
+        guard Settings.showPumpkins, dockShowing, let dock = DockLocator.locate() else {
             hide()
             return
         }
-        if force || dock != currentDock || panel?.isVisible != true {
+        if force || dock != currentDock || panel?.isVisible != true || isHiding {
             show(on: dock, force: force)
+        }
+    }
+
+    /// Hides the pumpkins as soon as the Dock goes away, and brings them back with it.
+    private func watchDock() {
+        guard Settings.showPumpkins else { return }
+        if DockLocator.isDockOnScreen() != dockShowing {
+            refresh()
         }
     }
 
@@ -131,21 +150,42 @@ final class OverlayController {
         }
         scene.configure(dockRect: localDock, pixelScale: scale, count: Settings.pumpkinCount)
         skView?.isPaused = false
-        panel.orderFrontRegardless()
+        if !panel.isVisible || isHiding {
+            // Fade in alongside the Dock.
+            isHiding = false
+            if !panel.isVisible { panel.alphaValue = 0 }
+            panel.orderFrontRegardless()
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.25
+                panel.animator().alphaValue = 1
+            }
+        }
     }
 
     private func hide() {
         currentDock = nil
         hoverTimer?.invalidate()
         hoverTimer = nil
-        skView?.isPaused = true
-        panel?.ignoresMouseEvents = true
-        panel?.orderOut(nil)
+        guard let panel, panel.isVisible, !isHiding else { return }
+        panel.ignoresMouseEvents = true
+        isHiding = true
+        // Fade out as the Dock slides away, then stop drawing.
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.2
+            panel.animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            Task { @MainActor in
+                guard let self, self.isHiding else { return }
+                self.isHiding = false
+                self.skView?.isPaused = true
+                self.panel?.orderOut(nil)
+            }
+        })
     }
 
     /// Lets clicks through everywhere except right on top of a pumpkin.
     private func updateHover() {
-        guard let panel, let scene, panel.isVisible else {
+        guard let panel, let scene, panel.isVisible, !isHiding else {
             hoverTimer?.invalidate()
             hoverTimer = nil
             return
@@ -175,6 +215,7 @@ final class OverlayController {
 
     func stop() {
         timer?.invalidate()
+        dockWatchTimer?.invalidate()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }
         if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor) }
         for (center, token) in observers { center.removeObserver(token) }
