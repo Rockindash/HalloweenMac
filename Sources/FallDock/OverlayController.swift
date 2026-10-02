@@ -76,10 +76,10 @@ final class OverlayController {
 
         // The Dock slides away in full-screen apps (and with auto-hide), so check often
         // whether it's on screen. This check is cheap; the full re-measure above is not.
-        dockWatchTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+        dockWatchTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.watchDock() }
         }
-        dockWatchTimer?.tolerance = 0.05
+        dockWatchTimer?.tolerance = 0.03
 
         // Watching the pointer needs no special permission (only key presses do).
         globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
@@ -172,7 +172,7 @@ final class OverlayController {
         isHiding = true
         // Fade out as the Dock slides away, then stop drawing.
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
+            context.duration = 0.15
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             Task { @MainActor in

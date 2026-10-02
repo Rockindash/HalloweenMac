@@ -100,9 +100,41 @@ enum DockLocator {
         guard dockWindowSupported == true else { return .unknown }
 
         guard let bounds = dockWindows([.optionOnScreenOnly]).first else { return .hidden }
-        // Window bounds use a top-left origin on the main display; flip to AppKit's bottom-left.
+        let screen = flipped(bounds)
+
+        // In a full-screen app the Dock only shows while the pointer is on it, but macOS takes
+        // a second or two to report it gone. Hide the moment the pointer leaves the Dock instead.
+        if fullScreenAppIsShowing(on: screen, dockPID: dockPID) {
+            let mouse = NSEvent.mouseLocation
+            let thickness = max(minimumDockThickness, NSScreen.screens.map { $0.visibleFrame.minY - $0.frame.minY }.max() ?? 0)
+            let onDock = screen.contains(mouse) && mouse.y <= screen.minY + thickness
+            if !onDock { return .hidden }
+        }
+        return .showing(screen)
+    }
+
+    /// Window bounds use a top-left origin on the main display; this flips them to AppKit's bottom-left.
+    private static func flipped(_ bounds: CGRect) -> CGRect {
         let mainHeight = NSScreen.screens.first?.frame.height ?? 0
-        return .showing(CGRect(x: bounds.minX, y: mainHeight - bounds.maxY, width: bounds.width, height: bounds.height))
+        return CGRect(x: bounds.minX, y: mainHeight - bounds.maxY, width: bounds.width, height: bounds.height)
+    }
+
+    /// True when an app's full-screen window fills `screen` (regular windows never cover the menu bar).
+    private static func fullScreenAppIsShowing(on screen: CGRect, dockPID: pid_t) -> Bool {
+        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return false }
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        return windows.contains { window in
+            guard (window[kCGWindowLayer as String] as? Int) == 0,
+                  let pid = (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }),
+                  pid != dockPID, pid != ownPID,
+                  let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
+            else { return false }
+            let frame = flipped(bounds)
+            return abs(frame.width - screen.width) < 1 && abs(frame.height - screen.height) < 1
+                && frame.intersects(screen.insetBy(dx: 2, dy: 2))
+        }
     }
 
     // MARK: Estimating the width (no permissions needed)
