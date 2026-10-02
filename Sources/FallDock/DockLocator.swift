@@ -16,49 +16,93 @@ enum DockLocator {
     /// An auto-hidden Dock leaves only a few points.
     private static let minimumDockThickness: CGFloat = 20
 
-    /// Returns the Dock if it's visible at the bottom of a screen, or nil when it's
-    /// hidden, auto-hiding, on the left/right edge, or an app is full screen.
+    /// Returns the Dock while it's showing at the bottom of a screen, or nil when it has slid
+    /// away (full-screen apps, auto-hide) or sits on the left or right edge.
     static func locate() -> DockInfo? {
-        for screen in NSScreen.screens {
-            let frame = screen.frame
-            let visible = screen.visibleFrame
-            let thickness = visible.minY - frame.minY
-            guard thickness >= minimumDockThickness else { continue }
-
-            if let precise = accessibilityDockFrame(), frame.intersects(precise) {
-                // Use the measured width, but the screen gap for the top edge.
-                let rect = CGRect(x: precise.minX, y: frame.minY, width: precise.width, height: thickness)
-                return DockInfo(screenFrame: frame, dockFrame: rect, isPrecise: true)
-            }
-
-            let width = min(frame.width - 16, estimatedDockWidth(thickness: thickness))
-            let rect = CGRect(x: frame.midX - width / 2, y: frame.minY, width: width, height: thickness)
-            return DockInfo(screenFrame: frame, dockFrame: rect, isPrecise: false)
+        let screens = NSScreen.screens
+        let screen: NSScreen
+        switch dockScreen() {
+        case .showing(let frame):
+            // The Dock follows the pointer between displays, so use the screen it's on now.
+            guard let match = screens.first(where: { $0.frame.intersects(frame.insetBy(dx: 2, dy: 2)) }) else { return nil }
+            screen = match
+        case .hidden:
+            return nil
+        case .unknown:
+            // Older macOS: fall back to the screen that reserves space for the Dock.
+            guard let match = screens.first(where: { $0.visibleFrame.minY - $0.frame.minY >= minimumDockThickness }) else { return nil }
+            screen = match
         }
-        return nil
+
+        // Only one screen reports the space the Dock takes up (and none does with auto-hide),
+        // so take the largest gap, falling back to the Dock's icon size.
+        let frame = screen.frame
+        let gaps = screens.map { $0.visibleFrame.minY - $0.frame.minY }
+        var thickness = gaps.max() ?? 0
+        if thickness < minimumDockThickness {
+            let dock = UserDefaults(suiteName: "com.apple.dock")
+            guard dock?.bool(forKey: "autohide") == true else { return nil } // Dock on the left or right
+            let tile = CGFloat(dock?.double(forKey: "tilesize") ?? 0)
+            thickness = (tile > 0 ? tile : 48) + 22
+        }
+
+        if let precise = accessibilityDockFrame(), frame.intersects(precise) {
+            // Use the measured width, but the screen gap for the top edge.
+            let rect = CGRect(x: precise.minX, y: frame.minY, width: precise.width, height: thickness)
+            return DockInfo(screenFrame: frame, dockFrame: rect, isPrecise: true)
+        }
+
+        let width = min(frame.width - 16, estimatedDockWidth(thickness: thickness))
+        let rect = CGRect(x: frame.midX - width / 2, y: frame.minY, width: width, height: thickness)
+        return DockInfo(screenFrame: frame, dockFrame: rect, isPrecise: false)
     }
 
-    // MARK: Is the Dock showing right now?
+    // MARK: Is the Dock showing right now, and on which screen?
 
-    /// The Dock keeps a window at Dock level that is on screen only while the Dock can be seen.
-    /// In a full-screen app (or with auto-hide) the Dock slides away and that window goes off screen.
-    /// Window positions and owners are readable without Screen Recording permission.
-    static func isDockOnScreen() -> Bool {
+    enum DockState: Equatable {
+        /// Showing on the screen with this frame (AppKit coordinates).
+        case showing(CGRect)
+        case hidden
+        /// This macOS version doesn't give us the signal.
+        case unknown
+    }
+
+    private static var dockWindowSupported: Bool?
+
+    /// The Dock keeps a screen-sized window at Dock level that is on screen only while the Dock
+    /// can be seen, and it moves to whichever display the Dock is on. In a full-screen app (or
+    /// with auto-hide) the Dock slides away and that window goes off screen. Window positions
+    /// and owners are readable without Screen Recording permission.
+    static func dockScreen() -> DockState {
         guard let dockPID = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.processIdentifier
-        else { return true }
+        else { return .unknown }
         let dockLevel = Int(CGWindowLevelForKey(.dockWindow))
+        let screenSizes = NSScreen.screens.map { $0.frame.size }
 
-        func hasDockWindow(_ options: CGWindowListOption) -> Bool {
-            guard let windows = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else { return false }
-            return windows.contains { window in
-                (window[kCGWindowOwnerPID as String] as? Int).map { pid_t($0) } == dockPID
-                    && (window[kCGWindowLayer as String] as? Int) == dockLevel
+        // Mission Control and Dock menus briefly add other Dock windows, so only count
+        // a Dock-level window that is exactly the size of a screen.
+        func dockWindows(_ options: CGWindowListOption) -> [CGRect] {
+            guard let windows = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else { return [] }
+            return windows.compactMap { window in
+                guard (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) == dockPID,
+                      (window[kCGWindowLayer as String] as? Int) == dockLevel,
+                      let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+                      let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary),
+                      screenSizes.contains(where: { abs($0.width - bounds.width) < 1 && abs($0.height - bounds.height) < 1 })
+                else { return nil }
+                return bounds
             }
         }
 
-        // If this macOS version has no such window at all, don't hide anything.
-        guard hasDockWindow([.optionAll]) else { return true }
-        return hasDockWindow([.optionOnScreenOnly])
+        if dockWindowSupported == nil {
+            dockWindowSupported = !dockWindows([.optionAll]).isEmpty
+        }
+        guard dockWindowSupported == true else { return .unknown }
+
+        guard let bounds = dockWindows([.optionOnScreenOnly]).first else { return .hidden }
+        // Window bounds use a top-left origin on the main display; flip to AppKit's bottom-left.
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        return .showing(CGRect(x: bounds.minX, y: mainHeight - bounds.maxY, width: bounds.width, height: bounds.height))
     }
 
     // MARK: Estimating the width (no permissions needed)

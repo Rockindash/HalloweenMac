@@ -45,7 +45,7 @@ final class OverlayController {
     private var timer: Timer?
     private var hoverTimer: Timer?
     private var dockWatchTimer: Timer?
-    private var dockShowing = true
+    private var lastDockState: DockLocator.DockState = .unknown
     private var isHiding = false
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
@@ -95,8 +95,8 @@ final class OverlayController {
 
     /// Re-measures the Dock and moves, shows or hides the overlay.
     func refresh(force: Bool = false) {
-        dockShowing = DockLocator.isDockOnScreen()
-        guard Settings.showPumpkins, dockShowing, let dock = DockLocator.locate() else {
+        lastDockState = DockLocator.dockScreen()
+        guard Settings.showPumpkins, let dock = DockLocator.locate() else {
             hide()
             return
         }
@@ -105,10 +105,11 @@ final class OverlayController {
         }
     }
 
-    /// Hides the pumpkins as soon as the Dock goes away, and brings them back with it.
+    /// Hides the pumpkins as soon as the Dock goes away, brings them back with it,
+    /// and follows it when it moves to another display.
     private func watchDock() {
         guard Settings.showPumpkins else { return }
-        if DockLocator.isDockOnScreen() != dockShowing {
+        if DockLocator.dockScreen() != lastDockState {
             refresh()
         }
     }
