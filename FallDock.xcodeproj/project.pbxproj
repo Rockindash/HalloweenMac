@@ -1,0 +1,357 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C65BAB7C1C9DC847BDC0D46 /* Art.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D531E91FA2104CA0FBE350 /* Art.swift */; };
+		6FEE257E1C84FB3590A3A735 /* SmashSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868266014263B38779531296 /* SmashSound.swift */; };
+		94C86EB18E0C91DC35D18327 /* MenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8354B1DB7F276E1BA05DE3 /* MenuContent.swift */; };
+		9A7D8B99E622AB8B7A4841E3 /* DockLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D9B2A7EF12B4BF9A5F09CF4 /* DockLocator.swift */; };
+		9F1F73D3793EDC1F5C99E359 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5A9911DECFD6B7EC575DB2 /* AppModel.swift */; };
+		C6DBC2A6036E62FFE86C38F2 /* FallDockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F389C82E96F35A6292A1D7 /* FallDockApp.swift */; };
+		E936A13B2C23B84F65CDF1B6 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99464A212618FEB7553190F /* Settings.swift */; };
+		F6332A40B4E0A0FD3C4CABEF /* OverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B243FB33A4ADC486AA1AFE1 /* OverlayController.swift */; };
+		FA4B5A8E65F0CEE7AC4142B0 /* PumpkinScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpkinScene.swift; sourceTree = "<group>"; };
+		4D9B2A7EF12B4BF9A5F09CF4 /* DockLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockLocator.swift; sourceTree = "<group>"; };
+		7B243FB33A4ADC486AA1AFE1 /* OverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayController.swift; sourceTree = "<group>"; };
+		868266014263B38779531296 /* SmashSound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmashSound.swift; sourceTree = "<group>"; };
+		9F5A9911DECFD6B7EC575DB2 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		BF8354B1DB7F276E1BA05DE3 /* MenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContent.swift; sourceTree = "<group>"; };
+		E16E216E02C5713CEA00F1C4 /* FallDock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FallDock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7D531E91FA2104CA0FBE350 /* Art.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Art.swift; sourceTree = "<group>"; };
+		F0F389C82E96F35A6292A1D7 /* FallDockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallDockApp.swift; sourceTree = "<group>"; };
+		F99464A212618FEB7553190F /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		982F557585F86331490CFAB3 /* Overlay */ = {
+			isa = PBXGroup;
+			children = (
+				4D9B2A7EF12B4BF9A5F09CF4 /* DockLocator.swift */,
+				7B243FB33A4ADC486AA1AFE1 /* OverlayController.swift */,
+				12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */,
+			);
+			path = Overlay;
+			sourceTree = "<group>";
+		};
+		9F86A9043B9D5B534D19F6A0 /* FallDock */ = {
+			isa = PBXGroup;
+			children = (
+				FFF5ADC5213DEDA82B422AA4 /* App */,
+				DCC2EE75B074CBF4BDA78682 /* Art */,
+				982F557585F86331490CFAB3 /* Overlay */,
+			);
+			path = FallDock;
+			sourceTree = "<group>";
+		};
+		D7175408335C450F0EA09F05 = {
+			isa = PBXGroup;
+			children = (
+				9F86A9043B9D5B534D19F6A0 /* FallDock */,
+				E85D0AD4A053F3EF20BF580B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DCC2EE75B074CBF4BDA78682 /* Art */ = {
+			isa = PBXGroup;
+			children = (
+				E7D531E91FA2104CA0FBE350 /* Art.swift */,
+				868266014263B38779531296 /* SmashSound.swift */,
+			);
+			path = Art;
+			sourceTree = "<group>";
+		};
+		E85D0AD4A053F3EF20BF580B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E16E216E02C5713CEA00F1C4 /* FallDock.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FFF5ADC5213DEDA82B422AA4 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				9F5A9911DECFD6B7EC575DB2 /* AppModel.swift */,
+				F0F389C82E96F35A6292A1D7 /* FallDockApp.swift */,
+				BF8354B1DB7F276E1BA05DE3 /* MenuContent.swift */,
+				F99464A212618FEB7553190F /* Settings.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C998535C361B83F8E249CE13 /* FallDock */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7ABEB4F87ABA327B2618914A /* Build configuration list for PBXNativeTarget "FallDock" */;
+			buildPhases = (
+				076639A851266A3152AF469C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FallDock;
+			packageProductDependencies = (
+			);
+			productName = FallDock;
+			productReference = E16E216E02C5713CEA00F1C4 /* FallDock.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		382903F799CECB4488A4ACF1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					C998535C361B83F8E249CE13 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 3E8EAF2C3959A1F283ECBB7B /* Build configuration list for PBXProject "FallDock" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D7175408335C450F0EA09F05;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E85D0AD4A053F3EF20BF580B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C998535C361B83F8E249CE13 /* FallDock */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		076639A851266A3152AF469C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F1F73D3793EDC1F5C99E359 /* AppModel.swift in Sources */,
+				0C65BAB7C1C9DC847BDC0D46 /* Art.swift in Sources */,
+				9A7D8B99E622AB8B7A4841E3 /* DockLocator.swift in Sources */,
+				C6DBC2A6036E62FFE86C38F2 /* FallDockApp.swift in Sources */,
+				94C86EB18E0C91DC35D18327 /* MenuContent.swift in Sources */,
+				F6332A40B4E0A0FD3C4CABEF /* OverlayController.swift in Sources */,
+				FA4B5A8E65F0CEE7AC4142B0 /* PumpkinScene.swift in Sources */,
+				E936A13B2C23B84F65CDF1B6 /* Settings.swift in Sources */,
+				6FEE257E1C84FB3590A3A735 /* SmashSound.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1EAE3883624FCC09DB67F344 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3BC8B286B7B4EA1D8DE46052 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FallDock/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.falldock;
+				PRODUCT_NAME = "Fall Dock";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		64FEECC5510F2FA15F1F506E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FallDock/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.falldock;
+				PRODUCT_NAME = "Fall Dock";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		79B497F93AAE4ACFE279B50C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3E8EAF2C3959A1F283ECBB7B /* Build configuration list for PBXProject "FallDock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1EAE3883624FCC09DB67F344 /* Debug */,
+				79B497F93AAE4ACFE279B50C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7ABEB4F87ABA327B2618914A /* Build configuration list for PBXNativeTarget "FallDock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3BC8B286B7B4EA1D8DE46052 /* Debug */,
+				64FEECC5510F2FA15F1F506E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 382903F799CECB4488A4ACF1 /* Project object */;
+}
