@@ -20,6 +20,7 @@ enum FallDockMain {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let overlay = OverlayController()
+    private var activity: NSObjectProtocol?
     private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -35,6 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Settings.smashCount += 1
             self?.rebuildMenu()
         }
+        // A menu bar app is never "active", so macOS may put it to sleep (App Nap) and slow
+        // its timers to once every few seconds. Opt out so the pumpkins keep up with the Dock.
+        activity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep],
+            reason: "Keeping the pumpkins in step with the Dock"
+        )
         overlay.start()
     }
 
