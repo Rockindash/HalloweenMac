@@ -673,13 +673,18 @@ enum VineArt {
         guard x1 > x0 else { return }
         let xs = stride(from: x0, through: x1, by: 3).map { $0 }
         let points = xs.map { CGPoint(x: $0, y: y($0)) }
-        let path = Brush.outline(points) { t in
+        func width(_ t: CGFloat) -> CGFloat {
             let x = x0 + (x1 - x0) * t
             return maxWidth * (0.55 + 0.3 * sin(x / 31) * sin(x / 13) + 0.25 * sin(.pi * t))
         }
-        ctx.addPath(path)
         ctx.setFillColor(color)
+        ctx.addPath(Brush.outline(points, width: width))
         ctx.fillPath()
+        // Round caps, so the ends aren't cut off square.
+        for (point, t) in [(points[0], CGFloat(0)), (points[points.count - 1], CGFloat(1))] {
+            let r = width(t) / 2
+            ctx.fillEllipse(in: CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2))
+        }
     }
 
     private static func draw(_ ctx: CGContext, size: CGSize, seed: Int, k: CGFloat) {
