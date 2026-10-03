@@ -1,6 +1,6 @@
 # Fall Dock 🎃
 
-A cozy little Mac app that puts a harvest of speckled pumpkins, leafy vines, leaves and acorns on top of your Dock.
+A cozy little Mac app that puts a harvest of flat, hand-drawn pumpkins and a leafy vine on top of your Dock.
 Click a pumpkin to smash it. Chunks and seeds go flying, and a new pumpkin grows back a few seconds later.
 
 ![On the Dock](docs/dock-closeup.png)
@@ -27,7 +27,7 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 ## The 🎃 menu
 
 - **Show Pumpkins**: hides or shows everything.
-- **Vines**: a leafy pumpkin vine with blossoms along the Dock.
+- **Vines**: a leafy pumpkin vine with curls and buds along the Dock. It weaves behind most pumpkins and loops in front of a few.
 - **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
 - **Number of Pumpkins**: A Few (5), Plenty (9) or Overflowing (13).
@@ -39,7 +39,7 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 
 - Pumpkins only show when the Dock is at the **bottom** of the screen. They hide and come back with the Dock (for example in full-screen apps), and follow it to another display.
 - Clicks only stop at a pumpkin. Everywhere else, the Dock and your windows work normally.
-- All the art is drawn in code (see `FallDock/Art/Art.swift`), so you can change colors there. The colors are near the top of the file.
+- All the art is drawn in code (see `FallDock/Art/Art.swift`), in the flat style of a hand-drawn harvest wagon, using six colors. You can change them in `Palette` near the top of the file.
 
 ## How it works
 
@@ -54,7 +54,7 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `Overlay/DockLocator.swift` | Works out where the Dock is, which display it's on and whether it's showing |
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, vines, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
-| `Art/Art.swift` | Draws the speckled pumpkins, vines, leaves, acorns and berries |
+| `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
 | `Art/SmashSound.swift` | Makes the smash sound from scratch |
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.

@@ -1,8 +1,8 @@
 import AppKit
 import SpriteKit
 
-// All of the app's artwork is drawn in code, in a flat, speckled, hand-drawn
-// autumn style: warm oranges, dusty pinks, butter yellows and sage greens.
+// All of the app's artwork is drawn in code, in the flat style of a hand-drawn harvest
+// wagon: six warm colors, flat fills, no outlines, and tapered brush-stroke lines.
 // Drawing in code keeps the app tiny and lets every pumpkin be a little different.
 
 // MARK: - Colors
@@ -20,31 +20,35 @@ extension CGColor {
     func withAlpha(_ alpha: CGFloat) -> CGColor {
         copy(alpha: alpha) ?? self
     }
+
+    /// A blend of this color and `other` (0 = this color, 1 = `other`).
+    func mixed(with other: CGColor, _ amount: CGFloat) -> CGColor {
+        guard let a = components, let b = other.components, a.count >= 3, b.count >= 3 else { return self }
+        return CGColor(
+            srgbRed: a[0] + (b[0] - a[0]) * amount,
+            green: a[1] + (b[1] - a[1]) * amount,
+            blue: a[2] + (b[2] - a[2]) * amount,
+            alpha: 1
+        )
+    }
 }
 
 enum Palette {
-    static let cream = CGColor.hex(0xFCEBD5)
+    // The six wagon colors.
+    static let green = CGColor.hex(0x627329)
+    static let rust = CGColor.hex(0xA24B22)
+    static let mustard = CGColor.hex(0xDB9D24)
+    static let orange = CGColor.hex(0xEB6C15)
+    static let plum = CGColor.hex(0x5D1C2B)
+    static let peach = CGColor.hex(0xFCDCBE)
+
+    static let stemCut = CGColor.hex(0xC9773D)
+    static let vineDark = green.mixed(with: plum, 0.3)
+    static let shadowInk = CGColor.hex(0x3B1420)
     static let seed = CGColor.hex(0xF6E4C1)
-    static let leafGreen = CGColor.hex(0x3F6420)
-    static let sage = CGColor.hex(0xA3A04C)
-    static let stemBrown = CGColor.hex(0x6B4429)
-    static let stemBrownDark = CGColor.hex(0x4A2C1A)
-    static let stemGreenDark = CGColor.hex(0x2B4615)
-    static let vine = CGColor.hex(0x5B7A2C)
-    static let vineDark = CGColor.hex(0x3B5418)
-    static let pumpkinLeaf = CGColor.hex(0x557F2E)
-    static let pumpkinLeafLight = CGColor.hex(0x86A94B)
-    static let blossom = CGColor.hex(0xF4B63F)
-    static let maple = CGColor.hex(0xEE8A2C)
-    static let mapleRed = CGColor.hex(0xB3361F)
-    static let golden = CGColor.hex(0xF3B23C)
-    static let rust = CGColor.hex(0xC9562A)
-    static let berry = CGColor.hex(0xE4532B)
-    static let acorn = CGColor.hex(0xD9A35A)
-    static let acornCap = CGColor.hex(0x8C5A35)
 }
 
-// MARK: - Seeded randomness (so a pumpkin's speckles don't change every frame)
+// MARK: - Seeded randomness (so a pumpkin looks the same every time it's drawn)
 
 struct SeededRandom: RandomNumberGenerator {
     private var state: UInt64
@@ -61,7 +65,7 @@ struct SeededRandom: RandomNumberGenerator {
     }
 }
 
-// MARK: - Texture helper
+// MARK: - Texture and brush helpers
 
 enum TextureMaker {
     /// Draws into a transparent bitmap of `size` points at `scale` pixels per point.
@@ -91,414 +95,443 @@ enum TextureMaker {
         texture.filteringMode = .linear
         return texture
     }
+}
 
-    /// Sprinkles the soft speckles and flecks that give the art its printed, cozy texture.
-    /// Speckles are denser toward the edges of the shape, like the reference style.
-    static func speckle(
-        _ ctx: CGContext,
-        clip path: CGPath,
-        in rect: CGRect,
-        dark: CGColor,
-        light: CGColor,
-        density: CGFloat,
-        rng: inout SeededRandom
-    ) {
-        ctx.saveGState()
+/// Tapered brush strokes: thin at the ends, full width in the middle, like the wagon's ink lines.
+enum Brush {
+    /// A point on a quadratic (3 points) or cubic (4 points) Bézier curve.
+    static func bezier(_ p: [CGPoint], _ t: CGFloat) -> CGPoint {
+        let u = 1 - t
+        if p.count == 3 {
+            return CGPoint(x: u * u * p[0].x + 2 * u * t * p[1].x + t * t * p[2].x,
+                           y: u * u * p[0].y + 2 * u * t * p[1].y + t * t * p[2].y)
+        }
+        let a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t
+        return CGPoint(x: a * p[0].x + b * p[1].x + c * p[2].x + d * p[3].x,
+                       y: a * p[0].y + b * p[1].y + c * p[2].y + d * p[3].y)
+    }
+
+    /// The outline of a stroke through `points`, `width(t)` wide at each point (t runs 0...1).
+    static func outline(_ points: [CGPoint], width: (CGFloat) -> CGFloat) -> CGPath {
+        let n = points.count - 1
+        var left: [CGPoint] = [], right: [CGPoint] = []
+        for i in 0...n {
+            let a = points[max(0, i - 1)], b = points[min(n, i + 1)]
+            let dx = b.x - a.x, dy = b.y - a.y, len = max(0.0001, sqrt(dx * dx + dy * dy))
+            let w = width(CGFloat(i) / CGFloat(max(1, n))) / 2
+            left.append(CGPoint(x: points[i].x - dy / len * w, y: points[i].y + dx / len * w))
+            right.append(CGPoint(x: points[i].x + dy / len * w, y: points[i].y - dx / len * w))
+        }
+        let path = CGMutablePath()
+        path.addLines(between: left + right.reversed())
+        path.closeSubpath()
+        return path
+    }
+
+    /// A stroke along a Bézier curve that swells in the middle. `minF` and `endF` are how thin
+    /// the start and end are, as a fraction of `maxWidth`.
+    static func stroke(_ ctx: CGContext, _ controls: [CGPoint], maxWidth: CGFloat, color: CGColor,
+                       minF: CGFloat = 0.18, endF: CGFloat? = nil) {
+        let end = endF ?? minF
+        let n = 22
+        let points = (0...n).map { bezier(controls, CGFloat($0) / CGFloat(n)) }
+        let path = outline(points) { t in
+            let f = t < 0.5 ? minF + (1 - minF) * sin(.pi * t) : end + (1 - end) * sin(.pi * t)
+            return maxWidth * f
+        }
         ctx.addPath(path)
-        ctx.clip()
-        let count = Int(rect.width * rect.height * density)
-        for _ in 0..<count {
-            let p = CGPoint(x: rng.float(rect.minX...rect.maxX), y: rng.float(rect.minY...rect.maxY))
-            let dx = (p.x - rect.midX) / (rect.width / 2)
-            let dy = (p.y - rect.midY) / (rect.height / 2)
-            let edge = min(1, sqrt(dx * dx + dy * dy))
-            guard rng.float(0...1) < 0.25 + 0.75 * edge * edge else { continue }
-            let r = rng.float(0.25...0.95)
-            ctx.setFillColor(dark.withAlpha(rng.float(0.35...0.75)))
-            ctx.fillEllipse(in: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2))
+        ctx.setFillColor(color)
+        ctx.fillPath()
+    }
+
+    /// A stroke through `points` that starts at `maxWidth` and thins toward the end.
+    static func trail(_ ctx: CGContext, _ points: [CGPoint], maxWidth: CGFloat, color: CGColor, minF: CGFloat = 0.15) {
+        guard points.count > 1 else { return }
+        ctx.addPath(outline(points) { t in maxWidth * (minF + (1 - minF) * (1 - t)) })
+        ctx.setFillColor(color)
+        ctx.fillPath()
+    }
+
+    /// A curly tendril: a short rise from `start`, then a spiral that winds inward toward `dir`.
+    /// The spiral begins exactly where the rise ends, so there is no straight jump between them.
+    static func tendril(_ ctx: CGContext, from start: CGPoint, dir: CGFloat, size: CGFloat, color: CGColor) {
+        var points: [CGPoint] = []
+        let end = CGPoint(x: start.x + dir * size * 0.25, y: start.y + size * 0.75)
+        for i in 0...12 {
+            let t = CGFloat(i) / 12
+            points.append(CGPoint(x: start.x + (end.x - start.x) * t + dir * sin(.pi * t) * size * 0.12,
+                                  y: start.y + (end.y - start.y) * t))
         }
-        // A few pale, chunky flecks.
-        for _ in 0..<max(2, count / 14) {
-            let p = CGPoint(x: rng.float(rect.minX...rect.maxX), y: rng.float(rect.minY...rect.maxY))
-            let s = rng.float(0.8...1.8)
-            let angle = rng.float(0...(.pi * 2))
-            let fleck = CGMutablePath()
-            for k in 0..<3 {
-                let a = angle + CGFloat(k) * 2.1 + rng.float(-0.3...0.3)
-                let pt = CGPoint(x: p.x + cos(a) * s, y: p.y + sin(a) * s * 0.8)
-                if k == 0 { fleck.move(to: pt) } else { fleck.addLine(to: pt) }
-            }
-            fleck.closeSubpath()
-            ctx.setFillColor(light.withAlpha(0.85))
-            ctx.addPath(fleck)
-            ctx.fillPath()
+        let radius = size * 0.26
+        let center = CGPoint(x: end.x + dir * radius, y: end.y)
+        let steps = Int(1.6 * 22)
+        for i in 1...steps {
+            let phase = CGFloat(i) / 22 * .pi * 2
+            let r = radius * (1 - 0.78 * CGFloat(i) / CGFloat(steps))
+            points.append(CGPoint(x: center.x - dir * cos(phase) * r, y: end.y + sin(phase) * r))
         }
-        ctx.restoreGState()
+        trail(ctx, points, maxWidth: max(1.4, size * 0.07), color: color, minF: 0.3)
     }
 }
 
 // MARK: - Pumpkins
 
+enum PumpkinShape {
+    case round      // three overlapping lobes
+    case squat      // wide and low
+    case tall       // taller than wide
+    case butternut  // pear-shaped squash
+}
+
 enum PumpkinKind: CaseIterable {
-    case classic      // round orange with ribs and a green stem
-    case striped      // orange with deep green stripes
-    case squat        // flat dusty-pink pumpkin with scalloped lobes
-    case pear         // tall pink, pear-shaped squash
-    case butternut    // butter-yellow, tall and curvy
-    case blueHubbard  // tall soft blue-grey heirloom
+    case roundOrange, roundMustard, squatMustard, squatOrange, tallOrange, tallMustard
+    case butternutOrange, butternutMustard, littleGreen
 
     struct Look {
-        var body: CGColor
-        var rib: CGColor
-        var speckDark: CGColor
-        var speckLight: CGColor
-        var stem: CGColor
-        var stemDark: CGColor
-        var stripe: CGColor?
-        var aspect: CGFloat       // width / height of the whole sprite
-        var stemFraction: CGFloat // how much of the height is stem
-        var hasTendril: Bool
+        var shape: PumpkinShape
+        var body: CGColor    // the front lobe
+        var side: CGColor    // the side lobes, a shade darker
+        var rib: CGColor     // rib lines
+        var aspect: CGFloat  // body width / body height
+        var heightFactor: CGFloat // squat and little pumpkins are shorter than the slot
     }
 
     var look: Look {
+        let orangeSide = Palette.orange.mixed(with: Palette.rust, 0.28)
+        let mustardSide = Palette.mustard.mixed(with: Palette.rust, 0.25)
+        let greenSide = Palette.green.mixed(with: Palette.plum, 0.25)
         switch self {
-        case .classic:
-            return Look(body: .hex(0xF26A2E), rib: .hex(0xB4431B), speckDark: .hex(0xC2451C), speckLight: .hex(0xF9A46C),
-                        stem: Palette.leafGreen, stemDark: Palette.stemGreenDark, stripe: nil,
-                        aspect: 1.12, stemFraction: 0.24, hasTendril: false)
-        case .striped:
-            return Look(body: .hex(0xF7893A), rib: .hex(0x7A3B12), speckDark: .hex(0xD45F1E), speckLight: .hex(0xFBC38D),
-                        stem: Palette.stemBrown, stemDark: Palette.stemBrownDark, stripe: Palette.leafGreen,
-                        aspect: 1.0, stemFraction: 0.26, hasTendril: false)
-        case .squat:
-            return Look(body: .hex(0xF5AC8E), rib: .hex(0xBF664A), speckDark: .hex(0xD7806A), speckLight: .hex(0xFCE3D6),
-                        stem: Palette.leafGreen, stemDark: Palette.stemGreenDark, stripe: nil,
-                        aspect: 1.55, stemFraction: 0.3, hasTendril: false)
-        case .pear:
-            return Look(body: .hex(0xF4A98B), rib: .hex(0xAE5639), speckDark: .hex(0xCF7660), speckLight: .hex(0xF9CDB9),
-                        stem: Palette.leafGreen, stemDark: Palette.stemGreenDark, stripe: nil,
-                        aspect: 0.68, stemFraction: 0.16, hasTendril: false)
-        case .butternut:
-            return Look(body: .hex(0xF1CB7E), rib: .hex(0xD3A13B), speckDark: .hex(0xE8977A), speckLight: .hex(0xFBE7BD),
-                        stem: Palette.stemBrown, stemDark: Palette.stemBrownDark, stripe: nil,
-                        aspect: 0.74, stemFraction: 0.17, hasTendril: true)
-        case .blueHubbard:
-            return Look(body: .hex(0xC3CCCC), rib: .hex(0x4F6464), speckDark: .hex(0x8A9999), speckLight: .hex(0xF1F4F4),
-                        stem: Palette.stemBrown, stemDark: Palette.stemBrownDark, stripe: nil,
-                        aspect: 0.66, stemFraction: 0.14, hasTendril: true)
+        case .roundOrange:
+            return Look(shape: .round, body: Palette.orange, side: orangeSide, rib: Palette.rust, aspect: 1.34, heightFactor: 1)
+        case .roundMustard:
+            return Look(shape: .round, body: Palette.mustard, side: mustardSide, rib: Palette.rust, aspect: 1.26, heightFactor: 0.92)
+        case .squatMustard:
+            return Look(shape: .squat, body: Palette.mustard, side: mustardSide, rib: Palette.rust, aspect: 1.9, heightFactor: 0.66)
+        case .squatOrange:
+            return Look(shape: .squat, body: Palette.orange, side: orangeSide, rib: Palette.rust, aspect: 1.85, heightFactor: 0.68)
+        case .tallOrange:
+            return Look(shape: .tall, body: Palette.orange, side: orangeSide, rib: Palette.rust, aspect: 0.88, heightFactor: 0.95)
+        case .tallMustard:
+            return Look(shape: .tall, body: Palette.mustard, side: mustardSide, rib: Palette.rust, aspect: 0.87, heightFactor: 0.9)
+        case .butternutOrange:
+            return Look(shape: .butternut, body: Palette.orange, side: orangeSide, rib: Palette.rust, aspect: 0.6, heightFactor: 1.02)
+        case .butternutMustard:
+            return Look(shape: .butternut, body: Palette.mustard, side: mustardSide, rib: Palette.rust, aspect: 0.56, heightFactor: 1.05)
+        case .littleGreen:
+            return Look(shape: .squat, body: Palette.green, side: greenSide, rib: Palette.plum, aspect: 1.7, heightFactor: 0.5)
         }
     }
 
-    var isRound: Bool { self == .classic || self == .striped || self == .squat }
+    var isRound: Bool { look.shape != .butternut }
 }
 
 enum PumpkinArt {
     private static var cache: [String: SKTexture] = [:]
+    static let pad: CGFloat = 2
 
-    /// Point size of a pumpkin sprite of the given kind and height.
+    /// Body size (the `w` x `h` box the lobe shapes are measured against) for a slot height.
+    static func bodySize(of kind: PumpkinKind, height: CGFloat) -> CGSize {
+        let look = kind.look
+        let total = height * look.heightFactor
+        let h = (total - pad * 2) / (look.shape == .butternut ? 1.14 : 1.12)
+        return CGSize(width: h * look.aspect, height: h)
+    }
+
+    /// Point size of a pumpkin sprite of the given kind and slot height.
     static func size(of kind: PumpkinKind, height: CGFloat) -> CGSize {
-        let h = kind == .squat ? height * 0.8 : height
-        return CGSize(width: (h * kind.look.aspect).rounded(), height: h.rounded())
+        let body = bodySize(of: kind, height: height)
+        let h = body.height * (kind.look.shape == .butternut ? 1.14 : 1.12) + pad * 2
+        return CGSize(width: (body.width * 1.08 + pad * 2).rounded(), height: h.rounded())
     }
 
     static func texture(kind: PumpkinKind, height: CGFloat, variant: Int, scale: CGFloat) -> SKTexture {
         let size = PumpkinArt.size(of: kind, height: height)
         let key = "\(kind)-\(Int(size.height))-\(variant)-\(scale)"
         if let cached = cache[key] { return cached }
+        let body = bodySize(of: kind, height: height)
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            draw(kind: kind, in: size, variant: variant, ctx: ctx)
+            draw(kind: kind, cx: size.width / 2, base: pad, w: body.width, h: body.height, variant: variant, ctx: ctx)
         }
         cache[key] = texture
         return texture
     }
 
-    /// The body outline for a pumpkin whose body fills `w` x `bh` points.
-    static func bodyPath(kind: PumpkinKind, w: CGFloat, bh: CGFloat) -> CGPath {
-        let path = CGMutablePath()
-        switch kind {
-        case .classic, .striped, .squat:
-            // Overlapping lobes give the soft scalloped silhouette.
-            let lobes = kind == .squat ? 7 : 5
-            let lobeW = w * (kind == .squat ? 0.30 : 0.44)
-            for i in 0..<lobes {
-                let t = CGFloat(i) / CGFloat(lobes - 1) // 0...1
-                let cx = lobeW / 2 + t * (w - lobeW)
-                let edge = abs(t - 0.5) * 2 // 0 center, 1 outside
-                let lh = bh * (1 - 0.12 * edge)
-                path.addEllipse(in: CGRect(x: cx - lobeW / 2, y: (bh - lh) * 0.35, width: lobeW, height: lh))
-            }
-        case .pear:
-            path.move(to: CGPoint(x: w * 0.5, y: 0))
-            path.addCurve(to: CGPoint(x: w * 0.99, y: bh * 0.30),
-                          control1: CGPoint(x: w * 0.86, y: 0), control2: CGPoint(x: w * 0.99, y: bh * 0.12))
-            path.addCurve(to: CGPoint(x: w * 0.68, y: bh * 0.94),
-                          control1: CGPoint(x: w * 0.99, y: bh * 0.55), control2: CGPoint(x: w * 0.70, y: bh * 0.62))
-            path.addCurve(to: CGPoint(x: w * 0.32, y: bh * 0.94),
-                          control1: CGPoint(x: w * 0.63, y: bh * 1.02), control2: CGPoint(x: w * 0.37, y: bh * 1.02))
-            path.addCurve(to: CGPoint(x: w * 0.01, y: bh * 0.30),
-                          control1: CGPoint(x: w * 0.30, y: bh * 0.62), control2: CGPoint(x: w * 0.01, y: bh * 0.55))
-            path.addCurve(to: CGPoint(x: w * 0.5, y: 0),
-                          control1: CGPoint(x: w * 0.01, y: bh * 0.12), control2: CGPoint(x: w * 0.14, y: 0))
-            path.closeSubpath()
-        case .butternut, .blueHubbard:
-            let waist: CGFloat = kind == .butternut ? 0.86 : 0.90
-            path.move(to: CGPoint(x: w * 0.5, y: 0))
-            path.addCurve(to: CGPoint(x: w * 0.99, y: bh * 0.24),
-                          control1: CGPoint(x: w * 0.88, y: 0), control2: CGPoint(x: w * 0.99, y: bh * 0.08))
-            path.addCurve(to: CGPoint(x: w * waist, y: bh * 0.62),
-                          control1: CGPoint(x: w * 0.99, y: bh * 0.44), control2: CGPoint(x: w * waist, y: bh * 0.50))
-            path.addCurve(to: CGPoint(x: w * 0.60, y: bh * 0.99),
-                          control1: CGPoint(x: w * waist, y: bh * 0.86), control2: CGPoint(x: w * 0.80, y: bh * 0.99))
-            path.addLine(to: CGPoint(x: w * 0.40, y: bh * 0.99))
-            path.addCurve(to: CGPoint(x: w * (1 - waist), y: bh * 0.62),
-                          control1: CGPoint(x: w * 0.20, y: bh * 0.99), control2: CGPoint(x: w * (1 - waist), y: bh * 0.86))
-            path.addCurve(to: CGPoint(x: w * 0.01, y: bh * 0.24),
-                          control1: CGPoint(x: w * (1 - waist), y: bh * 0.50), control2: CGPoint(x: w * 0.01, y: bh * 0.44))
-            path.addCurve(to: CGPoint(x: w * 0.5, y: 0),
-                          control1: CGPoint(x: w * 0.01, y: bh * 0.08), control2: CGPoint(x: w * 0.12, y: 0))
-            path.closeSubpath()
+    // MARK: Shapes
+
+    /// One lobe: an ellipse centered at (a·w, b·h) from the bottom-center, rx·w by ry·h, tilted `rot` degrees.
+    struct Lobe {
+        var a: CGFloat, b: CGFloat, rx: CGFloat, ry: CGFloat, rot: CGFloat
+    }
+
+    /// Left side lobe, right side lobe, front lobe.
+    static func lobes(_ shape: PumpkinShape) -> (Lobe, Lobe, Lobe) {
+        switch shape {
+        case .squat:
+            return (Lobe(a: -0.27, b: 0.45, rx: 0.24, ry: 0.45, rot: -6), Lobe(a: 0.27, b: 0.45, rx: 0.24, ry: 0.45, rot: 6),
+                    Lobe(a: 0, b: 0.48, rx: 0.3, ry: 0.48, rot: 0))
+        case .tall:
+            return (Lobe(a: -0.17, b: 0.47, rx: 0.34, ry: 0.47, rot: -4), Lobe(a: 0.17, b: 0.48, rx: 0.34, ry: 0.48, rot: 4),
+                    Lobe(a: 0, b: 0.47, rx: 0.22, ry: 0.47, rot: 0))
+        default:
+            return (Lobe(a: -0.2, b: 0.45, rx: 0.31, ry: 0.45, rot: -8), Lobe(a: 0.2, b: 0.46, rx: 0.31, ry: 0.46, rot: 8),
+                    Lobe(a: 0, b: 0.42, rx: 0.26, ry: 0.42, rot: 0))
         }
+    }
+
+    /// The ellipse of a lobe, optionally shrunk around its center by `inset`.
+    static func lobePath(_ l: Lobe, cx: CGFloat, base: CGFloat, w: CGFloat, h: CGFloat, inset: CGFloat = 1) -> CGPath {
+        let center = CGPoint(x: cx + l.a * w, y: base + l.b * h)
+        let rx = l.rx * w * inset, ry = l.ry * h * inset
+        // The mockups measure tilt clockwise with y pointing down; here y points up.
+        var t = CGAffineTransform(translationX: center.x, y: center.y).rotated(by: -l.rot * .pi / 180)
+        return CGPath(ellipseIn: CGRect(x: -rx, y: -ry, width: rx * 2, height: ry * 2), transform: &t)
+    }
+
+    /// The pear-shaped squash body.
+    static func butternutPath(cx: CGFloat, base: CGFloat, w: CGFloat, h: CGFloat) -> CGPath {
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: cx + x * w, y: base + y * h) }
+        let path = CGMutablePath()
+        path.move(to: p(-0.5, 0.3))
+        path.addCurve(to: p(0.5, 0.3), control1: p(-0.52, -0.07), control2: p(0.52, -0.07))
+        path.addCurve(to: p(0.29, 0.88), control1: p(0.48, 0.55), control2: p(0.28, 0.6))
+        path.addQuadCurve(to: p(-0.29, 0.88), control: p(0, 1.02))
+        path.addCurve(to: p(-0.5, 0.3), control1: p(-0.28, 0.6), control2: p(-0.48, 0.55))
+        path.closeSubpath()
         return path
     }
 
-    /// The rounded segments a pumpkin is made of, ordered back to front.
-    /// Round pumpkins use their lobes; tall squashes use nested ribs clipped to the body.
-    static func segments(kind: PumpkinKind, w: CGFloat, bh: CGFloat) -> [CGRect] {
-        if kind.isRound {
-            let lobes = kind == .squat ? 7 : 5
-            let lobeW = w * (kind == .squat ? 0.30 : 0.44)
-            let rects: [(CGFloat, CGRect)] = (0..<lobes).map { i in
-                let t = CGFloat(i) / CGFloat(lobes - 1)
-                let cx = lobeW / 2 + t * (w - lobeW)
-                let edge = abs(t - 0.5) * 2
-                let lh = bh * (1 - 0.12 * edge)
-                return (edge, CGRect(x: cx - lobeW / 2, y: (bh - lh) * 0.35, width: lobeW, height: lh))
-            }
-            return rects.sorted { $0.0 > $1.0 }.map { $0.1 }
-        }
-        return [0.84, 0.6, 0.34].map { f in
-            CGRect(x: w * (1 - f) / 2, y: bh * 0.005, width: w * f, height: bh * 0.99)
-        }
+    /// The whole silhouette (used to keep the vine's shadow on the pumpkin).
+    static func silhouette(kind: PumpkinKind, cx: CGFloat, base: CGFloat, w: CGFloat, h: CGFloat) -> CGPath {
+        let shape = kind.look.shape
+        if shape == .butternut { return butternutPath(cx: cx, base: base, w: w, h: h) }
+        let (l, r, m) = lobes(shape)
+        let path = CGMutablePath()
+        for lobe in [l, r, m] { path.addPath(lobePath(lobe, cx: cx, base: base, w: w, h: h)) }
+        return path
     }
 
-    /// Soft side shading across a rounded segment: darker toward both edges (more on the right,
-    /// away from the light), with a gentle highlight a third of the way in.
-    private static func shadeSegment(_ ctx: CGContext, rect: CGRect, strength: CGFloat) {
-        let space = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        let shade: [CGColor] = [
-            CGColor.hex(0x3A1A08, alpha: 0.30 * strength),
-            CGColor.hex(0x3A1A08, alpha: 0.06 * strength),
-            CGColor.hex(0x3A1A08, alpha: 0),
-            CGColor.hex(0x3A1A08, alpha: 0.12 * strength),
-            CGColor.hex(0x3A1A08, alpha: 0.42 * strength),
-        ]
-        if let gradient = CGGradient(colorsSpace: space, colors: shade as CFArray, locations: [0, 0.2, 0.42, 0.72, 1]) {
-            ctx.drawLinearGradient(gradient, start: CGPoint(x: rect.minX, y: 0), end: CGPoint(x: rect.maxX, y: 0), options: [])
+    /// A rib that bows like a bracket around a lobe. `a` keeps it away from its neighbours,
+    /// `b` sets how far it bows, so ribs never meet at the top or bottom.
+    static func bowRib(_ ctx: CGContext, center c: CGPoint, rx: CGFloat, ry: CGFloat, dir: CGFloat,
+                       a: CGFloat, b: CGFloat, t0: CGFloat, t1: CGFloat, width: CGFloat, color: CGColor, sway: CGFloat = 0) {
+        let n = 28
+        let points: [CGPoint] = (0...n).map { i in
+            let t = (t0 + (t1 - t0) * CGFloat(i) / CGFloat(n)) * .pi
+            return CGPoint(x: c.x + (dir * (a + b * sin(t)) + sway * sin(2 * t)) * rx, y: c.y + ry * cos(t))
         }
-        let shine: [CGColor] = [
-            CGColor.hex(0xFFF6E6, alpha: 0),
-            CGColor.hex(0xFFF6E6, alpha: 0.22 * strength),
-            CGColor.hex(0xFFF6E6, alpha: 0),
-        ]
-        if let gradient = CGGradient(colorsSpace: space, colors: shine as CFArray, locations: [0.14, 0.32, 0.5]) {
-            ctx.drawLinearGradient(gradient, start: CGPoint(x: rect.minX, y: 0), end: CGPoint(x: rect.maxX, y: 0), options: [])
-        }
+        let path = Brush.outline(points) { u in width * (0.2 + 0.8 * sin(.pi * pow(u, 0.85))) }
+        ctx.addPath(path)
+        ctx.setFillColor(color)
+        ctx.fillPath()
     }
 
-    private static func fillStripes(_ ctx: CGContext, look: PumpkinKind.Look, w: CGFloat, bh: CGFloat) {
-        guard let stripe = look.stripe else { return }
-        let bands: [(CGFloat, CGColor)] = [(0.82, stripe), (0.64, look.body), (0.36, stripe), (0.20, look.body)]
-        for (fraction, color) in bands {
-            let bw = w * fraction
-            ctx.setFillColor(color)
-            ctx.fillEllipse(in: CGRect(x: (w - bw) / 2, y: -bh * 0.02, width: bw, height: bh * 1.04))
-        }
-    }
+    // MARK: Drawing
 
-    private static func draw(kind: PumpkinKind, in size: CGSize, variant: Int, ctx: CGContext) {
+    /// Draws a pumpkin whose body is `w` x `h`, standing on `base` and centered on `cx`.
+    static func draw(kind: PumpkinKind, cx: CGFloat, base: CGFloat, w: CGFloat, h: CGFloat, variant: Int, ctx: CGContext) {
         var rng = SeededRandom(seed: UInt64(variant) &* 7919 &+ UInt64(PumpkinKind.allCases.firstIndex(of: kind) ?? 0))
         let look = kind.look
-        let space = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        let pad: CGFloat = 1
-        let w = size.width - pad * 2
-        let bh = size.height * (1 - look.stemFraction) - pad
+        let lineW = max(1.2, w * 0.028)
+        let stemAngle = rng.float(-12...12)
 
-        ctx.saveGState()
-        ctx.translateBy(x: pad, y: pad)
+        // The stem goes first so its base tucks behind the lobes.
+        if look.shape == .butternut {
+            drawStem(ctx, base: CGPoint(x: cx, y: base + h * 0.85), length: h * 0.24, angle: stemAngle, baseWidth: max(4, w * 0.17))
+        } else {
+            drawStem(ctx, base: CGPoint(x: cx, y: base + h * 0.74), length: h * 0.3, angle: stemAngle, baseWidth: max(4, w * 0.14))
+        }
 
-        let body = bodyPath(kind: kind, w: w, bh: bh)
-        let bodyRect = CGRect(x: 0, y: 0, width: w, height: bh)
-        let ribWidth = max(0.5, w / 110)
+        if look.shape == .butternut {
+            let body = butternutPath(cx: cx, base: base, w: w, h: h)
+            ctx.addPath(body)
+            ctx.setFillColor(look.body)
+            ctx.fillPath()
 
-        // 1. The whole body, shaded as one rounded form.
-        ctx.saveGState()
-        ctx.addPath(body)
-        ctx.clip()
-        ctx.setFillColor(look.body)
-        ctx.fill(bodyRect)
-        fillStripes(ctx, look: look, w: w, bh: bh)
-        shadeSegment(ctx, rect: bodyRect, strength: 1)
-        ctx.restoreGState()
-
-        // 2. Each lobe or rib on top, back to front, so every segment looks rounded.
-        for rect in segments(kind: kind, w: w, bh: bh) {
-            let segment = CGPath(ellipseIn: rect, transform: nil)
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: cx + x * w, y: base + y * h) }
+            // A darker right side on the bulb, kept inside the body.
             ctx.saveGState()
             ctx.addPath(body)
             ctx.clip()
-            ctx.addPath(segment)
+            let side = CGMutablePath()
+            side.move(to: p(0.12, -0.02))
+            side.addCurve(to: p(0.44, 0.45), control1: p(0.42, 0.02), control2: p(0.55, 0.25))
+            side.addCurve(to: p(0.12, -0.02), control1: p(0.38, 0.3), control2: p(0.3, 0.1))
+            ctx.addPath(side)
+            ctx.setFillColor(look.side)
+            ctx.fillPath()
+            ctx.restoreGState()
+
+            // Two S-curved ribs around the bulb, clipped to a slightly smaller body.
+            ctx.saveGState()
+            var shrink = CGAffineTransform(translationX: cx, y: base + h * 0.45).scaledBy(x: 0.88, y: 0.88)
+                .translatedBy(x: -cx, y: -(base + h * 0.45))
+            if let inner = body.copy(using: &shrink) {
+                ctx.addPath(inner)
+                ctx.clip()
+            }
+            Brush.stroke(ctx, [p(-0.02, 0.86), p(0.04, 0.62), p(-0.56, 0.38), p(-0.2, 0.05)],
+                         maxWidth: lineW * 1.2, color: look.rib, minF: 0.25, endF: 0.2)
+            Brush.stroke(ctx, [p(0.06, 0.8), p(-0.04, 0.55), p(0.48, 0.36), p(0.16, 0.05)],
+                         maxWidth: lineW * 1.2, color: look.rib, minF: 0.25, endF: 0.2)
+            ctx.restoreGState()
+
+            // Little spot where the flower was.
+            ctx.setFillColor(Palette.rust.withAlpha(0.6))
+            ctx.fillEllipse(in: CGRect(x: cx + w * 0.02 - w * 0.07, y: base + h * 0.06 - h * 0.025, width: w * 0.14, height: h * 0.05))
+            return
+        }
+
+        let (left, right, front) = lobes(look.shape)
+
+        // Side lobes, each with one rib centered in the part that stays visible.
+        for (lobe, dir) in [(left, CGFloat(-1)), (right, CGFloat(1))] {
+            ctx.addPath(lobePath(lobe, cx: cx, base: base, w: w, h: h))
+            ctx.setFillColor(look.side)
+            ctx.fillPath()
+            ctx.saveGState()
+            ctx.addPath(lobePath(lobe, cx: cx, base: base, w: w, h: h, inset: 0.86))
             ctx.clip()
-            ctx.setFillColor(look.body)
-            ctx.fill(bodyRect)
-            fillStripes(ctx, look: look, w: w, bh: bh)
-            shadeSegment(ctx, rect: rect, strength: kind.isRound ? 0.85 : 0.7)
-            // The crease where this segment meets the one behind it.
-            ctx.addPath(segment)
-            ctx.setStrokeColor(look.rib.withAlpha(0.55))
-            ctx.setLineWidth(ribWidth * 2)
-            ctx.strokePath()
+            bowRib(ctx, center: CGPoint(x: cx + lobe.a * w, y: base + lobe.b * h), rx: lobe.rx * w, ry: lobe.ry * h * 0.95,
+                   dir: dir, a: 0.22, b: 0.34, t0: 0.22, t1: 0.78, width: lineW * 1.2, color: look.rib)
             ctx.restoreGState()
         }
 
-        // 3. Light from above: darker underneath, a dimple around the stem.
+        // The front lobe covers the side ribs where they meet, then gets its own ribs inside it.
+        ctx.addPath(lobePath(front, cx: cx, base: base, w: w, h: h))
+        ctx.setFillColor(look.body)
+        ctx.fillPath()
         ctx.saveGState()
-        ctx.addPath(body)
+        ctx.addPath(lobePath(front, cx: cx, base: base, w: w, h: h, inset: 0.88))
         ctx.clip()
-        let vertical: [CGColor] = [
-            CGColor.hex(0x2A1205, alpha: 0.38),
-            CGColor.hex(0x2A1205, alpha: 0.0),
-            CGColor.hex(0x2A1205, alpha: 0.0),
-            CGColor.hex(0x2A1205, alpha: 0.18),
-        ]
-        if let gradient = CGGradient(colorsSpace: space, colors: vertical as CFArray, locations: [0, 0.38, 0.8, 1]) {
-            ctx.drawLinearGradient(gradient, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: bh), options: [])
+        let fc = CGPoint(x: cx, y: base + front.b * h), frx = front.rx * w, fry = front.ry * h * 0.95
+        bowRib(ctx, center: fc, rx: frx, ry: fry, dir: -1, a: 0.24, b: 0.34, t0: 0.2, t1: 0.8, width: lineW * 1.2, color: look.rib)
+        bowRib(ctx, center: fc, rx: frx, ry: fry, dir: 1, a: 0.24, b: 0.34, t0: 0.2, t1: 0.8, width: lineW * 1.2, color: look.rib)
+        // A gently swaying middle rib, only when the lobe is wide enough to keep the ribs apart.
+        if frx > 12 {
+            let sway: CGFloat = rng.float(0...1) < 0.5 ? -0.07 : 0.07
+            bowRib(ctx, center: fc, rx: frx, ry: fry, dir: 1, a: 0, b: 0, t0: 0.24, t1: 0.76, width: lineW * 1.05,
+                   color: look.rib, sway: sway)
         }
-        // A soft glow on the upper left.
-        let glow: [CGColor] = [CGColor.hex(0xFFF3DC, alpha: 0.28), CGColor.hex(0xFFF3DC, alpha: 0)]
-        if let gradient = CGGradient(colorsSpace: space, colors: glow as CFArray, locations: [0, 1]) {
-            let c = CGPoint(x: w * 0.32, y: bh * 0.66)
-            ctx.drawRadialGradient(gradient, startCenter: c, startRadius: 0, endCenter: c, endRadius: max(w, bh) * 0.36, options: [])
-        }
-        ctx.restoreGState()
-
-        // 4. The speckled, printed texture from the reference style.
-        TextureMaker.speckle(ctx, clip: body, in: bodyRect, dark: look.speckDark, light: look.speckLight,
-                             density: 0.08, rng: &rng)
-
-        // 5. Stem.
-        let topY = bh - (kind.isRound ? bh * 0.07 : bh * 0.02)
-        let stemH = size.height - topY - pad * 2
-        let lean: CGFloat = (variant % 2 == 0 ? 1 : -1) * stemH * CGFloat(0.25 + 0.1 * Double(variant % 3))
-        let baseWidth = max(3, min(w * (kind.isRound ? 0.16 : 0.22), 11))
-        let base = CGPoint(x: w / 2, y: topY)
-        drawStem(ctx, look: look, base: base, height: stemH, lean: lean, baseWidth: baseWidth)
-
-        // 6. Curly tendril.
-        if look.hasTendril {
-            let curl = CGMutablePath()
-            let dir: CGFloat = lean > 0 ? -1 : 1
-            let start = CGPoint(x: base.x, y: base.y + stemH * 0.3)
-            curl.move(to: start)
-            curl.addCurve(to: CGPoint(x: start.x + dir * w * 0.32, y: start.y + stemH * 0.35),
-                          control1: CGPoint(x: start.x + dir * w * 0.12, y: start.y + stemH * 0.5),
-                          control2: CGPoint(x: start.x + dir * w * 0.22, y: start.y - stemH * 0.05))
-            curl.addCurve(to: CGPoint(x: start.x + dir * w * 0.44, y: start.y + stemH * 0.55),
-                          control1: CGPoint(x: start.x + dir * w * 0.42, y: start.y + stemH * 0.65),
-                          control2: CGPoint(x: start.x + dir * w * 0.34, y: start.y + stemH * 0.7))
-            ctx.setStrokeColor(Palette.vine)
-            ctx.setLineWidth(max(0.6, w / 70))
-            ctx.addPath(curl)
-            ctx.strokePath()
-        }
-
         ctx.restoreGState()
     }
 
-    /// A tapered, ridged stem with a flared base and a cut, dried top.
-    static func drawStem(_ ctx: CGContext, look: PumpkinKind.Look, base: CGPoint, height: CGFloat, lean: CGFloat, baseWidth: CGFloat) {
-        let space = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        let tip = CGPoint(x: base.x + lean, y: base.y + height * 0.92)
-        let control = CGPoint(x: base.x - lean * 0.2, y: base.y + height * 0.65)
-        let topWidth = baseWidth * 0.58
+    /// A chunky rust stem with a cut top and a plum shadow ridge, like the wagon pumpkins.
+    /// `angle` is in degrees; positive leans right.
+    static func drawStem(_ ctx: CGContext, base: CGPoint, length: CGFloat, angle: CGFloat, baseWidth bw: CGFloat) {
+        let a = angle * .pi / 180
+        let d = CGPoint(x: sin(a), y: cos(a))   // along the stem, upward
+        let n = CGPoint(x: cos(a), y: -sin(a))  // across the stem, to the right
+        let tip = CGPoint(x: base.x + d.x * length, y: base.y + d.y * length)
+        let tw = bw * 0.62, bend = bw * 0.35
+        func at(_ along: CGFloat, _ across: CGFloat, from o: CGPoint = base) -> CGPoint {
+            CGPoint(x: o.x + d.x * along + n.x * across, y: o.y + d.y * along + n.y * across)
+        }
+        let path = CGMutablePath()
+        path.move(to: at(0, -bw / 2))
+        path.addQuadCurve(to: at(0, -tw / 2, from: tip), control: at(length * 0.55, -(bw * 0.42 - bend)))
+        path.addLine(to: at(tw * 0.25, tw / 2, from: tip))
+        path.addQuadCurve(to: at(0, bw / 2), control: at(length * 0.55, bw * 0.42 + bend))
+        path.closeSubpath()
+        ctx.addPath(path)
+        ctx.setFillColor(Palette.rust)
+        ctx.fillPath()
 
-        func point(_ t: CGFloat) -> CGPoint {
-            let a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t
-            return CGPoint(x: a * base.x + b * control.x + c * tip.x, y: a * base.y + b * control.y + c * tip.y)
-        }
-        func normal(_ t: CGFloat) -> CGPoint {
-            let dx = 2 * (1 - t) * (control.x - base.x) + 2 * t * (tip.x - control.x)
-            let dy = 2 * (1 - t) * (control.y - base.y) + 2 * t * (tip.y - control.y)
-            let len = max(0.001, sqrt(dx * dx + dy * dy))
-            return CGPoint(x: -dy / len, y: dx / len)
-        }
-        func halfWidth(_ t: CGFloat) -> CGFloat {
-            // Flared at the bottom, then a steady taper.
-            let flare = pow(max(0, 1 - t * 4), 2) * baseWidth * 0.35
-            return (baseWidth + (topWidth - baseWidth) * t) / 2 + flare
-        }
+        // Plum shadow ridge down one side.
+        let tw2 = bw * 0.7
+        Brush.stroke(ctx, [CGPoint(x: base.x + n.x * bw * 0.18, y: base.y + n.y * bw * 0.18 + 2),
+                           at(length * 0.5, bw * 0.16),
+                           CGPoint(x: tip.x + n.x * tw2 * 0.12, y: tip.y + n.y * tw2 * 0.12 - 2)],
+                     maxWidth: bw * 0.26, color: Palette.plum, minF: 0.5, endF: 0.3)
 
-        let steps = 16
-        let outline = CGMutablePath()
-        for i in 0...steps {
-            let t = CGFloat(i) / CGFloat(steps)
-            let p = point(t), n = normal(t), h = halfWidth(t)
-            let q = CGPoint(x: p.x + n.x * h, y: p.y + n.y * h)
-            if i == 0 { outline.move(to: q) } else { outline.addLine(to: q) }
-        }
-        for i in stride(from: steps, through: 0, by: -1) {
-            let t = CGFloat(i) / CGFloat(steps)
-            let p = point(t), n = normal(t), h = halfWidth(t)
-            outline.addLine(to: CGPoint(x: p.x - n.x * h, y: p.y - n.y * h))
-        }
-        outline.closeSubpath()
-
-        // Body of the stem: lit from the left.
-        ctx.saveGState()
-        ctx.addPath(outline)
-        ctx.clip()
-        let colors: [CGColor] = [LeafArt.lighter(look.stem), look.stem, look.stemDark]
-        if let gradient = CGGradient(colorsSpace: space, colors: colors as CFArray, locations: [0, 0.45, 1]) {
-            let box = outline.boundingBoxOfPath
-            ctx.drawLinearGradient(gradient, start: CGPoint(x: box.minX, y: 0), end: CGPoint(x: box.maxX, y: 0), options: [])
-        }
-        // Ridges running up the stem.
-        ctx.setStrokeColor(look.stemDark.withAlpha(0.65))
-        ctx.setLineWidth(max(0.4, baseWidth / 12))
-        for offset in [-0.45, 0.0, 0.4] as [CGFloat] {
-            let ridge = CGMutablePath()
-            for i in 0...steps {
-                let t = CGFloat(i) / CGFloat(steps)
-                let p = point(t), n = normal(t), h = halfWidth(t) * offset
-                let q = CGPoint(x: p.x + n.x * h, y: p.y + n.y * h)
-                if i == 0 { ridge.move(to: q) } else { ridge.addLine(to: q) }
-            }
-            ctx.addPath(ridge)
-        }
-        ctx.strokePath()
-        ctx.restoreGState()
-
-        // The dried, cut end.
-        let capW = topWidth * 1.05
-        let cap = CGRect(x: tip.x - capW / 2, y: tip.y - capW * 0.22, width: capW, height: capW * 0.44)
-        ctx.setFillColor(CGColor.hex(0xC9A27A))
-        ctx.fillEllipse(in: cap)
-        ctx.setStrokeColor(look.stemDark)
-        ctx.setLineWidth(max(0.4, baseWidth / 14))
-        ctx.strokeEllipse(in: cap)
+        // The cut top, a little lighter.
+        let cut = CGPoint(x: tip.x + d.x * tw2 * 0.1, y: tip.y + d.y * tw2 * 0.1)
+        var t = CGAffineTransform(translationX: cut.x, y: cut.y).rotated(by: -a)
+        let rx = tw2 * 0.5, ry = tw2 * 0.22
+        ctx.addPath(CGPath(ellipseIn: CGRect(x: -rx, y: -ry, width: rx * 2, height: ry * 2), transform: &t))
+        ctx.setFillColor(Palette.stemCut)
+        ctx.fillPath()
     }
 
-    /// A soft contact shadow that sits under each pumpkin.
+    /// A flat, soft contact shadow that sits under each pumpkin.
     static func shadowTexture(width: CGFloat, scale: CGFloat) -> SKTexture {
         let key = "shadow-\(Int(width))-\(scale)"
         if let cached = cache[key] { return cached }
-        let size = CGSize(width: width, height: max(4, width * 0.22))
+        let size = CGSize(width: width, height: 8)
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            let space = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-            let colors: [CGColor] = [CGColor.hex(0x1E0E04, alpha: 0.42), CGColor.hex(0x1E0E04, alpha: 0)]
-            guard let gradient = CGGradient(colorsSpace: space, colors: colors as CFArray, locations: [0, 1]) else { return }
-            ctx.scaleBy(x: 1, y: size.height / size.width)
-            let c = CGPoint(x: size.width / 2, y: size.width / 2)
-            ctx.drawRadialGradient(gradient, startCenter: c, startRadius: 0, endCenter: c, endRadius: size.width / 2, options: [])
+            ctx.setFillColor(CGColor(srgbRed: 90 / 255, green: 40 / 255, blue: 25 / 255, alpha: 0.22))
+            ctx.fillEllipse(in: CGRect(origin: .zero, size: size))
+        }
+        cache[key] = texture
+        return texture
+    }
+
+    // MARK: Vine wrapping in front of a pumpkin
+
+    /// How far below a pumpkin sprite's bottom the front-vine texture reaches.
+    static func frontVineBottomMargin(unit k: CGFloat) -> CGFloat { (10 * k).rounded() }
+
+    /// Size of the texture holding the piece of vine that loops across the front of a pumpkin.
+    static func frontVineSize(kind: PumpkinKind, height: CGFloat, unit k: CGFloat) -> CGSize {
+        let body = bodySize(of: kind, height: height)
+        let sprite = size(of: kind, height: height)
+        return CGSize(width: (body.width * 1.6 + 60 * k).rounded(), height: (sprite.height + frontVineBottomMargin(unit: k)).rounded())
+    }
+
+    /// The vine arcing up across the lower front of a pumpkin, with its shadow on the pumpkin,
+    /// a leaf and a curl. `leftY` and `rightY` are where the main vine runs, measured from the
+    /// pumpkin's bottom, so the loop joins it at both ends.
+    static func frontVineTexture(kind: PumpkinKind, height: CGFloat, variant: Int, flip: Bool,
+                                 leftY: CGFloat, rightY: CGFloat, unit k: CGFloat, scale: CGFloat) -> SKTexture {
+        let size = frontVineSize(kind: kind, height: height, unit: k)
+        let key = "front-\(kind)-\(Int(height))-\(variant)-\(flip)-\(Int(leftY * 2))-\(Int(rightY * 2))-\(scale)"
+        if let cached = cache[key] { return cached }
+        if cache.count > 300 { cache.removeAll() }
+        let body = bodySize(of: kind, height: height)
+        let margin = frontVineBottomMargin(unit: k)
+        let texture = TextureMaker.make(size: size, scale: scale) { ctx in
+            let cx = size.width / 2, base = margin + pad
+            let w = body.width, h = body.height
+            let half = w * 0.62
+            let x0 = cx - half * 1.06, x1 = cx + half * 1.06
+            func vineY(_ x: CGFloat) -> CGFloat {
+                let t = (x - x0) / (x1 - x0)
+                let level = margin + leftY + (rightY - leftY) * t
+                let u = (x - cx) / half
+                let bump = abs(u) < 1 ? h * 0.24 * pow(cos(u * .pi / 2), 2) : 0
+                return level + bump
+            }
+            let xs = stride(from: x0, through: x1, by: 2).map { $0 }
+            let points = xs.map { CGPoint(x: $0, y: vineY($0)) }
+            func widths(_ maxW: CGFloat) -> (CGFloat) -> CGFloat {
+                { t in
+                    let x = x0 + (x1 - x0) * t
+                    return maxW * (0.55 + 0.3 * sin(x / 31) * sin(x / 13) + 0.25 * sin(.pi * t))
+                }
+            }
+
+            // Shadow of the loop, only where it falls on the pumpkin.
+            ctx.saveGState()
+            ctx.addPath(silhouette(kind: kind, cx: cx, base: base, w: w, h: h))
+            ctx.clip()
+            ctx.translateBy(x: 1.5 * k, y: -4 * k)
+            ctx.addPath(Brush.outline(points, width: widths(7 * k)))
+            ctx.setFillColor(Palette.shadowInk.withAlpha(0.3))
+            ctx.fillPath()
+            ctx.restoreGState()
+
+            // The loop itself.
+            ctx.addPath(Brush.outline(points, width: widths(6 * k)))
+            ctx.setFillColor(Palette.green)
+            ctx.fillPath()
+
+            // A leaf and a curl riding on the loop.
+            let side: CGFloat = flip ? 1 : -1
+            let lx = cx + side * w * 0.18
+            LeafArt.drawWagonLeaf(ctx, kind: .serrated, at: CGPoint(x: lx + side * 14 * k, y: vineY(lx) + 10 * k),
+                                  length: 28 * k, angle: flip ? 35 : 145, flip: flip)
+            let tx = cx - side * w * 0.25
+            Brush.tendril(ctx, from: CGPoint(x: tx, y: vineY(tx)), dir: -side, size: 26 * k, color: Palette.green)
+            _ = variant
         }
         cache[key] = texture
         return texture
@@ -524,17 +557,15 @@ enum PumpkinArt {
             }
             path.closeSubpath()
             ctx.addPath(path)
-            ctx.setFillColor(look.stripe != nil && variant % 3 == 0 ? look.stripe! : look.body)
+            ctx.setFillColor(variant % 3 == 0 ? look.side : look.body)
             ctx.fillPath()
-            // A strip of soft inner flesh on one edge.
+            // A strip of flat, pale flesh on one edge.
             ctx.saveGState()
             ctx.addPath(path)
             ctx.clip()
-            ctx.setFillColor(Palette.golden.withAlpha(0.55))
-            ctx.fill(CGRect(x: 0, y: 0, width: size, height: size * 0.28))
+            ctx.setFillColor(Palette.peach.withAlpha(0.7))
+            ctx.fill(CGRect(x: 0, y: 0, width: size, height: size * 0.26))
             ctx.restoreGState()
-            TextureMaker.speckle(ctx, clip: path, in: CGRect(origin: .zero, size: s),
-                                 dark: look.speckDark, light: look.speckLight, density: 0.12, rng: &rng)
         }
         cache[key] = texture
         return texture
@@ -563,7 +594,7 @@ enum PumpkinArt {
         let size = CGSize(width: width, height: width * 0.32)
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
             var rng = SeededRandom(seed: UInt64(width) &+ 99)
-            ctx.setFillColor(kind.look.body.withAlpha(0.8))
+            ctx.setFillColor(kind.look.body.withAlpha(0.85))
             ctx.fillEllipse(in: CGRect(x: width * 0.12, y: size.height * 0.1, width: width * 0.76, height: size.height * 0.75))
             for _ in 0..<9 {
                 let r = rng.float(width * 0.04...width * 0.1)
@@ -583,372 +614,207 @@ enum PumpkinArt {
     }
 }
 
-// MARK: - Leaves, acorns and berries
+// MARK: - Leaves
 
+/// The four leaves from the wagon picture.
 enum LeafKind: CaseIterable {
-    case maple, mapleRed, oval, ginkgo, acorn, berries
+    case oak       // mustard oak leaf with rust veins
+    case ovate     // rust leaf with plum veins
+    case serrated  // green toothed leaf with plum veins
+    case plum      // plum leaf with mustard veins
 
-    static let fallers: [LeafKind] = [.maple, .mapleRed, .oval, .ginkgo]
+    static let fallers: [LeafKind] = LeafKind.allCases
+
+    var fill: CGColor {
+        switch self {
+        case .oak: return Palette.mustard
+        case .ovate: return Palette.rust
+        case .serrated: return Palette.green
+        case .plum: return Palette.plum
+        }
+    }
+
+    var vein: CGColor {
+        switch self {
+        case .oak: return Palette.rust
+        case .ovate, .serrated: return Palette.plum
+        case .plum: return Palette.mustard
+        }
+    }
 }
 
 enum LeafArt {
     private static var cache: [String: SKTexture] = [:]
 
+    /// A single leaf in a square sprite, for falling and flying leaves.
     static func texture(_ kind: LeafKind, size: CGFloat, variant: Int, scale: CGFloat) -> SKTexture {
         let key = "\(kind)-\(Int(size))-\(variant)-\(scale)"
         if let cached = cache[key] { return cached }
         let s = CGSize(width: size, height: size)
         let texture = TextureMaker.make(size: s, scale: scale) { ctx in
-            var rng = SeededRandom(seed: UInt64(variant) &* 31337 &+ 5)
-            switch kind {
-            case .maple: drawMaple(ctx, size: size, color: variant % 2 == 0 ? Palette.maple : Palette.golden, rng: &rng)
-            case .mapleRed: drawMaple(ctx, size: size, color: Palette.mapleRed, rng: &rng)
-            case .oval: drawOval(ctx, size: size, color: variant % 2 == 0 ? Palette.sage : Palette.rust, rng: &rng)
-            case .ginkgo: drawGinkgo(ctx, size: size, rng: &rng)
-            case .acorn: drawAcorn(ctx, size: size, rng: &rng)
-            case .berries: drawBerries(ctx, size: size, rng: &rng)
-            }
+            // Lay the leaf along the diagonal so it fills the square.
+            let length = size * 0.78
+            drawWagonLeaf(ctx, kind: kind, at: CGPoint(x: size * 0.54, y: size * 0.54), length: length,
+                          angle: 45, flip: variant % 2 == 1)
         }
         cache[key] = texture
         return texture
     }
 
-    static func darker(_ c: CGColor) -> CGColor {
-        guard let comps = c.components, comps.count >= 3 else { return c }
-        return CGColor(srgbRed: comps[0] * 0.68, green: comps[1] * 0.6, blue: comps[2] * 0.55, alpha: 1)
-    }
-
-    static func lighter(_ c: CGColor) -> CGColor {
-        guard let comps = c.components, comps.count >= 3 else { return c }
-        return CGColor(srgbRed: min(1, comps[0] * 1.1 + 0.08), green: min(1, comps[1] * 1.1 + 0.1), blue: min(1, comps[2] * 1.1 + 0.1), alpha: 1)
-    }
-
-    private static func drawMaple(_ ctx: CGContext, size: CGFloat, color: CGColor, rng: inout SeededRandom) {
-        let c = CGPoint(x: size / 2, y: size * 0.45)
-        let path = CGMutablePath()
-        let steps = 90
-        for i in 0...steps {
-            let t = CGFloat(i) / CGFloat(steps)
-            let a = t * .pi * 2 + .pi / 2
-            // Five pointed lobes with little teeth, missing the bottom (where the stem goes).
-            let lobe = pow(abs(cos(2.5 * (a - .pi / 2))), 0.6)
-            let teeth = 0.06 * abs(sin(a * 15))
-            let bottomNotch = max(0, -sin(a)) // ~1 at the bottom
-            let r = size * 0.48 * (0.45 + 0.55 * lobe + teeth) * (1 - 0.45 * pow(bottomNotch, 6))
-            let p = CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r)
-            if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+    /// The outline of a leaf lying along the x axis from 0 to `length`.
+    private static func outline(_ kind: LeafKind, length: CGFloat, width: CGFloat) -> CGPath {
+        let n = 60
+        var top: [CGPoint] = [], bottom: [CGPoint] = []
+        let ovate = kind == .ovate || kind == .plum
+        for i in 0...n {
+            let t = CGFloat(i) / CGFloat(n)
+            var hw = width * pow(sin(.pi * pow(t, ovate ? 0.75 : 0.9)), 0.85)
+            if kind == .oak { hw *= 0.78 + 0.32 * abs(sin(t * .pi * 4.5)) }
+            if kind == .serrated { hw *= 1 - 0.16 * (t * 9).truncatingRemainder(dividingBy: 1) }
+            top.append(CGPoint(x: t * length, y: hw))
+            bottom.append(CGPoint(x: t * length, y: -hw * (ovate ? 1.05 : 1)))
         }
+        let path = CGMutablePath()
+        path.addLines(between: top + bottom.reversed())
         path.closeSubpath()
-        ctx.addPath(path)
-        ctx.setFillColor(color)
-        ctx.fillPath()
-        TextureMaker.speckle(ctx, clip: path, in: CGRect(x: 0, y: 0, width: size, height: size),
-                             dark: darker(color), light: lighter(color), density: 0.1, rng: &rng)
-        // Veins and stem.
-        ctx.setStrokeColor(darker(color))
-        ctx.setLineWidth(max(0.5, size / 40))
-        for k in 0..<5 {
-            let a = CGFloat.pi / 2 + CGFloat(k - 2) * (2 * .pi / 5)
-            ctx.move(to: c)
-            ctx.addLine(to: CGPoint(x: c.x + cos(a) * size * 0.36, y: c.y + sin(a) * size * 0.36))
-        }
-        ctx.move(to: c)
-        ctx.addLine(to: CGPoint(x: c.x + size * 0.05, y: size * 0.02))
-        ctx.strokePath()
+        return path
     }
 
-    private static func drawOval(_ ctx: CGContext, size: CGFloat, color: CGColor, rng: inout SeededRandom) {
-        let path = CGMutablePath()
-        let bottom = CGPoint(x: size * 0.5, y: size * 0.14)
-        let top = CGPoint(x: size * 0.5, y: size * 0.98)
-        path.move(to: bottom)
-        path.addQuadCurve(to: top, control: CGPoint(x: size * 1.02, y: size * 0.5))
-        path.addQuadCurve(to: bottom, control: CGPoint(x: -size * 0.02, y: size * 0.5))
-        ctx.addPath(path)
-        ctx.setFillColor(color)
-        ctx.fillPath()
-        TextureMaker.speckle(ctx, clip: path, in: CGRect(x: 0, y: 0, width: size, height: size),
-                             dark: darker(color), light: lighter(color), density: 0.1, rng: &rng)
-        ctx.setStrokeColor(darker(color))
-        ctx.setLineWidth(max(0.5, size / 40))
-        ctx.move(to: CGPoint(x: size * 0.5, y: 0))
-        ctx.addLine(to: CGPoint(x: size * 0.5, y: size * 0.9))
-        for k in 1...4 {
-            let y = size * (0.2 + CGFloat(k) * 0.15)
-            ctx.move(to: CGPoint(x: size * 0.5, y: y))
-            ctx.addLine(to: CGPoint(x: size * 0.28, y: y + size * 0.1))
-            ctx.move(to: CGPoint(x: size * 0.5, y: y))
-            ctx.addLine(to: CGPoint(x: size * 0.72, y: y + size * 0.1))
-        }
-        ctx.strokePath()
-    }
-
-    private static func drawGinkgo(_ ctx: CGContext, size: CGFloat, rng: inout SeededRandom) {
-        let color = Palette.golden
-        let base = CGPoint(x: size * 0.5, y: size * 0.3)
-        let path = CGMutablePath()
-        path.move(to: base)
-        path.addLine(to: CGPoint(x: size * 0.06, y: size * 0.72))
-        path.addQuadCurve(to: CGPoint(x: size * 0.46, y: size * 0.92), control: CGPoint(x: size * 0.18, y: size * 0.98))
-        path.addLine(to: CGPoint(x: size * 0.5, y: size * 0.82))
-        path.addLine(to: CGPoint(x: size * 0.54, y: size * 0.92))
-        path.addQuadCurve(to: CGPoint(x: size * 0.94, y: size * 0.72), control: CGPoint(x: size * 0.82, y: size * 0.98))
-        path.closeSubpath()
-        ctx.addPath(path)
-        ctx.setFillColor(color)
-        ctx.fillPath()
-        ctx.setStrokeColor(darker(color).withAlpha(0.6))
-        ctx.setLineWidth(max(0.4, size / 60))
-        for k in 0..<9 {
-            let a = CGFloat.pi * (0.22 + 0.56 * CGFloat(k) / 8)
-            ctx.move(to: base)
-            ctx.addLine(to: CGPoint(x: base.x - cos(a) * size * 0.58, y: base.y + sin(a) * size * 0.58))
-        }
-        ctx.strokePath()
-        ctx.setStrokeColor(Palette.stemBrown)
-        ctx.setLineWidth(max(0.6, size / 35))
-        ctx.move(to: base)
-        ctx.addQuadCurve(to: CGPoint(x: size * 0.62, y: 0), control: CGPoint(x: size * 0.52, y: size * 0.12))
-        ctx.strokePath()
-        _ = rng.next()
-    }
-
-    private static func drawAcorn(_ ctx: CGContext, size: CGFloat, rng: inout SeededRandom) {
-        let nut = CGRect(x: size * 0.22, y: size * 0.05, width: size * 0.56, height: size * 0.62)
-        let nutPath = CGPath(ellipseIn: nut, transform: nil)
-        ctx.addPath(nutPath)
-        ctx.setFillColor(Palette.acorn)
-        ctx.fillPath()
-        TextureMaker.speckle(ctx, clip: nutPath, in: nut, dark: darker(Palette.acorn), light: lighter(Palette.acorn),
-                             density: 0.08, rng: &rng)
-        let cap = CGRect(x: size * 0.16, y: size * 0.5, width: size * 0.68, height: size * 0.34)
-        let capPath = CGPath(ellipseIn: cap, transform: nil)
-        ctx.addPath(capPath)
-        ctx.setFillColor(Palette.acornCap)
-        ctx.fillPath()
-        // Cross-hatch on the cap.
+    /// A wagon-style leaf: flat fill, a curved stalk, a midrib and tapered side veins.
+    /// `at` is the leaf's middle; `angle` is in degrees, counterclockwise from pointing right.
+    static func drawWagonLeaf(_ ctx: CGContext, kind: LeafKind, at center: CGPoint, length: CGFloat, angle: CGFloat, flip: Bool) {
+        let width = length * (kind == .ovate || kind == .plum ? 0.34 : 0.3)
+        let vw = max(0.7, length * 0.028)
         ctx.saveGState()
-        ctx.addPath(capPath)
-        ctx.clip()
-        ctx.setStrokeColor(darker(Palette.acornCap))
-        ctx.setLineWidth(max(0.4, size / 60))
-        var x = -size
-        while x < size * 2 {
-            ctx.move(to: CGPoint(x: x, y: cap.minY))
-            ctx.addLine(to: CGPoint(x: x + cap.height, y: cap.maxY))
-            ctx.move(to: CGPoint(x: x + cap.height, y: cap.minY))
-            ctx.addLine(to: CGPoint(x: x, y: cap.maxY))
-            x += size * 0.1
-        }
-        ctx.strokePath()
-        ctx.restoreGState()
-        ctx.setStrokeColor(Palette.stemBrownDark)
-        ctx.setLineWidth(max(1, size / 14))
-        ctx.move(to: CGPoint(x: size * 0.5, y: cap.maxY - 1))
-        ctx.addLine(to: CGPoint(x: size * 0.56, y: size * 0.97))
-        ctx.strokePath()
-    }
+        ctx.translateBy(x: center.x, y: center.y)
+        ctx.rotate(by: angle * .pi / 180)
+        if flip { ctx.scaleBy(x: 1, y: -1) }
+        ctx.translateBy(x: -length / 2, y: 0)
 
-    private static func drawBerries(_ ctx: CGContext, size: CGFloat, rng: inout SeededRandom) {
-        ctx.setStrokeColor(Palette.stemBrown)
-        ctx.setLineWidth(max(0.6, size / 30))
-        let joint = CGPoint(x: size * 0.5, y: size * 0.88)
-        let berries = [CGPoint(x: size * 0.28, y: size * 0.3), CGPoint(x: size * 0.55, y: size * 0.22), CGPoint(x: size * 0.74, y: size * 0.42)]
-        for b in berries {
-            ctx.move(to: joint)
-            ctx.addQuadCurve(to: b, control: CGPoint(x: (joint.x + b.x) / 2 + size * 0.05, y: (joint.y + b.y) / 2 + size * 0.1))
+        // Stalk.
+        Brush.stroke(ctx, [CGPoint(x: -length * 0.32, y: length * 0.06), CGPoint(x: -length * 0.15, y: length * 0.05),
+                           CGPoint(x: length * 0.05, y: 0)], maxWidth: vw * 1.1, color: kind.vein, minF: 0.6)
+        ctx.addPath(outline(kind, length: length, width: width))
+        ctx.setFillColor(kind.fill)
+        ctx.fillPath()
+        // Midrib and side veins.
+        Brush.stroke(ctx, [CGPoint(x: 0, y: 0), CGPoint(x: length * 0.45, y: -length * 0.02), CGPoint(x: length * 0.88, y: 0)],
+                     maxWidth: vw * 1.3, color: kind.vein, minF: 0.5, endF: 0.1)
+        for k in 0..<5 {
+            let bx = (0.16 + CGFloat(k) * 0.14) * length
+            let side = width * (0.6 - CGFloat(k) * 0.08)
+            for s in [CGFloat(1), -1] {
+                Brush.stroke(ctx, [CGPoint(x: bx, y: 0), CGPoint(x: bx + length * 0.03, y: s * side * 0.6),
+                                   CGPoint(x: bx + length * 0.12, y: s * side * 0.95)],
+                             maxWidth: vw, color: kind.vein, minF: 0.4, endF: 0.1)
+            }
         }
-        ctx.strokePath()
-        for b in berries {
-            let r = size * rng.float(0.15...0.19)
-            let rect = CGRect(x: b.x - r, y: b.y - r * 1.15, width: r * 2, height: r * 2.3)
-            let p = CGPath(ellipseIn: rect, transform: nil)
-            ctx.addPath(p)
-            ctx.setFillColor(Palette.berry)
-            ctx.fillPath()
-            TextureMaker.speckle(ctx, clip: p, in: rect, dark: darker(Palette.berry), light: lighter(Palette.berry),
-                                 density: 0.1, rng: &rng)
-            ctx.setFillColor(Palette.stemBrownDark)
-            ctx.fillEllipse(in: CGRect(x: b.x - 0.8, y: rect.minY - 0.4, width: 1.6, height: 1.6))
-        }
+        ctx.restoreGState()
     }
 }
 
 // MARK: - Vines
 
-/// A leafy pumpkin vine that runs along the top of the Dock, with big lobed leaves,
-/// curly tendrils and a few golden blossoms.
+/// The leafy pumpkin vine that runs along the top of the Dock behind the pumpkins: a wavy main
+/// vine that swells and pinches, a thinner darker strand weaving around it, leaves, curls and buds.
+/// The pieces that loop in front of pumpkins are drawn per pumpkin (see `PumpkinArt.frontVineTexture`).
 enum VineArt {
     private static var cache: [String: SKTexture] = [:]
 
-    static func texture(width: CGFloat, height: CGFloat, seed: Int, scale: CGFloat) -> SKTexture {
-        let key = "vine-\(Int(width))-\(Int(height))-\(seed)-\(scale)"
+    /// Where the middle of the main vine sits, measured up from the bottom of the vine texture.
+    /// `x` is measured from the texture's left edge; `k` is the size unit (1 ≈ a 62 pt pumpkin).
+    static func centerY(x: CGFloat, unit k: CGFloat) -> CGFloat {
+        baseLevel(unit: k) - (sin(x / (47 * k)) * 3.2 + sin(x / (17 * k)) * 1.2) * k
+    }
+
+    static func baseLevel(unit k: CGFloat) -> CGFloat { 8 * k }
+
+    static func texture(width: CGFloat, height: CGFloat, seed: Int, unit k: CGFloat, scale: CGFloat) -> SKTexture {
+        let key = "vine-\(Int(width))-\(Int(height))-\(seed)-\(Int(k * 100))-\(scale)"
         if let cached = cache[key] { return cached }
         if cache.count > 40 { cache.removeAll() }
         let size = CGSize(width: width, height: height)
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            draw(ctx, size: size, seed: seed)
+            draw(ctx, size: size, seed: seed, k: k)
         }
         cache[key] = texture
         return texture
     }
 
-    private static func vineY(_ x: CGFloat, size: CGSize, phase: CGFloat) -> CGFloat {
-        size.height * 0.1 + sin(x / size.height * 1.7 + phase) * size.height * 0.05
+    /// A vine through `xs` at heights `y(x)`, `maxWidth` wide, swelling and pinching along its length.
+    static func taperedVine(_ ctx: CGContext, from x0: CGFloat, to x1: CGFloat, maxWidth: CGFloat, color: CGColor,
+                            y: (CGFloat) -> CGFloat) {
+        guard x1 > x0 else { return }
+        let xs = stride(from: x0, through: x1, by: 3).map { $0 }
+        let points = xs.map { CGPoint(x: $0, y: y($0)) }
+        let path = Brush.outline(points) { t in
+            let x = x0 + (x1 - x0) * t
+            return maxWidth * (0.55 + 0.3 * sin(x / 31) * sin(x / 13) + 0.25 * sin(.pi * t))
+        }
+        ctx.addPath(path)
+        ctx.setFillColor(color)
+        ctx.fillPath()
     }
 
-    private static func draw(_ ctx: CGContext, size: CGSize, seed: Int) {
+    private static func draw(_ ctx: CGContext, size: CGSize, seed: Int, k: CGFloat) {
         var rng = SeededRandom(seed: UInt64(seed) &* 6151 &+ 3)
-        let phase = rng.float(0...6)
-        let h = size.height
+        let x0: CGFloat = 4, x1 = size.width - 4
+        func vy(_ x: CGFloat) -> CGFloat { centerY(x: x, unit: k) }
 
-        // Leaves first (they grow behind the vine), spaced along its length.
-        var x = rng.float(h * 0.1...h * 0.4)
-        var leaves: [(CGPoint, CGFloat, CGFloat)] = []
-        while x < size.width - h * 0.2 {
-            let leafSize = h * rng.float(0.5...0.85)
-            let tilt = rng.float(-0.55...0.55)
-            leaves.append((CGPoint(x: x, y: vineY(x, size: size, phase: phase)), leafSize, tilt))
-            x += h * rng.float(0.55...0.95)
+        // A second, thinner and darker strand weaving around the main vine.
+        taperedVine(ctx, from: x0 + 26 * k, to: x1 - 26 * k, maxWidth: 2.6 * k, color: Palette.vineDark) { x in
+            vy(x) + sin(x / (23 * k)) * 4.5 * k
         }
-        for (i, leaf) in leaves.enumerated() {
-            drawLeaf(ctx, at: leaf.0, size: leaf.1, tilt: leaf.2, variant: i, rng: &rng)
+
+        // Leaves growing up from the vine, mostly green with a few autumn ones.
+        var x = x0 + rng.float(20...40) * k
+        var i = 0
+        while x < x1 - 20 * k {
+            let length = rng.float(34...44) * k
+            let up = i % 2 == 0
+            let angle = up ? rng.float(52...64) : rng.float(116...132)
+            let roll = rng.float(0...1)
+            let kind: LeafKind = roll < 0.72 ? .serrated : (roll < 0.86 ? .oak : .ovate)
+            let r = angle * .pi / 180
+            let center = CGPoint(x: x + cos(r) * length * 0.82, y: vy(x) + sin(r) * length * 0.82)
+            LeafArt.drawWagonLeaf(ctx, kind: kind, at: center, length: length, angle: angle, flip: i % 2 == 0)
+            x += rng.float(70...95) * k
+            i += 1
         }
 
         // The main vine.
-        let vine = CGMutablePath()
-        let steps = max(8, Int(size.width / 6))
-        for i in 0...steps {
-            let px = size.width * CGFloat(i) / CGFloat(steps)
-            let p = CGPoint(x: px, y: vineY(px, size: size, phase: phase))
-            if i == 0 { vine.move(to: p) } else { vine.addLine(to: p) }
-        }
-        ctx.setLineCap(.round)
-        ctx.setStrokeColor(Palette.vineDark)
-        ctx.setLineWidth(max(2, h * 0.07))
-        ctx.addPath(vine)
-        ctx.strokePath()
-        ctx.setStrokeColor(Palette.vine)
-        ctx.setLineWidth(max(1.2, h * 0.045))
-        ctx.addPath(vine)
-        ctx.strokePath()
+        taperedVine(ctx, from: x0, to: x1, maxWidth: 6 * k, color: Palette.green) { vy($0) }
 
-        // Curly tendrils between the leaves.
-        for i in 0..<max(0, leaves.count - 1) {
-            guard i % 2 == 0 || rng.float(0...1) < 0.4 else { continue }
-            let px = (leaves[i].0.x + leaves[i + 1].0.x) / 2
-            let start = CGPoint(x: px, y: vineY(px, size: size, phase: phase))
-            drawTendril(ctx, from: start, size: h * rng.float(0.22...0.34), dir: i % 2 == 0 ? 1 : -1)
+        // Curly tendrils of mixed sizes.
+        x = x0 + rng.float(50...90) * k
+        i = 0
+        while x < x1 - 30 * k {
+            Brush.tendril(ctx, from: CGPoint(x: x, y: vy(x)), dir: i % 2 == 0 ? 1 : -1, size: rng.float(24...42) * k,
+                          color: Palette.green)
+            x += rng.float(75...140) * k
+            i += 1
         }
 
-        // A few golden pumpkin blossoms.
-        for i in stride(from: 1, to: leaves.count, by: 4) {
-            let px = leaves[i].0.x + h * 0.15
-            guard px < size.width - h * 0.2 else { continue }
-            drawBlossom(ctx, at: CGPoint(x: px, y: vineY(px, size: size, phase: phase) + h * 0.12), size: h * 0.26, rng: &rng)
+        // A few small buds on short stalks.
+        x = x0 + rng.float(200...280) * k
+        while x < x1 - 40 * k {
+            drawBud(ctx, at: CGPoint(x: x, y: vy(x)), length: rng.float(14...16) * k, angle: rng.float(70...110))
+            x += rng.float(260...340) * k
         }
     }
 
-    /// A big, lobed pumpkin leaf on a short stalk, with light veins.
-    private static func drawLeaf(_ ctx: CGContext, at base: CGPoint, size: CGFloat, tilt: CGFloat, variant: Int, rng: inout SeededRandom) {
+    private static func drawBud(_ ctx: CGContext, at start: CGPoint, length: CGFloat, angle: CGFloat) {
+        let r = angle * .pi / 180
+        let tip = CGPoint(x: start.x + cos(r) * length, y: start.y + sin(r) * length)
+        Brush.stroke(ctx, [start, CGPoint(x: (start.x + tip.x) / 2 + 2, y: (start.y + tip.y) / 2), tip],
+                     maxWidth: 2.4, color: Palette.green, minF: 0.6)
         ctx.saveGState()
-        ctx.translateBy(x: base.x, y: base.y)
-        ctx.rotate(by: tilt)
-
-        // Stalk.
-        let stalkTop = CGPoint(x: size * 0.04, y: size * 0.32)
-        ctx.setStrokeColor(Palette.vine)
-        ctx.setLineWidth(max(0.8, size / 22))
-        ctx.move(to: .zero)
-        ctx.addQuadCurve(to: stalkTop, control: CGPoint(x: -size * 0.06, y: size * 0.16))
-        ctx.strokePath()
-
-        // Leaf blade: five rounded, gently serrated lobes.
-        let c = CGPoint(x: stalkTop.x, y: stalkTop.y + size * 0.3)
-        let r = size * 0.36
-        let blade = CGMutablePath()
-        let steps = 120
-        for i in 0...steps {
-            let a = CGFloat(i) / CGFloat(steps) * .pi * 2 + .pi / 2
-            let lobe = pow(abs(cos(2.5 * (a - .pi / 2))), 0.7)
-            let teeth = 0.035 * sin(a * 34)
-            let notch = pow(max(0, -sin(a)), 8)
-            let rr = r * (0.7 + 0.3 * lobe + teeth) * (1 - 0.55 * notch)
-            let p = CGPoint(x: c.x + cos(a) * rr, y: c.y + sin(a) * rr * 0.92)
-            if i == 0 { blade.move(to: p) } else { blade.addLine(to: p) }
-        }
-        blade.closeSubpath()
-
-        let colors: [CGColor] = [Palette.pumpkinLeafLight, Palette.pumpkinLeaf, Palette.leafGreen]
-        let space = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        ctx.saveGState()
-        ctx.addPath(blade)
-        ctx.clip()
-        if let gradient = CGGradient(colorsSpace: space, colors: colors as CFArray, locations: [0, 0.55, 1]) {
-            let hl = CGPoint(x: c.x - r * 0.3, y: c.y + r * 0.3)
-            ctx.drawRadialGradient(gradient, startCenter: hl, startRadius: 0, endCenter: c, endRadius: r * 1.15,
-                                   options: [.drawsAfterEndLocation])
-        }
+        ctx.translateBy(x: tip.x, y: tip.y)
+        ctx.rotate(by: r - .pi / 2)
+        ctx.setFillColor(Palette.mustard)
+        ctx.fillEllipse(in: CGRect(x: -length * 0.2, y: -length * 0.32, width: length * 0.4, height: length * 0.64))
+        ctx.setFillColor(Palette.orange)
+        ctx.fillEllipse(in: CGRect(x: -length * 0.1, y: -length * 0.3 + length * 0.05, width: length * 0.2, height: length * 0.6))
         ctx.restoreGState()
-        let bladeRect = CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)
-        TextureMaker.speckle(ctx, clip: blade, in: bladeRect, dark: Palette.stemGreenDark,
-                             light: Palette.pumpkinLeafLight, density: 0.05, rng: &rng)
-
-        // Veins.
-        ctx.setStrokeColor(CGColor.hex(0xC9D98F, alpha: 0.75))
-        ctx.setLineWidth(max(0.4, size / 55))
-        let veinStart = CGPoint(x: c.x, y: c.y - r * 0.5)
-        for k in 0..<5 {
-            let a = CGFloat.pi / 2 + CGFloat(k - 2) * (2 * .pi / 5) * 0.8
-            let end = CGPoint(x: c.x + cos(a) * r * 0.85, y: c.y + sin(a) * r * 0.8)
-            ctx.move(to: veinStart)
-            ctx.addQuadCurve(to: end, control: CGPoint(x: (veinStart.x + end.x) / 2, y: (veinStart.y + end.y) / 2 + r * 0.08))
-        }
-        ctx.strokePath()
-        ctx.restoreGState()
-        _ = variant
-    }
-
-    private static func drawTendril(_ ctx: CGContext, from start: CGPoint, size: CGFloat, dir: CGFloat) {
-        let path = CGMutablePath()
-        path.move(to: start)
-        let lift = CGPoint(x: start.x + dir * size * 0.5, y: start.y + size * 0.9)
-        path.addQuadCurve(to: lift, control: CGPoint(x: start.x + dir * size * 0.05, y: start.y + size * 0.7))
-        // A spiral that winds inward.
-        let center = CGPoint(x: lift.x + dir * size * 0.28, y: lift.y)
-        let turns: CGFloat = 1.6
-        let steps = 40
-        let startAngle: CGFloat = dir > 0 ? .pi : 0
-        for i in 1...steps {
-            let t = CGFloat(i) / CGFloat(steps)
-            let angle = startAngle - dir * t * turns * 2 * .pi
-            let radius = size * 0.28 * (1 - t * 0.85)
-            path.addLine(to: CGPoint(x: center.x + cos(angle) * radius, y: center.y + sin(angle) * radius))
-        }
-        ctx.setStrokeColor(Palette.vine)
-        ctx.setLineWidth(max(0.6, size / 14))
-        ctx.addPath(path)
-        ctx.strokePath()
-    }
-
-    private static func drawBlossom(_ ctx: CGContext, at c: CGPoint, size: CGFloat, rng: inout SeededRandom) {
-        let petals = 5
-        let start = rng.float(0...1)
-        for k in 0..<petals {
-            let a = start + CGFloat(k) / CGFloat(petals) * .pi * 2
-            ctx.saveGState()
-            ctx.translateBy(x: c.x, y: c.y)
-            ctx.rotate(by: a)
-            ctx.setFillColor(Palette.blossom)
-            ctx.fillEllipse(in: CGRect(x: 0, y: -size * 0.17, width: size * 0.55, height: size * 0.34))
-            ctx.setStrokeColor(CGColor.hex(0xD98A1E, alpha: 0.8))
-            ctx.setLineWidth(max(0.4, size / 30))
-            ctx.move(to: CGPoint(x: size * 0.08, y: 0))
-            ctx.addLine(to: CGPoint(x: size * 0.45, y: 0))
-            ctx.strokePath()
-            ctx.restoreGState()
-        }
-        ctx.setFillColor(CGColor.hex(0xD98A1E))
-        ctx.fillEllipse(in: CGRect(x: c.x - size * 0.1, y: c.y - size * 0.1, width: size * 0.2, height: size * 0.2))
     }
 }
