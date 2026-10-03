@@ -19,6 +19,8 @@ enum Settings {
         static let squirrel = "squirrel"
         static let showMenuBarIcon = "showMenuBarIcon"
         static let theme = "theme"
+        static let bats = "bats"
+        static let ghost = "ghost"
     }
 
     static func registerDefaults() {
@@ -35,6 +37,9 @@ enum Settings {
             Key.showVines: true,
             Key.cozyExtras: true,
             Key.squirrel: true,
+            Key.bats: true,
+            Key.ghost: true,
+            Key.theme: ThemeChoice.automatic.rawValue,
             Key.showMenuBarIcon: true,
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
@@ -126,25 +131,122 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.showMenuBarIcon) }
     }
 
-    /// The season or festival on the Dock. Only fall so far; each one gets its own tab in the app window.
+    /// Bats fluttering past (Halloween's version of falling leaves).
+    static var bats: Bool {
+        get { defaults.bool(forKey: Key.bats) }
+        set { defaults.set(newValue, forKey: Key.bats) }
+    }
+
+    /// The friendly ghost that floats by (Halloween's version of the squirrel).
+    static var ghost: Bool {
+        get { defaults.bool(forKey: Key.ghost) }
+        set { defaults.set(newValue, forKey: Key.ghost) }
+    }
+
+    /// The current season's drifting things: falling leaves in fall, bats at Halloween.
+    static var ambient: Bool { theme == .halloween ? bats : fallingLeaves }
+
+    /// The current season's visitor: the squirrel in fall, the ghost at Halloween.
+    static var visitor: Bool { theme == .halloween ? ghost : squirrel }
+
+    /// The season or festival on the Dock. Each one has its own art, extras and tab in the app window.
     enum Theme: String, CaseIterable {
-        case fall
+        case fall, halloween
 
         var title: String {
             switch self {
             case .fall: return "Fall"
+            case .halloween: return "Halloween"
             }
         }
 
         var symbol: String {
             switch self {
             case .fall: return "leaf.fill"
+            case .halloween: return "moon.stars.fill"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .fall: return "Pumpkins, hay and falling leaves"
+            case .halloween: return "Jack-o'-lanterns, bats and a friendly ghost"
+            }
+        }
+
+        /// This season's extras, in the order their tiles show.
+        var extras: [DecorKind] {
+            switch self {
+            case .fall: return [.hayBale, .leafPile, .acorns, .mug, .lantern, .apples]
+            case .halloween: return [.coffin, .tombstone, .blackCat, .cauldron, .candyCorn, .candles]
+            }
+        }
+
+        /// What some pumpkins sit up high on.
+        var perch: DecorKind { self == .halloween ? .coffin : .hayBale }
+
+        /// The order extras fill the gaps between pumpkins; it starts at a random point each time the
+        /// pumpkins are regrown.
+        var gapCycle: [DecorKind] {
+            switch self {
+            case .fall:
+                return [.leafPile, .acorns, .mug, .apples, .leafPile, .lantern, .acorns, .apples, .leafPile, .acorns]
+            case .halloween:
+                return [.tombstone, .candyCorn, .cauldron, .tombstone, .blackCat, .candles, .candyCorn, .tombstone, .candles, .candyCorn]
+            }
+        }
+
+        /// Extras special enough to show up at most once every eight gaps.
+        var specials: Set<DecorKind> { self == .halloween ? [.cauldron, .blackCat] : [.mug, .lantern] }
+
+        var vineTitle: String { self == .halloween ? "Creepy vine" : "Vine" }
+        var vineDetail: String { self == .halloween ? "Cobwebs at both ends" : "Curling along the Dock" }
+        var ambientTitle: String { self == .halloween ? "Bats" : "Falling leaves" }
+        var ambientDetail: String { self == .halloween ? "Fluttering past" : "Drifting down" }
+        var extrasTitle: String { self == .halloween ? "Spooky extras" : "Cozy extras" }
+        var visitorTitle: String { self == .halloween ? "Ghost" : "Squirrel" }
+
+        /// The season for a date when the choice is Automatic: Halloween from mid-October to
+        /// November 1st, fall the rest of the time (for now).
+        static func forDate(_ date: Date) -> Theme {
+            let day = Calendar.current.dateComponents([.month, .day], from: date)
+            if (day.month == 10 && (day.day ?? 0) >= 15) || (day.month == 11 && day.day == 1) { return .halloween }
+            return .fall
+        }
+    }
+
+    /// The season picked in the app window: one season, or Automatic to follow the calendar.
+    enum ThemeChoice: String, CaseIterable {
+        case automatic, fall, halloween
+
+        var title: String {
+            switch self {
+            case .automatic: return "Automatic"
+            case .fall: return Theme.fall.title
+            case .halloween: return Theme.halloween.title
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .automatic: return "calendar"
+            case .fall: return Theme.fall.symbol
+            case .halloween: return Theme.halloween.symbol
             }
         }
     }
 
-    static var theme: Theme {
-        get { defaults.string(forKey: Key.theme).flatMap(Theme.init(rawValue:)) ?? .fall }
+    static var themeChoice: ThemeChoice {
+        get { defaults.string(forKey: Key.theme).flatMap(ThemeChoice.init(rawValue:)) ?? .automatic }
         set { defaults.set(newValue.rawValue, forKey: Key.theme) }
+    }
+
+    /// The season on the Dock right now.
+    static var theme: Theme {
+        switch themeChoice {
+        case .automatic: return Theme.forDate(Date())
+        case .fall: return .fall
+        case .halloween: return .halloween
+        }
     }
 }

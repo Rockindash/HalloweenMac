@@ -7,7 +7,10 @@ import SpriteKit
 // tapered brush strokes and no outlines.
 
 enum DecorKind: String, CaseIterable {
+    // Fall.
     case hayBale, leafPile, acorns, mug, lantern, apples
+    // Halloween (drawn in SpookyArt).
+    case coffin, tombstone, blackCat, cauldron, candyCorn, candles
 
     var title: String {
         switch self {
@@ -17,15 +20,16 @@ enum DecorKind: String, CaseIterable {
         case .mug: return "Pumpkin spice latte"
         case .lantern: return "Lantern"
         case .apples: return "Crate of apples"
+        case .coffin: return "Coffins"
+        case .tombstone: return "Tombstones"
+        case .blackCat: return "Black cat"
+        case .cauldron: return "Cauldron"
+        case .candyCorn: return "Candy corn"
+        case .candles: return "Candles"
         }
     }
 
-    /// The order decorations fill the gaps between pumpkins; it starts at a random point each time
-    /// the pumpkins are regrown, so the latte and lantern turn up in different spots.
-    static let gapCycle: [DecorKind] = [
-        .leafPile, .acorns, .mug, .apples, .leafPile, .lantern,
-        .acorns, .apples, .leafPile, .acorns,
-    ]
+    var isSpooky: Bool { Settings.Theme.halloween.extras.contains(self) }
 }
 
 enum CozyArt {
@@ -48,6 +52,12 @@ enum CozyArt {
         case .mug: s = CGSize(width: h * 0.46, height: h * latteHeight)
         case .lantern: s = CGSize(width: h * 0.46, height: h * 0.82)
         case .apples: s = CGSize(width: h * 0.92, height: h * 0.58)
+        case .coffin: s = CGSize(width: h * 1.4, height: h * 0.5)
+        case .tombstone: s = CGSize(width: h * 0.6, height: h * 0.72)
+        case .blackCat: s = CGSize(width: h * 0.7, height: h * 0.82)
+        case .cauldron: s = CGSize(width: h * 0.82, height: h * 0.64)
+        case .candyCorn: s = CGSize(width: h * 0.7, height: h * 0.36)
+        case .candles: s = CGSize(width: h * 0.58, height: h * 0.66)
         }
         return CGSize(width: s.width.rounded(), height: s.height.rounded())
     }
@@ -66,6 +76,8 @@ enum CozyArt {
             case .mug: drawMug(ctx, size: size, h: h)
             case .lantern: drawLantern(ctx, size: size, h: h)
             case .apples: drawApples(ctx, size: size, h: h, rng: &rng)
+            case .coffin, .tombstone, .blackCat, .cauldron, .candyCorn, .candles:
+                SpookyArt.draw(kind, ctx, size: size, h: h, rng: &rng)
             }
         }
         cache[key] = texture

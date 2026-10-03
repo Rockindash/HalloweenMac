@@ -60,6 +60,20 @@ enum Palette {
     static var plum: CGColor { pick(dark: 0x5D1C2B, light: 0x8A4452) }
     static var peach: CGColor { pick(dark: 0xFCDCBE, light: 0xFFF2E3) }
 
+    // Halloween's extra colors.
+    /// A night-sky purple, nearly black.
+    static var night: CGColor { pick(dark: 0x2E2140, light: 0x4D3A63) }
+    /// Ghosts, white pumpkins and candle wax.
+    static var ghost: CGColor { pick(dark: 0xF1EADF, light: 0xFFFBF4) }
+    /// Bubbling potion.
+    static var slime: CGColor { pick(dark: 0x8CC63F, light: 0x9FD453) }
+    /// Gravestones.
+    static var stone: CGColor { pick(dark: 0x8D8698, light: 0xA9A2B4) }
+    /// The creepy Halloween vine.
+    static var witch: CGColor { pick(dark: 0x6A4A8C, light: 0x8466A3) }
+    /// The black cat, the cauldron and bats.
+    static var soot: CGColor { pick(dark: 0x221A2B, light: 0x3B2F47) }
+
     static var stemCut: CGColor { pick(dark: 0xC9773D, light: 0xDE9A5E) }
     static var shadowInk: CGColor { pick(dark: 0x3B1420, light: 0x7A5446) }
     static var seed: CGColor { pick(dark: 0xF6E4C1, light: 0xFFF7E8) }
@@ -72,6 +86,7 @@ enum ArtCache {
         LeafArt.clearCache()
         VineArt.clearCache()
         CozyArt.clearCache()
+        SpookyArt.clearCache()
     }
 }
 
@@ -213,6 +228,14 @@ enum PumpkinShape {
 enum PumpkinKind: CaseIterable {
     case roundOrange, roundMustard, squatMustard, squatOrange, tallOrange, tallMustard
     case butternutOrange, butternutMustard, littleGreen
+    /// A pale "ghost" pumpkin, for Halloween.
+    case ghostWhite
+
+    /// The pumpkins on a fall Dock.
+    static let fall: [PumpkinKind] = [.roundOrange, .roundMustard, .squatMustard, .squatOrange, .tallOrange, .tallMustard,
+                                      .butternutOrange, .butternutMustard, .littleGreen]
+    /// The pumpkins on a Halloween Dock: mostly orange ones to carve, and a few ghost pumpkins.
+    static let halloween: [PumpkinKind] = [.roundOrange, .squatOrange, .tallOrange, .roundOrange, .squatOrange, .ghostWhite]
 
     struct Look {
         var shape: PumpkinShape
@@ -246,10 +269,16 @@ enum PumpkinKind: CaseIterable {
             return Look(shape: .butternut, body: Palette.mustard, side: mustardSide, rib: Palette.rust, aspect: 0.56, heightFactor: 1.05)
         case .littleGreen:
             return Look(shape: .squat, body: Palette.green, side: greenSide, rib: Palette.plum, aspect: 1.7, heightFactor: 0.5)
+        case .ghostWhite:
+            return Look(shape: .round, body: Palette.ghost, side: Palette.ghost.mixed(with: Palette.stone, 0.35),
+                        rib: Palette.stone.mixed(with: Palette.plum, 0.25), aspect: 1.3, heightFactor: 0.92)
         }
     }
 
     var isRound: Bool { look.shape != .butternut }
+
+    /// Whether a jack-o'-lantern face can be carved into it (round orange-ish pumpkins only).
+    var isCarvable: Bool { isRound && self != .littleGreen && self != .ghostWhite }
 }
 
 enum PumpkinArt {
@@ -686,13 +715,13 @@ enum VineArt {
 
     static func baseLevel(unit k: CGFloat) -> CGFloat { 8 * k }
 
-    static func texture(width: CGFloat, height: CGFloat, seed: Int, unit k: CGFloat, scale: CGFloat) -> SKTexture {
-        let key = "vine-\(Int(width))-\(Int(height))-\(seed)-\(Int(k * 100))-\(scale)"
+    static func texture(width: CGFloat, height: CGFloat, seed: Int, unit k: CGFloat, scale: CGFloat, spooky: Bool = false) -> SKTexture {
+        let key = "vine-\(Int(width))-\(Int(height))-\(seed)-\(Int(k * 100))-\(scale)-\(spooky)"
         if let cached = cache[key] { return cached }
         if cache.count > 40 { cache.removeAll() }
         let size = CGSize(width: width, height: height)
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            draw(ctx, size: size, seed: seed, k: k)
+            draw(ctx, size: size, seed: seed, k: k, spooky: spooky)
         }
         cache[key] = texture
         return texture
@@ -718,11 +747,13 @@ enum VineArt {
         }
     }
 
-    private static func draw(_ ctx: CGContext, size: CGSize, seed: Int, k: CGFloat) {
+    /// `spooky` draws Halloween's creepy version: witchy purple, with thorns instead of buds.
+    private static func draw(_ ctx: CGContext, size: CGSize, seed: Int, k: CGFloat, spooky: Bool) {
         var rng = SeededRandom(seed: UInt64(seed) &* 6151 &+ 3)
         let x0: CGFloat = 4, x1 = size.width - 4
         func vy(_ x: CGFloat) -> CGFloat { centerY(x: x, unit: k) }
-        let dark = Palette.green.mixed(with: Palette.plum, 0.38)
+        let green = spooky ? Palette.witch : Palette.green
+        let dark = spooky ? Palette.witch.mixed(with: Palette.soot, 0.5) : Palette.green.mixed(with: Palette.plum, 0.38)
         let width = 6 * k
 
         // Curly tendrils of mixed sizes, each with a darker shadow, drawn first so they grow
@@ -734,13 +765,13 @@ enum VineArt {
             let dir: CGFloat = i % 2 == 0 ? 1 : -1
             let size = rng.float(24...42) * k
             Brush.tendril(ctx, from: CGPoint(x: start.x + 1.2 * k, y: start.y - 1.2 * k), dir: dir, size: size, color: dark)
-            Brush.tendril(ctx, from: start, dir: dir, size: size, color: Palette.green)
+            Brush.tendril(ctx, from: start, dir: dir, size: size, color: green)
             x += rng.float(75...140) * k
             i += 1
         }
 
         // The main vine.
-        taperedVine(ctx, from: x0, to: x1, maxWidth: width, color: Palette.green) { vy($0) }
+        taperedVine(ctx, from: x0, to: x1, maxWidth: width, color: green) { vy($0) }
 
         // Fine ridges across the stem.
         var ridges = SeededRandom(seed: UInt64(seed) &* 911 &+ 7)
@@ -753,6 +784,25 @@ enum VineArt {
                              maxWidth: max(0.6, 0.75 * k), color: dark.withAlpha(0.7), minF: 0.3)
             }
             x += ridges.float(5...9) * k
+        }
+
+        // Creepy thorns along the Halloween vine.
+        if spooky {
+            x = x0 + 10 * k
+            var up = true
+            while x < x1 - 10 * k {
+                let y = vy(x) + (up ? width * 0.3 : -width * 0.3)
+                let thorn = CGMutablePath()
+                thorn.addLines(between: [CGPoint(x: x - 2 * k, y: y), CGPoint(x: x + 2.2 * k, y: y),
+                                         CGPoint(x: x + 2.8 * k, y: y + (up ? 5 : -5) * k)])
+                thorn.closeSubpath()
+                ctx.addPath(thorn)
+                ctx.setFillColor(dark)
+                ctx.fillPath()
+                x += rng.float(14...24) * k
+                up.toggle()
+            }
+            return
         }
 
         // A few small buds on short stalks.

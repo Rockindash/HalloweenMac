@@ -7,6 +7,8 @@ final class PumpkinNode: DockSprite {
     let slotHeight: CGFloat
     let variant: Int
     var isSmashing = false
+    /// Carved into a glowing jack-o'-lantern (at Halloween).
+    var isLantern = false
 
     init(kind: PumpkinKind, slot: Int, slotHeight: CGFloat, variant: Int, texture: SKTexture, size: CGSize) {
         self.kind = kind
@@ -41,7 +43,7 @@ final class PumpkinScene: SKScene {
     /// Each slot's kind of pumpkin; a smashed one grows back the same kind.
     private var slotKinds: [PumpkinKind] = []
     var gapX: [CGFloat] = []
-    /// The decoration in each gap, and where in `DecorKind.gapCycle` this harvest starts.
+    /// The decoration in each gap, and where in the season's gap cycle this harvest starts.
     var gapKinds: [DecorKind] = []
     private var decorStart = 0
     /// Picks each slot's kind of pumpkin; a new one for every fresh harvest.
@@ -121,7 +123,7 @@ final class PumpkinScene: SKScene {
         pumpkinHeight = Self.itemHeight
         if fresh {
             harvestSeed = UInt64.random(in: 1...UInt64(Int32.max))
-            decorStart = Int.random(in: 0..<DecorKind.gapCycle.count)
+            decorStart = Int.random(in: 0..<Settings.theme.gapCycle.count)
         }
         let oldCount = pumpkinCount
         layoutSlots()
@@ -142,7 +144,9 @@ final class PumpkinScene: SKScene {
         // Something in the gaps between pumpkins only if some of those extras are switched on.
         let gapsOn = extras && !Self.gapCycle.isEmpty
         let minSpace = h * Settings.fullness.spacing
-        let bale = CozyArt.size(of: .hayBale, unit: h)
+        // Hay bales in fall, coffins at Halloween.
+        let perch = Settings.theme.perch
+        let bale = CozyArt.size(of: perch, unit: h)
         slotKinds = []; slotScale = []; slotPerch = []; gapKinds = []
         var widths: [CGFloat] = [] // pumpkin, decoration, pumpkin, … from left to right
         var used: CGFloat = 0
@@ -155,8 +159,8 @@ final class PumpkinScene: SKScene {
                 gapKind = kind
                 gapWidth = CozyArt.size(of: kind, unit: decorUnit).width
             }
-            // A hay bale under every fifth pumpkin.
-            let onBale = extras && Settings.isEnabled(.hayBale) && slot % 5 == 2
+            // A hay bale (or coffin) under every fifth pumpkin.
+            let onBale = extras && Settings.isEnabled(perch) && slot % 5 == 2
             var rng = SeededRandom(seed: UInt64(slot + 1) &* 7537)
             // Pumpkins vary a little in size, every third one a bit smaller.
             let scale = onBale ? rng.float(0.76...0.82) : slot % 3 == 1 ? rng.float(0.82...0.88) : rng.float(0.92...1.0)
@@ -195,21 +199,26 @@ final class PumpkinScene: SKScene {
     private func pumpkinKind(slot: Int, onBale: Bool) -> PumpkinKind {
         var rng = SeededRandom(seed: harvestSeed &+ UInt64(slot) &* 2_654_435_761)
         // Tall butternuts would tower over everything on top of a hay bale.
-        let kinds = onBale ? [PumpkinKind.roundOrange, .roundMustard, .squatOrange, .squatMustard] : PumpkinKind.allCases
+        let kinds: [PumpkinKind]
+        switch Settings.theme {
+        case .fall: kinds = onBale ? [.roundOrange, .roundMustard, .squatOrange, .squatMustard] : PumpkinKind.fall
+        case .halloween: kinds = onBale ? [.roundOrange, .squatOrange] : PumpkinKind.halloween
+        }
         return kinds[Int(rng.next() % UInt64(kinds.count))]
     }
 
     /// The decoration in the next gap (`gapKinds` holds the ones before it): down the cycle, with the
-    /// mug and lantern at most once every eight gaps.
+    /// season's special extras (the latte and lantern, the cauldron and cat) at most once every eight gaps.
     private func decorKind(gap: Int) -> DecorKind {
         let cycle = Self.gapCycle
+        let specials = Settings.theme.specials
         let kind = cycle[(decorStart + gap) % cycle.count]
-        guard kind == .mug || kind == .lantern, gapKinds.suffix(8).contains(kind) else { return kind }
-        return cycle.first { $0 != .mug && $0 != .lantern } ?? kind
+        guard specials.contains(kind), gapKinds.suffix(8).contains(kind) else { return kind }
+        return cycle.first { !specials.contains($0) } ?? kind
     }
 
-    /// `DecorKind.gapCycle` without the extras that are switched off.
-    private static var gapCycle: [DecorKind] { DecorKind.gapCycle.filter(Settings.isEnabled) }
+    /// The season's gap cycle without the extras that are switched off.
+    private static var gapCycle: [DecorKind] { Settings.theme.gapCycle.filter(Settings.isEnabled) }
 
     /// The Dock got longer or shorter. Everything keeps its size and slides to its new spot;
     /// pumpkins and decorations grow in or shrink away at the end.
@@ -272,9 +281,9 @@ final class PumpkinScene: SKScene {
         }
         if Settings.cozyExtras {
             addDecorations()
-            scheduleSquirrel(first: true)
+            scheduleVisitor(first: true)
         }
-        startFallingLeaves()
+        startAmbient()
     }
 
     private func restingY(slot: Int) -> CGFloat {
@@ -290,15 +299,20 @@ final class PumpkinScene: SKScene {
         vineWarpStrength = -1
         let k = unit
         vineOrigin = CGPoint(x: dockRect.minX + 4, y: dockRect.maxY - 2 - VineArt.baseLevel(unit: k))
-        guard Settings.showVines, dockRect.width > 40 else { return }
+        guard Settings.showVines, dockRect.width > 40 else {
+            layoutCobwebs()
+            return
+        }
         let width = (dockRect.width - 8).rounded()
         let height = (pumpkinHeight * 1.25).rounded()
-        let vine = SKSpriteNode(texture: VineArt.texture(width: width, height: height, seed: Int(harvestSeed % 997), unit: k, scale: pixelScale),
+        let vine = SKSpriteNode(texture: VineArt.texture(width: width, height: height, seed: Int(harvestSeed % 997), unit: k,
+                                                         scale: pixelScale, spooky: Settings.theme == .halloween),
                                 size: CGSize(width: width, height: height))
         vine.anchorPoint = .zero
         vine.position = vineOrigin
         vineLayer.addChild(vine)
         self.vine = vine
+        layoutCobwebs()
     }
 
     /// Height of the middle of the vine at scene x.
@@ -418,6 +432,8 @@ final class PumpkinScene: SKScene {
 
         if grow { popIn(pumpkin) }
         startWobble(pumpkin)
+        // At Halloween, the orange pumpkins are jack-o'-lanterns.
+        if Settings.theme == .halloween && kind.isCarvable { carve(pumpkin, animated: grow) }
     }
 
     /// With Reduce Motion on (System Settings → Accessibility → Display), nothing moves by itself:
@@ -456,8 +472,12 @@ final class PumpkinScene: SKScene {
         hovered = sprite
         if let squirrel = sprite as? SquirrelNode {
             squirrelFlee(squirrel)
+        } else if let ghost = sprite as? GhostNode {
+            ghostFlee(ghost)
         } else if let sprite {
             sprite.run(DockSprite.animate(\.hoverScale, to: 1.08, duration: 0.12, curve: .easeOut), withKey: "hover")
+            if let pumpkin = sprite as? PumpkinNode { flare(pumpkin) }
+            if let decor = sprite as? DecorNode, decor.kind == .blackCat { catNotices(decor) }
         }
     }
 
@@ -468,6 +488,7 @@ final class PumpkinScene: SKScene {
         case let pumpkin as PumpkinNode: smash(pumpkin)
         case let decor as DecorNode: poke(decor)
         case let squirrel as SquirrelNode: squirrelFlee(squirrel)
+        case let ghost as GhostNode: ghostFlee(ghost)
         default: break
         }
     }
@@ -489,6 +510,10 @@ final class PumpkinScene: SKScene {
             .run { [weak self, weak pumpkin] in
                 guard let self, let pumpkin else { return }
                 self.burst(pumpkin, scale: magnification)
+                // A bat was hiding in the jack-o'-lantern.
+                if pumpkin.isLantern {
+                    self.releaseBat(from: CGPoint(x: pumpkin.position.x, y: pumpkin.position.y + pumpkin.size.height * magnification * 0.5))
+                }
                 pumpkin.removeFromParent()
             },
         ]))
@@ -548,8 +573,13 @@ final class PumpkinScene: SKScene {
                    radius: 1.5, damping: 0.3, life: 1.0)
         }
 
-        // A couple of leaves that flutter out and drift down slowly.
-        flutterLeaves(count: 2, from: center, size: (h * 0.26).rounded())
+        if Settings.theme == .halloween {
+            // Jack-o'-lanterns are full of candy.
+            candyBurst(count: 3, from: center)
+        } else {
+            // A couple of leaves that flutter out and drift down slowly.
+            flutterLeaves(count: 2, from: center, size: (h * 0.26).rounded())
+        }
     }
 
     /// Leaves that pop up from `center` and drift down slowly.
@@ -564,7 +594,7 @@ final class PumpkinScene: SKScene {
         }
     }
 
-    private func launch(_ node: SKSpriteNode, from center: CGPoint, spread: CGFloat,
+    func launch(_ node: SKSpriteNode, from center: CGPoint, spread: CGFloat,
                         velocity: CGVector, radius: CGFloat, damping: CGFloat, life: TimeInterval) {
         node.position = CGPoint(x: center.x + CGFloat.random(in: -spread...spread), y: center.y + CGFloat.random(in: -spread...spread) * 0.5)
         node.zRotation = CGFloat.random(in: 0...(.pi * 2))
@@ -630,14 +660,23 @@ final class PumpkinScene: SKScene {
         }
     }
 
-    // MARK: Falling leaves
+    // MARK: Falling leaves (or bats)
 
-    private func startFallingLeaves() {
+    /// The season's drifting things: a leaf falling now and then in fall, a bat fluttering past at Halloween.
+    private func startAmbient() {
         removeAction(forKey: "leaves")
         guard !Self.reduceMotion else { return }
+        let halloween = Settings.theme == .halloween
         run(.repeatForever(.sequence([
-            .wait(forDuration: 5, withRange: 6),
-            .run { [weak self] in self?.dropLeaf() },
+            .wait(forDuration: halloween ? 10 : 5, withRange: halloween ? 8 : 6),
+            .run { [weak self] in
+                guard let self else { return }
+                if halloween {
+                    if Settings.bats { self.batAcross() }
+                } else {
+                    self.dropLeaf()
+                }
+            },
         ])), withKey: "leaves")
     }
 

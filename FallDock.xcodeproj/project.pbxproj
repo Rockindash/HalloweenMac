@@ -23,6 +23,8 @@
 		A1C0FFEE00000000000000A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B7 /* Assets.xcassets */; };
 		A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B8 /* MainWindow.swift */; };
 		A1C0FFEE00000000000000A9 /* MainTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B9 /* MainTabs.swift */; };
+		A1C0FFEE0000000000000A10 /* SpookyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000B10 /* SpookyArt.swift */; };
+		A1C0FFEE0000000000000A11 /* PumpkinScene+Spooky.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000B11 /* PumpkinScene+Spooky.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +45,8 @@
 		A1C0FFEE00000000000000B7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B8 /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainWindow.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B9 /* MainTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainTabs.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000000B10 /* SpookyArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpookyArt.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000000B11 /* PumpkinScene+Spooky.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Spooky.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -54,6 +58,7 @@
 				12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */,
 				A1C0FFEE00000000000000B2 /* DockSprite.swift */,
 				A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */,
+				A1C0FFEE0000000000000B11 /* PumpkinScene+Spooky.swift */,
 			);
 			path = Overlay;
 			sourceTree = "<group>";
@@ -83,6 +88,7 @@
 				E7D531E91FA2104CA0FBE350 /* Art.swift */,
 				868266014263B38779531296 /* SmashSound.swift */,
 				A1C0FFEE00000000000000B1 /* CozyArt.swift */,
+				A1C0FFEE0000000000000B10 /* SpookyArt.swift */,
 			);
 			path = Art;
 			sourceTree = "<group>";
@@ -194,6 +200,8 @@
 				A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */,
 				A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */,
 				A1C0FFEE00000000000000A9 /* MainTabs.swift in Sources */,
+				A1C0FFEE0000000000000A10 /* SpookyArt.swift in Sources */,
+				A1C0FFEE0000000000000A11 /* PumpkinScene+Spooky.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

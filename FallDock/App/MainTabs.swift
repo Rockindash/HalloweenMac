@@ -14,6 +14,7 @@ extension Color {
     static let harvestMustard = Color(cgColor: .hex(0xDB9D24))
     static let harvestPeach = Color(cgColor: .hex(0xFCDCBE))
     static let harvestGreen = Color(cgColor: .hex(0x627329))
+    static let harvestNight = Color(cgColor: .hex(0x2E2140))
 }
 
 // MARK: - Building blocks
@@ -200,7 +201,7 @@ struct LiveHarvestView: View {
     /// The settings that change what grows; the little harvest regrows when any of them change.
     private var look: [AnyHashable] {
         [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves,
-         model.appearance]
+         model.appearance, model.theme, model.bats, model.ghost]
     }
 
     private let icons: [(String, Color)] = [
@@ -212,10 +213,12 @@ struct LiveHarvestView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                // An evening sky with a harvest moon.
-                LinearGradient(colors: [Color.harvestPlum, Color.harvestRust.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                // An evening sky with a harvest moon (a night sky and a pale moon at Halloween).
+                LinearGradient(colors: model.theme == .halloween ? [Color.harvestNight, Color.harvestPlum.opacity(0.9)]
+                                                                 : [Color.harvestPlum, Color.harvestRust.opacity(0.85)],
+                               startPoint: .top, endPoint: .bottom)
                 Circle()
-                    .fill(Color.harvestMustard.opacity(0.85))
+                    .fill(model.theme == .halloween ? Color(cgColor: .hex(0xF1EADF)).opacity(0.9) : Color.harvestMustard.opacity(0.85))
                     .frame(width: 46, height: 46)
                     .position(x: geometry.size.width - 70, y: 44)
                 // A pretend Dock.
@@ -312,11 +315,11 @@ struct GeneralTab: View {
             }
 
             HStack {
-                Picker("Season", selection: $model.theme) {
-                    ForEach(Settings.Theme.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                Picker("Season", selection: $model.themeChoice) {
+                    ForEach(Settings.ThemeChoice.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
                 }
                 .fixedSize()
-                Text("More seasons coming soon")
+                Text(model.themeChoice == .automatic ? "Now: \(model.theme.title)" : "More seasons coming soon")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -571,15 +574,17 @@ struct ThemeTab: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
 
     var body: some View {
+        let theme = model.theme
+        let halloween = theme == .halloween
         VStack(spacing: 14) {
-            Image(nsImage: ThemePreview.image(for: model.theme))
+            Image(nsImage: ThemePreview.image(for: theme))
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .overlay(alignment: .topLeading) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(model.theme.title)
+                        Text(theme.title)
                             .font(.system(size: 26, weight: .heavy, design: .rounded))
-                        Text("Pumpkins, hay and falling leaves")
+                        Text(theme.subtitle)
                             .font(.callout.weight(.medium))
                             .opacity(0.85)
                     }
@@ -589,26 +594,37 @@ struct ThemeTab: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             HStack(spacing: 10) {
-                ActionTile(symbol: "laurel.leading", title: "Vine", detail: model.showVines ? "Curling along the Dock" : "Off",
-                           isOn: model.showVines) { model.showVines.toggle() }
-                ActionTile(symbol: "leaf.fill", title: "Falling leaves", detail: model.fallingLeaves ? "Drifting down" : "Off",
-                           isOn: model.fallingLeaves) { model.fallingLeaves.toggle() }
-                ActionTile(symbol: "basket.fill", title: "Cozy extras", detail: model.cozyExtras ? "Between the pumpkins" : "Off",
-                           isOn: model.cozyExtras) { model.cozyExtras.toggle() }
+                ActionTile(symbol: halloween ? "scribble.variable" : "laurel.leading", title: theme.vineTitle,
+                           detail: model.showVines ? theme.vineDetail : "Off", isOn: model.showVines) { model.showVines.toggle() }
+                if halloween {
+                    ActionTile(symbol: "bird.fill", title: theme.ambientTitle, detail: model.bats ? theme.ambientDetail : "Off",
+                               isOn: model.bats) { model.bats.toggle() }
+                } else {
+                    ActionTile(symbol: "leaf.fill", title: theme.ambientTitle, detail: model.fallingLeaves ? theme.ambientDetail : "Off",
+                               isOn: model.fallingLeaves) { model.fallingLeaves.toggle() }
+                }
+                ActionTile(symbol: halloween ? "theatermasks.fill" : "basket.fill", title: theme.extrasTitle,
+                           detail: model.cozyExtras ? "Between the pumpkins" : "Off", isOn: model.cozyExtras) { model.cozyExtras.toggle() }
             }
 
             Card(title: "Pick your extras") {
                 LazyVGrid(columns: columns, spacing: 10) {
-                    ForEach(DecorKind.allCases, id: \.self) { kind in
+                    ForEach(theme.extras, id: \.self) { kind in
                         ExtraTile(image: ExtraArt.image(for: kind), title: kind.title, isOn: model.enabledExtras.contains(kind)) {
                             model.setExtra(kind, enabled: !model.enabledExtras.contains(kind))
                         }
                     }
-                    ExtraTile(image: ExtraArt.squirrel(), title: "Squirrel", isOn: model.squirrel) { model.squirrel.toggle() }
+                    if halloween {
+                        ExtraTile(image: ExtraArt.ghost(), title: theme.visitorTitle, isOn: model.ghost) { model.ghost.toggle() }
+                    } else {
+                        ExtraTile(image: ExtraArt.squirrel(), title: theme.visitorTitle, isOn: model.squirrel) { model.squirrel.toggle() }
+                    }
                 }
                 .disabled(!model.cozyExtras)
                 .opacity(model.cozyExtras ? 1 : 0.45)
-                Text("Tap to switch each one on or off. On the Dock, click the leaf piles, the latte and the lantern.")
+                Text(halloween
+                     ? "Tap to switch each one on or off. On the Dock, click the tombstones, the cat, the cauldron, the candles and the coffins, and smash a jack-o'-lantern to free its bat. Point at the ghost to spook it."
+                     : "Tap to switch each one on or off. On the Dock, click the leaf piles, the latte and the lantern.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -668,8 +684,17 @@ enum ExtraArt {
         if let image = cache[key] { return image }
         let unit: CGFloat = 60
         let size = CozyArt.size(of: kind, unit: unit)
-        let texture = CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
+        let texture = kind.isSpooky ? SpookyArt.tile(kind, unit: unit, scale: 2) : CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
         let image = NSImage(cgImage: texture.cgImage(), size: size)
+        cache[key] = image
+        return image
+    }
+
+    static func ghost() -> NSImage {
+        let key = "ghost-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let unit: CGFloat = 60
+        let image = NSImage(cgImage: SpookyArt.ghostTexture(unit: unit, scale: 2).cgImage(), size: SpookyArt.ghostSize(unit: unit))
         cache[key] = image
         return image
     }
@@ -699,6 +724,7 @@ enum ThemePreview {
         let image: NSImage
         switch theme {
         case .fall: image = fall()
+        case .halloween: image = halloween()
         }
         cache[key] = image
         return image
@@ -765,6 +791,99 @@ enum ThemePreview {
             // Falling leaves.
             LeafArt.drawWagonLeaf(ctx, kind: .oak, at: CGPoint(x: 300, y: 140), length: 18, angle: -30, flip: false)
             LeafArt.drawWagonLeaf(ctx, kind: .ovate, at: CGPoint(x: 380, y: 112), length: 15, angle: 40, flip: true)
+        }
+        return NSImage(cgImage: texture.cgImage(), size: size)
+    }
+
+    private static func halloween() -> NSImage {
+        let size = CGSize(width: 520, height: 170)
+        let scale: CGFloat = 2
+        let h: CGFloat = 62
+        let texture = TextureMaker.make(size: size, scale: scale) { ctx in
+            // A night sky with stars, a big moon and bats.
+            ctx.setFillColor(Palette.night)
+            ctx.fill(CGRect(origin: .zero, size: size))
+            var rng = SeededRandom(seed: 31)
+            ctx.setFillColor(Palette.ghost.withAlpha(0.7))
+            for _ in 0..<26 {
+                let r = rng.float(0.6...1.4)
+                ctx.fillEllipse(in: CGRect(x: rng.float(0...size.width), y: rng.float(70...size.height), width: r * 2, height: r * 2))
+            }
+            ctx.setFillColor(Palette.ghost.mixed(with: Palette.mustard, 0.25))
+            ctx.fillEllipse(in: CGRect(x: 420, y: 100, width: 52, height: 52))
+            ctx.setFillColor(Palette.ghost.mixed(with: Palette.stone, 0.35))
+            ctx.fillEllipse(in: CGRect(x: 436, y: 124, width: 9, height: 8))
+            ctx.fillEllipse(in: CGRect(x: 452, y: 112, width: 6, height: 5))
+            for (x, y, frame) in [(330.0, 128.0, 0), (372.0, 146.0, 1), (238.0, 140.0, 1)] {
+                let bat = SpookyArt.batSize(unit: h * 0.7)
+                ctx.draw(SpookyArt.batTexture(frame: frame, unit: h * 0.7, scale: scale).cgImage(),
+                         in: CGRect(x: CGFloat(x), y: CGFloat(y), width: bat.width, height: bat.height))
+            }
+            let shelf: CGFloat = 24
+            ctx.setFillColor(Palette.soot.mixed(with: Palette.plum, 0.4))
+            ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: shelf))
+
+            let k = h / 60
+            let vineHeight = (h * 1.25).rounded()
+            ctx.draw(VineArt.texture(width: size.width - 8, height: vineHeight, seed: 11, unit: k, scale: scale, spooky: true).cgImage(),
+                     in: CGRect(x: 4, y: shelf - 2 - VineArt.baseLevel(unit: k), width: size.width - 8, height: vineHeight))
+            let web = CGSize(width: h * 0.7, height: h * 0.7)
+            ctx.draw(SpookyArt.cobwebTexture(size: web, scale: scale).cgImage(), in: CGRect(origin: CGPoint(x: 2, y: shelf - 3), size: web))
+
+            enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), coffin(PumpkinKind) }
+            let items: [Item] = [.lantern(.roundOrange, 1, 0), .decor(.tombstone), .pumpkin(.ghostWhite, 0.8), .decor(.cauldron),
+                                 .coffin(.squatOrange), .decor(.blackCat), .lantern(.tallOrange, 0.95, 2), .decor(.candles),
+                                 .lantern(.roundOrange, 0.86, 1), .decor(.candyCorn)]
+            let decorUnit = (h * 0.75).rounded()
+            func width(_ item: Item) -> CGFloat {
+                switch item {
+                case let .lantern(kind, s, _), let .pumpkin(kind, s): return PumpkinArt.size(of: kind, height: (h * s).rounded()).width
+                case let .decor(kind): return CozyArt.size(of: kind, unit: decorUnit).width
+                case .coffin: return CozyArt.size(of: .coffin, unit: h).width
+                }
+            }
+            func drawPumpkin(_ kind: PumpkinKind, height: CGFloat, centerX: CGFloat, y: CGFloat, face: Int?) {
+                let s = PumpkinArt.size(of: kind, height: height)
+                let rect = CGRect(x: centerX - s.width / 2, y: y, width: s.width, height: s.height)
+                if let face {
+                    // The candle's glow around a jack-o'-lantern.
+                    let glow = s.width * 1.5
+                    ctx.draw(CozyArt.glowTexture(color: Palette.orange.mixed(with: Palette.mustard, 0.5), diameter: glow, scale: scale).cgImage(),
+                             in: CGRect(x: centerX - glow / 2, y: y + s.height * 0.42 - glow / 2, width: glow, height: glow))
+                }
+                ctx.draw(PumpkinArt.texture(kind: kind, height: height, variant: 1, scale: scale).cgImage(), in: rect)
+                if let face {
+                    ctx.draw(SpookyArt.faceTexture(kind: kind, height: height, face: face, scale: scale).cgImage(), in: rect)
+                }
+            }
+            let used = items.map(width).reduce(0, +)
+            let space = (size.width - used) / CGFloat(items.count + 1)
+            var x = space
+            for item in items {
+                let w = width(item)
+                let center = x + w / 2
+                switch item {
+                case let .lantern(kind, s, face):
+                    drawPumpkin(kind, height: (h * s).rounded(), centerX: center, y: shelf - 3, face: face)
+                case let .pumpkin(kind, s):
+                    drawPumpkin(kind, height: (h * s).rounded(), centerX: center, y: shelf - 3, face: nil)
+                case let .decor(kind):
+                    let s = CozyArt.size(of: kind, unit: decorUnit)
+                    ctx.draw(SpookyArt.tile(kind, unit: decorUnit, scale: scale).cgImage(),
+                             in: CGRect(x: center - s.width / 2, y: shelf - 2, width: s.width, height: s.height))
+                case let .coffin(kind):
+                    let s = CozyArt.size(of: .coffin, unit: h)
+                    ctx.draw(CozyArt.texture(.coffin, unit: h, variant: 2, scale: scale).cgImage(),
+                             in: CGRect(x: center - s.width / 2, y: shelf - 3, width: s.width, height: s.height))
+                    drawPumpkin(kind, height: (h * 0.78).rounded(), centerX: center, y: shelf - 3 + s.height * 0.86, face: 3)
+                }
+                x += w + space
+            }
+            // The ghost, floating by.
+            let ghost = SpookyArt.ghostSize(unit: h * 0.8)
+            ctx.setAlpha(0.92)
+            ctx.draw(SpookyArt.ghostTexture(unit: h * 0.8, scale: scale).cgImage(), in: CGRect(x: 300, y: 86, width: ghost.width, height: ghost.height))
+            ctx.setAlpha(1)
         }
         return NSImage(cgImage: texture.cgImage(), size: size)
     }

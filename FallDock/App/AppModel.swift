@@ -11,6 +11,7 @@ final class AppModel: ObservableObject {
     private let welcome = WelcomeWindow()
     private let mainWindow = MainWindow()
     private var activity: NSObjectProtocol?
+    private var seasonTimer: Timer?
 
     @Published private(set) var smashCount: Int
     @Published private(set) var isPaused = false
@@ -46,8 +47,31 @@ final class AppModel: ObservableObject {
         didSet { Settings.showMenuBarIcon = showMenuBarIcon }
     }
 
-    @Published var theme: Settings.Theme {
-        didSet { Settings.theme = theme; mainWindow.themeChanged(); overlay.refresh(force: true) }
+    /// The season picked in the app window: one season, or Automatic to follow the calendar.
+    @Published var themeChoice: Settings.ThemeChoice {
+        didSet {
+            Settings.themeChoice = themeChoice
+            seasonChanged()
+        }
+    }
+
+    /// The season on the Dock right now.
+    @Published private(set) var theme: Settings.Theme
+
+    private func seasonChanged() {
+        let old = theme
+        theme = Settings.theme
+        guard theme != old else { return }
+        mainWindow.themeChanged()
+        overlay.refresh(force: true)
+    }
+
+    @Published var bats: Bool {
+        didSet { Settings.bats = bats }
+    }
+
+    @Published var ghost: Bool {
+        didSet { Settings.ghost = ghost; overlay.refresh(force: true) }
     }
 
     @Published var fallingLeaves: Bool {
@@ -77,7 +101,10 @@ final class AppModel: ObservableObject {
         squirrel = Settings.squirrel
         enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
         showMenuBarIcon = Settings.showMenuBarIcon
+        themeChoice = Settings.themeChoice
         theme = Settings.theme
+        bats = Settings.bats
+        ghost = Settings.ghost
         fallingLeaves = Settings.fallingLeaves
         sound = Settings.sound
         fullness = Settings.fullness
@@ -95,6 +122,10 @@ final class AppModel: ObservableObject {
         overlay.onResume = { [weak self] in self?.isPaused = false }
         overlay.onAppearanceChange = { [weak self] in self?.appearance = Palette.appearance }
         overlay.start()
+        // With Automatic, the season changes by itself when the date comes round.
+        seasonTimer = Timer.scheduledTimer(withTimeInterval: 60 * 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.seasonChanged() }
+        }
         appearance = Palette.appearance
     }
 

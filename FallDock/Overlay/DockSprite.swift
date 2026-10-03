@@ -132,3 +132,13 @@ final class DecorNode: DockSprite {
 final class SquirrelNode: DockSprite {
     var isFleeing = false
 }
+
+/// The friendly ghost that floats by at Halloween.
+final class GhostNode: DockSprite {
+    var isFleeing = false
+}
+
+/// A cobweb at one end of the Dock (it just sits there).
+final class WebNode: DockSprite {
+    override var isInteractive: Bool { false }
+}

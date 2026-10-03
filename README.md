@@ -36,6 +36,18 @@ To stop it, press **⌘.** in Xcode or choose **Quit Fall Dock** from the 🎃 m
 
 In Xcode choose **Product → Archive**, then **Distribute App → Custom → Copy App**, and drag the exported **Fall Dock.app** into your Applications folder. Then turn on **Open at Login** in the 🎃 menu.
 
+## Halloween
+
+Pick **Halloween** as the season in the app window (or leave it on **Automatic**, which switches to Halloween from October 15th to November 1st):
+
+- The orange pumpkins become **jack-o'-lanterns** with carved, candle-lit faces that flicker, and flare up when you point at them. Smash one and candy corn flies out, and a bat that was hiding inside flutters away. A few pale ghost pumpkins sit among them.
+- The extras turn spooky: **tombstones** (click one and a little ghost rises to say boo), a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it; click for a meow), a **bubbling cauldron** (click for a burst of bubbles), **candy corn** (click to send it flying), **dripping candles** (click to blow them out; they light again) and **coffins** with a jack-o'-lantern on top (click and a bat escapes).
+- A creepy, thorny purple vine, with **cobwebs** at both ends of the Dock and a spider slowly lowering itself on its thread.
+- **Bats** flutter past now and then instead of falling leaves.
+- A friendly **ghost** floats along, stops above a tombstone to say boo, and floats on. Point at it and it squeaks "Eek!" and vanishes.
+
+![Halloween on the Dock](docs/halloween-preview.png)
+
 ## The app window
 
 Open **Fall Dock** from your Applications folder (or choose **Open Fall Dock…** from the 🎃 menu) for the app's own window.
@@ -45,7 +57,7 @@ When Fall Dock starts by itself at login, the window stays closed.
 - **General**: a live little harvest on a pretend Dock (click its pumpkins to smash them), your smash count and what's on your Dock, and big buttons to show or hide the harvest, pause it for an hour, or grow new pumpkins.
 - **Settings**: open at login, show or hide the 🎃 in the menu bar, the smash sound, Reduce Motion, and privacy.
 - **Dock**: what Fall Dock sees of your Dock (position, auto-hide, icon size, magnification, its length and whether that's measured or estimated), the Accessibility permission for an exact fit, and how full the harvest is.
-- **Fall**: the current season's own tab, with a preview, the vine, falling leaves and cozy extras, and a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. As more seasons arrive, this tab follows the one you pick.
+- **Fall** or **Halloween**: the current season's own tab, with a preview, the vine, falling leaves and cozy extras, and a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. As more seasons arrive, this tab follows the one you pick.
 
 ## The 🎃 menu
 
@@ -88,8 +100,10 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
 | `Overlay/PumpkinScene+Cozy.swift` | The cozy extras and the squirrel |
+| `Overlay/PumpkinScene+Spooky.swift` | Halloween: jack-o'-lanterns, the spooky extras, the ghost, bats and cobwebs |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
+| `Art/SpookyArt.swift` | Draws Halloween: jack-o'-lantern faces, coffins, tombstones, the black cat, the cauldron, candy corn, candles, the ghost, bats, the spider and cobwebs |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
 | `Art/SmashSound.swift` | Makes the smash sound from scratch |
 
