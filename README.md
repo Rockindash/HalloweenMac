@@ -38,7 +38,7 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 ## The 🎃 menu
 
 - **Show Pumpkins**: hides or shows everything.
-- **Vines**: a single shaded pumpkin vine along the Dock, behind the pumpkins, with knots, curls, buds and the odd blossom.
+- **Vines**: a single pumpkin vine along the Dock, behind the pumpkins, with fine ridges, two-tone curls and buds.
 - **Cozy Extras**: the hay bales, leaf piles, acorns, apples, mug, lantern and the squirrel. The lantern glows brighter in the evening.
 - **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.

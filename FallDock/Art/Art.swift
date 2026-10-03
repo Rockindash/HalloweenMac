@@ -643,8 +643,7 @@ enum LeafArt {
 // MARK: - Vines
 
 /// The pumpkin vine that runs along the top of the Dock behind the pumpkins: a wavy main
-/// vine that swells and pinches, shaded darker underneath and lighter on top, with knots, ridges,
-/// fine hairs, curls, buds and the odd blossom, and no leaves.
+/// vine that swells and pinches, with fine ridges, two-tone curls and buds, and no leaves.
 enum VineArt {
     private static var cache: [String: SKTexture] = [:]
 
@@ -688,84 +687,46 @@ enum VineArt {
         let x0: CGFloat = 4, x1 = size.width - 4
         func vy(_ x: CGFloat) -> CGFloat { centerY(x: x, unit: k) }
         let dark = Palette.green.mixed(with: Palette.plum, 0.38)
-        let light = Palette.green.mixed(with: Palette.peach, 0.4)
-        let width = 7.5 * k
+        let width = 6 * k
 
-        // Knots along the vine, where the tendrils, buds and blossoms grow.
-        var nodes: [CGFloat] = []
-        var x = x0 + rng.float(40...70) * k
-        while x < x1 - 24 * k {
-            nodes.append(x)
-            x += rng.float(55...85) * k
-        }
-
-        // Curly tendrils of mixed sizes, each with a darker shadow, growing from every other knot.
-        for (i, nx) in nodes.enumerated() where i % 2 == 0 {
-            let start = CGPoint(x: nx, y: vy(nx))
-            let dir: CGFloat = (i / 2) % 2 == 0 ? 1 : -1
-            let size = rng.float(24...42) * k
-            Brush.tendril(ctx, from: CGPoint(x: start.x + 1.2 * k, y: start.y - 1.2 * k), dir: dir, size: size, color: dark)
-            Brush.tendril(ctx, from: start, dir: dir, size: size, color: Palette.green)
-        }
-
-        // The vine: a darker underside, the vine itself, then light streaks along its top.
-        taperedVine(ctx, from: x0, to: x1, maxWidth: width * 1.2, color: dark) { vy($0) - 1.4 * k }
+        // The main vine.
         taperedVine(ctx, from: x0, to: x1, maxWidth: width, color: Palette.green) { vy($0) }
-        x = x0 + rng.float(4...20) * k
-        while x < x1 - 10 * k {
-            let length = min(rng.float(18...55) * k, x1 - x)
-            let points = stride(from: x, through: x + length, by: 3).map { CGPoint(x: $0, y: vy($0) + width * 0.2) }
-            Brush.trail(ctx, points.reversed(), maxWidth: width * 0.24, color: light, minF: 0.1)
-            x += length + rng.float(10...36) * k
-        }
 
         // Fine ridges across the stem.
-        x = x0 + 3 * k
+        var ridges = SeededRandom(seed: UInt64(seed) &* 911 &+ 7)
+        var x = x0 + 3 * k
         while x < x1 - 3 * k {
-            if rng.float(0...1) < 0.65 {
+            if ridges.float(0...1) < 0.65 {
                 let y = vy(x)
                 Brush.stroke(ctx, [CGPoint(x: x - 1.2 * k, y: y - width * 0.32), CGPoint(x: x, y: y - width * 0.05),
                                    CGPoint(x: x + 1.4 * k, y: y + width * 0.18)],
                              maxWidth: max(0.6, 0.75 * k), color: dark.withAlpha(0.7), minF: 0.3)
             }
-            x += rng.float(5...9) * k
+            x += ridges.float(5...9) * k
         }
 
-        // Tiny hairs along the vine.
-        x = x0 + rng.float(4...12) * k
-        while x < x1 - 4 * k {
-            let up = rng.float(0...1) < 0.5
-            let y = vy(x) + (up ? width * 0.42 : -width * 0.42)
-            let tip = CGPoint(x: x + rng.float(-1.5...1.5) * k, y: y + (up ? 1 : -1) * rng.float(1.8...3) * k)
-            Brush.stroke(ctx, [CGPoint(x: x, y: y), CGPoint(x: (x + tip.x) / 2, y: (y + tip.y) / 2), tip],
-                         maxWidth: max(0.5, 0.6 * k), color: up ? light : dark, minF: 0.6, endF: 0.1)
-            x += rng.float(6...14) * k
+        // Curly tendrils of mixed sizes, each with a darker shadow.
+        x = x0 + rng.float(50...90) * k
+        var i = 0
+        while x < x1 - 30 * k {
+            let start = CGPoint(x: x, y: vy(x))
+            let dir: CGFloat = i % 2 == 0 ? 1 : -1
+            let size = rng.float(24...42) * k
+            Brush.tendril(ctx, from: CGPoint(x: start.x + 1.2 * k, y: start.y - 1.2 * k), dir: dir, size: size, color: dark)
+            Brush.tendril(ctx, from: start, dir: dir, size: size, color: Palette.green)
+            x += rng.float(75...140) * k
+            i += 1
         }
 
-        // Knots: a darker swelling with a light glint.
-        for nx in nodes {
-            let c = CGPoint(x: nx, y: vy(nx))
-            ctx.setFillColor(dark)
-            ctx.fillEllipse(in: CGRect(x: c.x - width * 0.5, y: c.y - width * 0.55, width: width, height: width * 1.05))
-            ctx.setFillColor(Palette.green)
-            ctx.fillEllipse(in: CGRect(x: c.x - width * 0.38, y: c.y - width * 0.3, width: width * 0.7, height: width * 0.8))
-            ctx.setFillColor(light)
-            ctx.fillEllipse(in: CGRect(x: c.x - width * 0.22, y: c.y + width * 0.08, width: width * 0.28, height: width * 0.22))
-        }
-
-        // Buds and the odd blossom on the knots without tendrils.
-        for (i, nx) in nodes.enumerated() where i % 2 == 1 {
-            let start = CGPoint(x: nx, y: vy(nx) + width * 0.3)
-            let roll = rng.float(0...1)
-            if roll < 0.3 {
-                drawBlossom(ctx, at: start, size: rng.float(13...16) * k, angle: rng.float(65...115), shade: dark)
-            } else if roll < 0.62 {
-                drawBud(ctx, at: start, length: rng.float(14...16) * k, angle: rng.float(70...110), shade: dark)
-            }
+        // A few small buds on short stalks.
+        x = x0 + rng.float(200...280) * k
+        while x < x1 - 40 * k {
+            drawBud(ctx, at: CGPoint(x: x, y: vy(x)), length: rng.float(14...16) * k, angle: rng.float(70...110))
+            x += rng.float(260...340) * k
         }
     }
 
-    private static func drawBud(_ ctx: CGContext, at start: CGPoint, length: CGFloat, angle: CGFloat, shade: CGColor) {
+    private static func drawBud(_ ctx: CGContext, at start: CGPoint, length: CGFloat, angle: CGFloat) {
         let r = angle * .pi / 180
         let tip = CGPoint(x: start.x + cos(r) * length, y: start.y + sin(r) * length)
         Brush.stroke(ctx, [start, CGPoint(x: (start.x + tip.x) / 2 + 2, y: (start.y + tip.y) / 2), tip],
@@ -777,33 +738,6 @@ enum VineArt {
         ctx.fillEllipse(in: CGRect(x: -length * 0.2, y: -length * 0.32, width: length * 0.4, height: length * 0.64))
         ctx.setFillColor(Palette.orange)
         ctx.fillEllipse(in: CGRect(x: -length * 0.1, y: -length * 0.3 + length * 0.05, width: length * 0.2, height: length * 0.6))
-        // Little green sepals cupping the bud.
-        for side in [CGFloat(-1), 1] {
-            Brush.stroke(ctx, [CGPoint(x: 0, y: -length * 0.36), CGPoint(x: side * length * 0.16, y: -length * 0.22),
-                               CGPoint(x: side * length * 0.2, y: -length * 0.02)],
-                         maxWidth: length * 0.14, color: shade, minF: 0.8, endF: 0.1)
-        }
         ctx.restoreGState()
-    }
-
-    /// An open pumpkin blossom: five mustard petals around an orange heart, on a short stalk.
-    private static func drawBlossom(_ ctx: CGContext, at start: CGPoint, size: CGFloat, angle: CGFloat, shade: CGColor) {
-        let r = angle * .pi / 180
-        let center = CGPoint(x: start.x + cos(r) * size * 0.9, y: start.y + sin(r) * size * 0.9)
-        Brush.stroke(ctx, [start, CGPoint(x: (start.x + center.x) / 2 - 1.5, y: (start.y + center.y) / 2), center],
-                     maxWidth: max(1.6, size * 0.15), color: Palette.green, minF: 0.6)
-        for i in 0..<5 {
-            let a = CGFloat(i) / 5 * .pi * 2 + r
-            ctx.saveGState()
-            ctx.translateBy(x: center.x, y: center.y)
-            ctx.rotate(by: a)
-            ctx.setFillColor(i % 2 == 0 ? Palette.mustard : Palette.mustard.mixed(with: Palette.orange, 0.3))
-            ctx.fillEllipse(in: CGRect(x: 0, y: -size * 0.17, width: size * 0.48, height: size * 0.34))
-            ctx.restoreGState()
-        }
-        ctx.setFillColor(Palette.orange)
-        ctx.fillEllipse(in: CGRect(x: center.x - size * 0.16, y: center.y - size * 0.16, width: size * 0.32, height: size * 0.32))
-        ctx.setFillColor(Palette.rust)
-        ctx.fillEllipse(in: CGRect(x: center.x - size * 0.06, y: center.y - size * 0.06, width: size * 0.12, height: size * 0.12))
     }
 }
