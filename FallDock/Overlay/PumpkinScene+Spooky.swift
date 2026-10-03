@@ -1,16 +1,52 @@
 import SpriteKit
 
-/// Halloween: the tombstones and the crows on them, the spooky extras and what they do when
-/// clicked, zombie hands, the ghost, bats and the cobwebs.
+/// Halloween: jack-o'-lanterns, the spooky extras and what they do when clicked, the ghost,
+/// bats and the cobwebs.
 extension PumpkinScene {
-    // MARK: Tombstones
+    // MARK: Jack-o'-lanterns
 
-    /// Clicking a tombstone: it shudders, a little ghost rises from behind it, and any crow on it flies off.
-    func haunt(_ tomb: PumpkinNode) {
-        ghostRises(behind: tomb)
-        tomb.run(.sequence([.rotate(toAngle: 0.05, duration: 0.05), .rotate(toAngle: -0.05, duration: 0.08), .rotate(toAngle: 0, duration: 0.06)]),
-                 withKey: "shudder")
-        if let crow = tomb.childNode(withName: "crow") as? SKSpriteNode { crowFlies(crow, from: tomb) }
+    /// Carves a face into a pumpkin and lights a candle inside.
+    func carve(_ pumpkin: PumpkinNode, animated: Bool) {
+        guard !pumpkin.isLantern else { return }
+        pumpkin.isLantern = true
+        let face = SKSpriteNode(texture: SpookyArt.faceTexture(kind: pumpkin.kind, height: pumpkin.slotHeight,
+                                                               face: (pumpkin.slot + pumpkin.variant) % SpookyArt.faceCount,
+                                                               scale: pixelScale),
+                                size: pumpkin.size)
+        face.name = "face"
+        face.anchorPoint = pumpkin.anchorPoint
+        face.zPosition = 0.1
+        pumpkin.addChild(face)
+
+        let diameter = (pumpkin.size.width * 1.5).rounded()
+        let glow = SKSpriteNode(texture: CozyArt.glowTexture(color: Palette.orange.mixed(with: Palette.mustard, 0.5), diameter: diameter,
+                                                             scale: pixelScale),
+                                size: CGSize(width: diameter, height: diameter))
+        glow.name = "candle"
+        glow.blendMode = .add
+        glow.position = CGPoint(x: 0, y: pumpkin.size.height * 0.42)
+        glow.zPosition = 0.2
+        glow.alpha = animated ? 0 : 0.42
+        pumpkin.addChild(glow)
+        if animated {
+            face.alpha = 0
+            face.run(.fadeIn(withDuration: 0.5))
+            glow.run(.fadeAlpha(to: 0.42, duration: 0.6))
+        }
+        guard !Self.reduceMotion else { return }
+        let flicker = (0..<8).map { _ -> SKAction in
+            let duration = Double.random(in: 0.08...0.2)
+            return .group([.fadeAlpha(to: CGFloat.random(in: 0.3...0.5), duration: duration),
+                           .scale(to: CGFloat.random(in: 0.94...1.05), duration: duration)])
+        }
+        glow.run(.sequence([.wait(forDuration: animated ? 0.6 : 0), .repeatForever(.sequence(flicker))]), withKey: "flicker")
+    }
+
+    /// The candle flares up when the pointer comes near, as if the jack-o'-lantern noticed.
+    func flare(_ pumpkin: PumpkinNode) {
+        guard pumpkin.isLantern, let glow = pumpkin.childNode(withName: "candle") else { return }
+        glow.run(.sequence([.group([.scale(to: 1.4, duration: 0.12), .fadeAlpha(to: 0.8, duration: 0.12)]),
+                            .group([.scale(to: 1, duration: 0.5), .fadeAlpha(to: 0.42, duration: 0.5)])]), withKey: "flare")
     }
 
     // MARK: Words
@@ -146,8 +182,9 @@ extension PumpkinScene {
         let h = pumpkinHeight
         let top = CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height + 4)
         switch decor.kind {
-        case .broom:
-            flyBroom(decor)
+        case .tombstone:
+            ghostRises(behind: decor)
+            decor.run(DockSprite.hop(height: h * 0.05, duration: 0.2), withKey: "hop")
         case .blackCat:
             // An arched back and a meow.
             decor.run(.sequence([
@@ -183,7 +220,7 @@ extension PumpkinScene {
     }
 
     /// A little ghost rises from behind a tombstone, says boo and drifts off.
-    private func ghostRises(behind stone: DockSprite) {
+    private func ghostRises(behind stone: DecorNode) {
         guard stone.childNode(withName: "risen") == nil else { return }
         let h = pumpkinHeight * 0.75
         let size = SpookyArt.ghostSize(unit: h)
@@ -313,8 +350,8 @@ extension PumpkinScene {
 
     // MARK: The ghost
 
-    /// The ghost floats in from one end, stops above a tombstone to say boo, then floats on and out
-    /// the other end.
+    /// The ghost floats in from one end. If there are tombstones, it stops above one to say boo,
+    /// then floats on and out the other end. Without tombstones it just drifts across.
     func ghostVisit() {
         guard Settings.cozyExtras, Settings.ghost, dockRect.width > 300,
               !pumpkinLayer.children.contains(where: { $0 is GhostNode }) else {
@@ -347,7 +384,7 @@ extension PumpkinScene {
             .removeFromParent(),
             .run { [weak self] in self?.scheduleVisitor(first: false) },
         ])
-        let tombstones = pumpkinLayer.children.compactMap { $0 as? PumpkinNode }.filter { $0.kind.isTombstone && !$0.isLeaving }.map(\.restX)
+        let tombstones = pumpkinLayer.children.compactMap { $0 as? DecorNode }.filter { $0.kind == .tombstone }.map(\.restX)
         guard let spot = tombstones.randomElement() else {
             ghost.run(.sequence([.fadeAlpha(to: 0.92, duration: 0.6), drift(from: startX, to: endX), leave]), withKey: "visit")
             return
@@ -421,152 +458,5 @@ extension PumpkinScene {
         thread.run(.repeatForever(.sequence([.resize(toHeight: s * 0.5, duration: 2.4), .wait(forDuration: 1), .resize(toHeight: s * 0.18, duration: 2.4), .wait(forDuration: 1.5)])))
         spider.run(.repeatForever(.sequence([.moveTo(y: anchor.y - s * 0.5, duration: 2.4), .wait(forDuration: 1),
                                              .moveTo(y: anchor.y - s * 0.18, duration: 2.4), .wait(forDuration: 1.5)])))
-    }
-
-    // MARK: Crows
-
-    /// A crow perched on top of a tombstone. Now and then it looks around or caws.
-    func perchCrow(on tomb: PumpkinNode) {
-        let h = pumpkinHeight
-        let size = SpookyArt.crowSize(unit: h)
-        let crow = SKSpriteNode(texture: SpookyArt.crowTexture(unit: h, scale: pixelScale), size: size)
-        crow.name = "crow"
-        crow.anchorPoint = CGPoint(x: 0.5, y: 0.04)
-        // On the very top: round tops are a little lower at the sides, so sit in the middle.
-        crow.position = CGPoint(x: CGFloat.random(in: -0.08...0.08) * tomb.size.width, y: tomb.size.height * 0.94)
-        crow.xScale = Bool.random() ? 1 : -1
-        crow.zPosition = 0.4
-        tomb.addChild(crow)
-        guard !Self.reduceMotion else { return }
-        crow.run(.repeatForever(.sequence([
-            .wait(forDuration: 4, withRange: 5),
-            .run { [weak self, weak crow, weak tomb] in
-                guard let self, let crow, let tomb else { return }
-                if Int.random(in: 0..<3) == 0 {
-                    let top = tomb.convert(CGPoint(x: crow.position.x, y: crow.position.y + size.height), to: self)
-                    self.showLabel("Caw!", at: top)
-                    crow.run(.sequence([.scaleY(to: 1.12, duration: 0.08), .scaleY(to: 1, duration: 0.12)]))
-                } else {
-                    // Turn to look the other way.
-                    crow.xScale = -crow.xScale
-                }
-            },
-        ])), withKey: "idle")
-    }
-
-    /// The crow takes off, flaps away out of sight, and comes back to its tombstone a while later.
-    private func crowFlies(_ crow: SKSpriteNode, from tomb: PumpkinNode) {
-        guard crow.parent === tomb, !crow.isHidden else { return }
-        let h = pumpkinHeight
-        let frames = [SpookyArt.flyingCrowTexture(frame: 0, unit: h, scale: pixelScale), SpookyArt.flyingCrowTexture(frame: 1, unit: h, scale: pixelScale)]
-        let flyer = SKSpriteNode(texture: frames[0], size: CGSize(width: (h * 0.5).rounded(), height: (h * 0.32).rounded()))
-        let start = tomb.convert(crow.position, to: self)
-        let side: CGFloat = start.x < size.width / 2 ? -1 : 1
-        flyer.position = CGPoint(x: start.x, y: start.y + crow.size.height * 0.4)
-        flyer.xScale = side
-        flyer.zPosition = 25
-        effectsLayer.addChild(flyer)
-        crow.isHidden = true
-        let away = CGPoint(x: start.x + side * 320, y: size.height + 50)
-        let path = CGMutablePath()
-        path.move(to: flyer.position)
-        path.addCurve(to: away, control1: CGPoint(x: start.x + side * 60, y: start.y + 70), control2: CGPoint(x: start.x + side * 200, y: start.y + 60))
-        flyer.run(.repeatForever(.animate(with: frames, timePerFrame: 0.1)))
-        flyer.run(.sequence([.follow(path, asOffset: false, orientToPath: false, duration: 1.6), .removeFromParent()]))
-        showLabel("Caw!", at: CGPoint(x: start.x, y: start.y + crow.size.height + 6))
-        // Back again later, landing with a little hop.
-        crow.run(.sequence([
-            .wait(forDuration: Double.random(in: 12...20)),
-            .run { [weak crow] in
-                guard let crow else { return }
-                crow.isHidden = false
-                crow.alpha = 0
-                crow.run(.group([.fadeIn(withDuration: 0.3), .sequence([.moveBy(x: 0, y: 8, duration: 0.15), .moveBy(x: 0, y: -8, duration: 0.15)])]))
-            },
-        ]), withKey: "return")
-    }
-
-    // MARK: Zombie hands
-
-    func scheduleHands() {
-        removeAction(forKey: "hands")
-        guard Settings.theme == .halloween, !Self.reduceMotion else { return }
-        run(.repeatForever(.sequence([
-            .wait(forDuration: 22, withRange: 16),
-            .run { [weak self] in
-                guard let self, Settings.cozyExtras, Settings.zombieHands else { return }
-                self.popUpHand()
-            },
-        ])), withKey: "hands")
-    }
-
-    /// A zombie hand bursts up out of the ground beside a tombstone, waves, and sinks back down.
-    private func popUpHand() {
-        guard !pumpkinLayer.children.contains(where: { $0 is HandNode }) else { return }
-        let tombs = pumpkinLayer.children.compactMap { $0 as? PumpkinNode }.filter { $0.kind.isTombstone && !$0.isLeaving }
-        guard let tomb = tombs.randomElement() else { return }
-        let h = pumpkinHeight
-        let hand = HandNode(texture: SpookyArt.handTexture(unit: h, scale: pixelScale), color: .clear, size: SpookyArt.handSize(unit: h))
-        hand.anchorPoint = CGPoint(x: 0.5, y: 0)
-        let side: CGFloat = Bool.random() ? 1 : -1
-        hand.restX = tomb.restX + side * (tomb.size.width * 0.5 + hand.size.width * 0.35)
-        hand.restY = dockRect.maxY - 3
-        hand.zPosition = 7
-        hand.popScale = 0.05
-        pumpkinLayer.addChild(hand)
-        // Dirt flying as it breaks through.
-        let dirt = CGPoint(x: hand.restX, y: dockRect.maxY)
-        for i in 0..<5 {
-            let s = (h * 0.07).rounded()
-            let clod = SKSpriteNode(texture: PumpkinArt.shardTexture(kind: .littleGreen, size: s, variant: i, scale: pixelScale), size: CGSize(width: s, height: s))
-            clod.color = NSColor(cgColor: Palette.soot.mixed(with: Palette.rust, 0.4)) ?? .brown
-            clod.colorBlendFactor = 1
-            launch(clod, from: dirt, spread: 6, velocity: CGVector(dx: CGFloat.random(in: -90...90), dy: CGFloat.random(in: 90...200)), radius: 1, damping: 0.4, life: 0.7)
-        }
-        let wave = SKAction.sequence([.rotate(toAngle: 0.25, duration: 0.25), .rotate(toAngle: -0.2, duration: 0.3), .rotate(toAngle: 0.15, duration: 0.25),
-                                      .rotate(toAngle: 0, duration: 0.2)])
-        hand.run(.sequence([
-            DockSprite.animate(\.popScale, to: 1.08, duration: 0.3, curve: .easeOut),
-            DockSprite.animate(\.popScale, to: 1, duration: 0.15),
-            wave,
-            .wait(forDuration: 1.2),
-            wave,
-            .wait(forDuration: 0.8),
-            .run { [weak self, weak hand] in
-                guard let self, let hand else { return }
-                self.duck(hand)
-            },
-        ]), withKey: "pop")
-    }
-
-    /// The hand ducks back into the ground (also when the pointer comes too close).
-    func duck(_ hand: HandNode) {
-        guard !hand.isDucking else { return }
-        hand.isDucking = true
-        hand.removeAction(forKey: "pop")
-        hand.run(.sequence([DockSprite.animate(\.popScale, to: 0.02, duration: 0.18, curve: .easeIn), .removeFromParent()]))
-    }
-
-    // MARK: The broom
-
-    /// The witch's broom takes off, swoops a loop-the-loop above the Dock, and lands back where it was.
-    private func flyBroom(_ broom: DecorNode) {
-        guard !broom.isDetached else { return }
-        broom.isDetached = true
-        let start = broom.position
-        let h = pumpkinHeight
-        let path = CGMutablePath()
-        path.move(to: start)
-        path.addCurve(to: CGPoint(x: start.x + h * 1.2, y: start.y + h * 1.4), control1: CGPoint(x: start.x + h * 0.2, y: start.y + h * 0.9),
-                      control2: CGPoint(x: start.x + h * 0.8, y: start.y + h * 1.6))
-        path.addCurve(to: CGPoint(x: start.x + h * 0.4, y: start.y + h * 1.6), control1: CGPoint(x: start.x + h * 1.7, y: start.y + h * 1.1),
-                      control2: CGPoint(x: start.x + h * 1.2, y: start.y + h * 2.2))
-        path.addCurve(to: start, control1: CGPoint(x: start.x - h * 0.3, y: start.y + h * 1.1), control2: CGPoint(x: start.x - h * 0.2, y: start.y + h * 0.4))
-        broom.run(.sequence([
-            .group([.follow(path, asOffset: false, orientToPath: false, duration: 2.2),
-                    .sequence([.rotate(toAngle: -0.9, duration: 0.4), .rotate(byAngle: -.pi * 2, duration: 1.4), .rotate(toAngle: 0, duration: 0.4)])]),
-            .run { [weak broom] in broom?.isDetached = false },
-        ]), withKey: "fly")
-        showLabel("Wheee!", at: CGPoint(x: start.x, y: start.y + broom.frame.height + 4), color: Palette.mustard)
     }
 }

@@ -21,8 +21,6 @@ enum Settings {
         static let theme = "theme"
         static let bats = "bats"
         static let ghost = "ghost"
-        static let crows = "crows"
-        static let zombieHands = "zombieHands"
     }
 
     static func registerDefaults() {
@@ -41,8 +39,6 @@ enum Settings {
             Key.squirrel: true,
             Key.bats: true,
             Key.ghost: true,
-            Key.crows: true,
-            Key.zombieHands: true,
             Key.theme: ThemeChoice.automatic.rawValue,
             Key.showMenuBarIcon: true,
             Key.sound: true,
@@ -147,18 +143,6 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.ghost) }
     }
 
-    /// Crows perched on some of the tombstones.
-    static var crows: Bool {
-        get { defaults.bool(forKey: Key.crows) }
-        set { defaults.set(newValue, forKey: Key.crows) }
-    }
-
-    /// Zombie hands that pop up from the ground now and then.
-    static var zombieHands: Bool {
-        get { defaults.bool(forKey: Key.zombieHands) }
-        set { defaults.set(newValue, forKey: Key.zombieHands) }
-    }
-
     /// The current season's drifting things: falling leaves in fall, bats at Halloween.
     static var ambient: Bool { theme == .halloween ? bats : fallingLeaves }
 
@@ -186,7 +170,7 @@ enum Settings {
         var subtitle: String {
             switch self {
             case .fall: return "Pumpkins, hay and falling leaves"
-            case .halloween: return "Tombstones, crows, bats and a friendly ghost"
+            case .halloween: return "Jack-o'-lanterns, bats and a friendly ghost"
             }
         }
 
@@ -194,12 +178,12 @@ enum Settings {
         var extras: [DecorKind] {
             switch self {
             case .fall: return [.hayBale, .leafPile, .acorns, .mug, .lantern, .apples]
-            case .halloween: return [.coffin, .blackCat, .cauldron, .candyCorn, .candles, .broom]
+            case .halloween: return [.coffin, .tombstone, .blackCat, .cauldron, .candyCorn, .candles]
             }
         }
 
-        /// What some pumpkins sit up high on (nothing at Halloween, where tombstones stand on the ground).
-        var perch: DecorKind? { self == .halloween ? nil : .hayBale }
+        /// What some pumpkins sit up high on.
+        var perch: DecorKind { self == .halloween ? .coffin : .hayBale }
 
         /// The order extras fill the gaps between pumpkins; it starts at a random point each time the
         /// pumpkins are regrown.
@@ -208,12 +192,12 @@ enum Settings {
             case .fall:
                 return [.leafPile, .acorns, .mug, .apples, .leafPile, .lantern, .acorns, .apples, .leafPile, .acorns]
             case .halloween:
-                return [.candyCorn, .candles, .cauldron, .coffin, .blackCat, .candyCorn, .broom, .candles, .coffin, .candyCorn]
+                return [.tombstone, .candyCorn, .cauldron, .tombstone, .blackCat, .candles, .candyCorn, .tombstone, .candles, .candyCorn]
             }
         }
 
         /// Extras special enough to show up at most once every eight gaps.
-        var specials: Set<DecorKind> { self == .halloween ? [.cauldron, .blackCat, .broom] : [.mug, .lantern] }
+        var specials: Set<DecorKind> { self == .halloween ? [.cauldron, .blackCat] : [.mug, .lantern] }
 
         var vineTitle: String { self == .halloween ? "Creepy vine" : "Vine" }
         var vineDetail: String { self == .halloween ? "Cobwebs at both ends" : "Curling along the Dock" }

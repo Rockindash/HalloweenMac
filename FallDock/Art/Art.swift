@@ -228,16 +228,14 @@ enum PumpkinShape {
 enum PumpkinKind: CaseIterable {
     case roundOrange, roundMustard, squatMustard, squatOrange, tallOrange, tallMustard
     case butternutOrange, butternutMustard, littleGreen
-    // Halloween has no pumpkins: tombstones stand in their places instead (drawn in SpookyArt).
-    case tombRound, tombObelisk, tombSkull, tombCracked, tombBoo
+    /// A pale "ghost" pumpkin, for Halloween.
+    case ghostWhite
 
     /// The pumpkins on a fall Dock.
     static let fall: [PumpkinKind] = [.roundOrange, .roundMustard, .squatMustard, .squatOrange, .tallOrange, .tallMustard,
                                       .butternutOrange, .butternutMustard, .littleGreen]
-    /// The tombstones on a Halloween Dock.
-    static let halloween: [PumpkinKind] = [.tombRound, .tombObelisk, .tombSkull, .tombCracked, .tombBoo, .tombRound]
-
-    var isTombstone: Bool { [.tombRound, .tombObelisk, .tombSkull, .tombCracked, .tombBoo].contains(self) }
+    /// The pumpkins on a Halloween Dock: mostly orange ones to carve, and a few ghost pumpkins.
+    static let halloween: [PumpkinKind] = [.roundOrange, .squatOrange, .tallOrange, .roundOrange, .squatOrange, .ghostWhite]
 
     struct Look {
         var shape: PumpkinShape
@@ -271,21 +269,16 @@ enum PumpkinKind: CaseIterable {
             return Look(shape: .butternut, body: Palette.mustard, side: mustardSide, rib: Palette.rust, aspect: 0.56, heightFactor: 1.05)
         case .littleGreen:
             return Look(shape: .squat, body: Palette.green, side: greenSide, rib: Palette.plum, aspect: 1.7, heightFactor: 0.5)
-        // Tombstones only use the proportions.
-        case .tombRound:
-            return Look(shape: .tall, body: Palette.stone, side: Palette.stone, rib: Palette.stone, aspect: 0.74, heightFactor: 0.92)
-        case .tombObelisk:
-            return Look(shape: .tall, body: Palette.stone, side: Palette.stone, rib: Palette.stone, aspect: 0.42, heightFactor: 1.08)
-        case .tombSkull:
-            return Look(shape: .tall, body: Palette.stone, side: Palette.stone, rib: Palette.stone, aspect: 0.82, heightFactor: 0.8)
-        case .tombCracked:
-            return Look(shape: .tall, body: Palette.stone, side: Palette.stone, rib: Palette.stone, aspect: 0.76, heightFactor: 0.86)
-        case .tombBoo:
-            return Look(shape: .tall, body: Palette.stone, side: Palette.stone, rib: Palette.stone, aspect: 1.3, heightFactor: 0.62)
+        case .ghostWhite:
+            return Look(shape: .round, body: Palette.ghost, side: Palette.ghost.mixed(with: Palette.stone, 0.35),
+                        rib: Palette.stone.mixed(with: Palette.plum, 0.25), aspect: 1.3, heightFactor: 0.92)
         }
     }
 
     var isRound: Bool { look.shape != .butternut }
+
+    /// Whether a jack-o'-lantern face can be carved into it (round orange-ish pumpkins only).
+    var isCarvable: Bool { isRound && self != .littleGreen && self != .ghostWhite }
 }
 
 enum PumpkinArt {
@@ -309,7 +302,6 @@ enum PumpkinArt {
     }
 
     static func texture(kind: PumpkinKind, height: CGFloat, variant: Int, scale: CGFloat) -> SKTexture {
-        if kind.isTombstone { return SpookyArt.tombstoneTexture(kind: kind, height: height, variant: variant, scale: scale) }
         let size = PumpkinArt.size(of: kind, height: height)
         let key = "\(kind)-\(Int(size.height))-\(variant)-\(scale)"
         if let cached = cache[key] { return cached }

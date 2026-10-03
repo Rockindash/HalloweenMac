@@ -38,12 +38,10 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 
 ## Halloween
 
-Pick **Halloween** as the season in the app window (or leave it on **Automatic**, which switches to Halloween from October 15th to November 1st). There are no pumpkins: the Dock becomes a little graveyard.
+Pick **Halloween** as the season in the app window (or leave it on **Automatic**, which switches to Halloween from October 15th to November 1st):
 
-- **Tombstones** stand where the pumpkins would: a rounded "RIP", a tall pointed obelisk, a slab with a cute skull, a cracked leaning stone and a low "BOO!" slab, some of them mossy. Click one and it shudders as a little ghost rises from behind it to say boo.
-- **Crows** perch on some of the tombstones, looking around and cawing now and then. Click their tombstone and the crow flaps off; it comes back a while later.
-- **Zombie hands** burst up out of the ground beside a tombstone now and then and wave. Point at one and it ducks back down.
-- Spooky extras between the tombstones, each with a click: a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it; click for a meow), a **bubbling cauldron**, **candy corn** that flies, **dripping candles** that blow out and relight, **coffins** (a bat escapes) and a **witch's broom** that swoops a loop-the-loop.
+- The orange pumpkins become **jack-o'-lanterns** with carved, candle-lit faces that flicker, and flare up when you point at them. Smash one and candy corn flies out, and a bat that was hiding inside flutters away. A few pale ghost pumpkins sit among them.
+- The extras turn spooky: **tombstones** (click one and a little ghost rises to say boo), a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it; click for a meow), a **bubbling cauldron** (click for a burst of bubbles), **candy corn** (click to send it flying), **dripping candles** (click to blow them out; they light again) and **coffins** with a jack-o'-lantern on top (click and a bat escapes).
 - A creepy, thorny purple vine, with **cobwebs** at both ends of the Dock and a spider slowly lowering itself on its thread.
 - **Bats** flutter past now and then instead of falling leaves.
 - A friendly **ghost** floats along, stops above a tombstone to say boo, and floats on. Point at it and it squeaks "Eek!" and vanishes.
@@ -102,10 +100,10 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
 | `Overlay/PumpkinScene+Cozy.swift` | The cozy extras and the squirrel |
-| `Overlay/PumpkinScene+Spooky.swift` | Halloween: the tombstones and crows, zombie hands, the spooky extras, the ghost, bats and cobwebs |
+| `Overlay/PumpkinScene+Spooky.swift` | Halloween: jack-o'-lanterns, the spooky extras, the ghost, bats and cobwebs |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
-| `Art/SpookyArt.swift` | Draws Halloween: tombstones, crows, zombie hands, coffins, the broom, the black cat, the cauldron, candy corn, candles, the ghost, bats, the spider and cobwebs |
+| `Art/SpookyArt.swift` | Draws Halloween: jack-o'-lantern faces, coffins, tombstones, the black cat, the cauldron, candy corn, candles, the ghost, bats, the spider and cobwebs |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
 | `Art/SmashSound.swift` | Makes the smash sound from scratch |
 

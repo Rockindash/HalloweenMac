@@ -142,9 +142,3 @@ final class GhostNode: DockSprite {
 final class WebNode: DockSprite {
     override var isInteractive: Bool { false }
 }
-
-/// A zombie hand reaching up out of the ground at Halloween.
-final class HandNode: DockSprite {
-    var isDucking = false
-    override var isInteractive: Bool { !isDucking }
-}
