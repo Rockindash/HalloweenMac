@@ -92,7 +92,9 @@ extension PumpkinScene {
         let size = CGSize(width: (h * 0.16).rounded(), height: (h * 0.36).rounded())
         let wisp = SKSpriteNode(texture: CozyArt.steamTexture(unit: h, variant: Int.random(in: 0..<2), scale: pixelScale), size: size)
         wisp.anchorPoint = CGPoint(x: 0.5, y: 0)
-        wisp.position = CGPoint(x: -mug.size.width * 0.12 + CGFloat.random(in: -3...3), y: mug.size.height * 0.78)
+        // Out of the lid's sip hole.
+        wisp.position = CGPoint(x: (CozyArt.latteSteam.x - 0.5) * mug.size.width + CGFloat.random(in: -2...2),
+                                y: mug.size.height * CozyArt.latteSteam.y)
         wisp.alpha = 0
         wisp.zPosition = -0.2
         wisp.setScale(0.6)
@@ -142,7 +144,7 @@ extension PumpkinScene {
             for i in 0..<5 {
                 decor.run(.sequence([.wait(forDuration: Double(i) * 0.07), .run { [weak self, weak decor] in
                     guard let self, let decor else { return }
-                    self.puffSteam(from: decor, unit: decor.size.height / 0.52, strong: true)
+                    self.puffSteam(from: decor, unit: decor.size.height / CozyArt.latteHeight, strong: true)
                 }]))
             }
             decor.run(.sequence([.rotate(toAngle: 0.14, duration: 0.1), .rotate(toAngle: -0.08, duration: 0.12), .rotate(toAngle: 0, duration: 0.12)]))
@@ -232,8 +234,9 @@ extension PumpkinScene {
         squirrel.zPosition = 7
 
         let tail = SKSpriteNode(texture: CozyArt.squirrelTailTexture(unit: h, scale: pixelScale), size: size)
-        tail.anchorPoint = CozyArt.tailBase
-        tail.position = CGPoint(x: (CozyArt.tailBase.x - 0.5) * size.width, y: CozyArt.tailBase.y * size.height)
+        let tailBase = CozyArt.tailBase(unit: h)
+        tail.anchorPoint = tailBase
+        tail.position = CGPoint(x: (tailBase.x - 0.5) * size.width, y: tailBase.y * size.height)
         tail.zPosition = -0.1
         let swish = SKAction.sequence([.rotate(toAngle: 0.14, duration: 0.45), .rotate(toAngle: -0.06, duration: 0.45)])
         swish.timingMode = .easeInEaseOut

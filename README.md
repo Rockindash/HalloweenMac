@@ -1,13 +1,13 @@
 # Fall Dock 🎃
 
 A cozy little Mac app that fills the top of your Dock with a fall harvest: flat, hand-drawn pumpkins on a
-curling vine, evenly spaced, with hay bales, leaf piles, acorns, a crate of apples, a steaming mug of cider
+curling vine, evenly spaced, with hay bales, leaf piles, acorns, a crate of apples, a steaming pumpkin spice latte
 and a glowing lantern in between. A squirrel stops by now and then.
 
 If your Dock magnifies, everything grows, rises and spreads apart with the icons under the pointer.
 
 Click a pumpkin to smash it. Chunks and seeds go flying, and a new pumpkin grows back a few seconds later.
-Click a leaf pile to kick it into the air, the mug for a puff of steam, or the lantern to make it flare up.
+Click a leaf pile to kick it into the air, the latte for a puff of steam, or the lantern to make it flare up.
 Sweep the pointer quickly across the pumpkins to rock them, and get close to the squirrel to scare it off.
 
 ![On the Dock](docs/dock-closeup.png)
@@ -44,13 +44,13 @@ When Fall Dock starts by itself at login, the window stays closed.
 - **General**: a live little harvest on a pretend Dock (click its pumpkins to smash them), your smash count and what's on your Dock, and big buttons to show or hide the harvest, pause it for an hour, or grow new pumpkins.
 - **Settings**: open at login, show or hide the 🎃 in the menu bar, the smash sound, Reduce Motion, and privacy.
 - **Dock**: what Fall Dock sees of your Dock (position, auto-hide, icon size, magnification, its length and whether that's measured or estimated), the Accessibility permission for an exact fit, and how full the harvest is.
-- **Fall**: the current season's own tab, with a preview, the vine, falling leaves and cozy extras, and a picture tile for each extra (hay bales, leaf piles, acorns, the mug, the lantern, the apples and the squirrel) to switch it on or off. As more seasons arrive, this tab follows the one you pick.
+- **Fall**: the current season's own tab, with a preview, the vine, falling leaves and cozy extras, and a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. As more seasons arrive, this tab follows the one you pick.
 
 ## The 🎃 menu
 
 - **Show Pumpkins**: hides or shows everything.
 - **Vines**: a single pumpkin vine along the Dock, behind the pumpkins, with fine ridges, two-tone curls and buds.
-- **Cozy Extras**: the hay bales, leaf piles, acorns, apples, mug, lantern and the squirrel. The lantern glows brighter in the evening.
+- **Cozy Extras**: the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and the squirrel. The lantern glows brighter in the evening.
 - **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
 - **How Full**: A Few, Plenty or Overflowing, which sets how closely pumpkins and extras are packed. They always stay the same size: when the Dock gets longer or shorter (adding apps, or changing its size in System Settings), pumpkins and extras grow in or shrink away at the end instead of everything stretching.
@@ -88,7 +88,7 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `Overlay/PumpkinScene+Cozy.swift` | The cozy extras and the squirrel |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
-| `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, mug, lantern and squirrel |
+| `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
 | `Art/SmashSound.swift` | Makes the smash sound from scratch |
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.

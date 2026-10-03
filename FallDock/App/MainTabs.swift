@@ -606,7 +606,7 @@ struct ThemeTab: View {
                 }
                 .disabled(!model.cozyExtras)
                 .opacity(model.cozyExtras ? 1 : 0.45)
-                Text("Tap to switch each one on or off. On the Dock, click the leaf piles, the mug and the lantern.")
+                Text("Tap to switch each one on or off. On the Dock, click the leaf piles, the latte and the lantern.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

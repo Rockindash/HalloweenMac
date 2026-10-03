@@ -2,7 +2,7 @@ import AppKit
 import SpriteKit
 
 // The cozy extras that fill the gaps between pumpkins: hay bales, leaf piles, acorns,
-// a mug of cider, a lantern, a crate of apples and a visiting squirrel.
+// a pumpkin spice latte, a lantern, a crate of apples and a visiting squirrel.
 // Same flat harvest-wagon style as the pumpkins: wagon colors, flat fills, a darker side,
 // tapered brush strokes and no outlines.
 
@@ -14,14 +14,14 @@ enum DecorKind: String, CaseIterable {
         case .hayBale: return "Hay bales"
         case .leafPile: return "Leaf piles"
         case .acorns: return "Acorns"
-        case .mug: return "Mug of cider"
+        case .mug: return "Pumpkin spice latte"
         case .lantern: return "Lantern"
         case .apples: return "Crate of apples"
         }
     }
 
     /// The order decorations fill the gaps between pumpkins; it starts at a random point each time
-    /// the pumpkins are regrown, so the mug and lantern turn up in different spots.
+    /// the pumpkins are regrown, so the latte and lantern turn up in different spots.
     static let gapCycle: [DecorKind] = [
         .leafPile, .acorns, .mug, .apples, .leafPile, .lantern,
         .acorns, .apples, .leafPile, .acorns,
@@ -44,7 +44,7 @@ enum CozyArt {
         case .hayBale: s = CGSize(width: h * 1.4, height: h * 0.52)
         case .leafPile: s = CGSize(width: h * 0.95, height: h * 0.42)
         case .acorns: s = CGSize(width: h * 0.62, height: h * 0.4)
-        case .mug: s = CGSize(width: h * 0.6, height: h * 0.52)
+        case .mug: s = CGSize(width: h * 0.46, height: h * latteHeight)
         case .lantern: s = CGSize(width: h * 0.46, height: h * 0.82)
         case .apples: s = CGSize(width: h * 0.92, height: h * 0.58)
         }
@@ -213,49 +213,66 @@ enum CozyArt {
         ctx.restoreGState()
     }
 
-    // MARK: Mug of cider
+    // MARK: Pumpkin spice latte
 
+    /// The latte's height for pumpkins `h` points tall, as a fraction of `h`.
+    static let latteHeight: CGFloat = 0.66
+    /// Where the lid's sip hole is (steam comes out there), as a fraction of the latte's size.
+    static let latteSteam = CGPoint(x: 0.62, y: 0.86)
+
+    /// A takeaway cup: cream paper, an orange sleeve with a little pumpkin on it, and a plum lid.
     private static func drawMug(_ ctx: CGContext, size: CGSize, h: CGFloat) {
         let w = size.width, ht = size.height
-        let body = CGRect(x: w * 0.06, y: 1, width: w * 0.66, height: ht * 0.8)
-        let mug = Palette.plum.mixed(with: Palette.rust, 0.25)
-
-        // Handle.
-        let handle = CGRect(x: body.maxX - w * 0.12, y: body.minY + body.height * 0.22, width: w * 0.36, height: body.height * 0.5)
-        ctx.setStrokeColor(mug)
-        ctx.setLineWidth(h * 0.06)
-        ctx.strokeEllipse(in: handle.insetBy(dx: h * 0.03, dy: h * 0.03))
-
-        let path = CGPath(roundedRect: body, cornerWidth: body.width * 0.16, cornerHeight: body.width * 0.16, transform: nil)
-        ctx.addPath(path)
-        ctx.setFillColor(mug)
-        ctx.fillPath()
-        ctx.saveGState()
-        ctx.addPath(path)
-        ctx.clip()
-        // Darker right side and a peach band with little hearts.
-        ctx.setFillColor(mug.mixed(with: Palette.shadowInk, 0.35))
-        ctx.fill(CGRect(x: body.minX + body.width * 0.78, y: 0, width: body.width, height: ht))
-        let band = CGRect(x: 0, y: body.minY + body.height * 0.38, width: w, height: body.height * 0.22)
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+        // The cup widens toward the top.
+        let cup = CGMutablePath()
+        cup.addLines(between: [p(0.24, 0.02), p(0.76, 0.02), p(0.88, 0.76), p(0.12, 0.76)])
+        cup.closeSubpath()
+        ctx.addPath(cup)
         ctx.setFillColor(Palette.peach)
-        ctx.fill(band)
-        for i in 0..<3 {
-            heart(ctx, center: CGPoint(x: body.minX + body.width * (0.2 + CGFloat(i) * 0.3), y: band.midY), size: band.height * 0.62,
-                  color: i == 1 ? Palette.orange : Palette.rust)
-        }
+        ctx.fillPath()
+
+        ctx.saveGState()
+        ctx.addPath(cup)
+        ctx.clip()
+        // The sleeve.
+        let sleeve = Palette.orange.mixed(with: Palette.rust, 0.35)
+        ctx.setFillColor(sleeve)
+        ctx.fill(CGRect(x: 0, y: ht * 0.2, width: w, height: ht * 0.32))
+        // Darker right side, like everything else.
+        ctx.setFillColor(Palette.shadowInk.withAlpha(0.16))
+        ctx.fill(CGRect(x: w * 0.66, y: 0, width: w * 0.4, height: ht))
         ctx.restoreGState()
 
-        // Rim and cider.
-        let rim = CGRect(x: body.minX, y: body.maxY - ht * 0.08, width: body.width, height: ht * 0.16)
-        ctx.setFillColor(mug.mixed(with: Palette.peach, 0.25))
-        ctx.fillEllipse(in: rim)
-        ctx.setFillColor(Palette.rust.mixed(with: Palette.mustard, 0.35))
-        ctx.fillEllipse(in: rim.insetBy(dx: body.width * 0.07, dy: rim.height * 0.2))
+        // A little pumpkin on the sleeve.
+        let c = p(0.46, 0.36)
+        let r = w * 0.1
+        ctx.setFillColor(Palette.orange.mixed(with: Palette.mustard, 0.25))
+        ctx.fillEllipse(in: CGRect(x: c.x - r * 1.3, y: c.y - r * 0.85, width: r * 1.6, height: r * 1.7))
+        ctx.fillEllipse(in: CGRect(x: c.x - r * 0.3, y: c.y - r * 0.85, width: r * 1.6, height: r * 1.7))
+        ctx.setFillColor(Palette.mustard.mixed(with: Palette.peach, 0.2))
+        ctx.fillEllipse(in: CGRect(x: c.x - r * 0.75, y: c.y - r * 0.9, width: r * 1.5, height: r * 1.8))
+        Brush.stroke(ctx, [CGPoint(x: c.x, y: c.y + r * 0.8), CGPoint(x: c.x + r * 0.1, y: c.y + r * 1.1),
+                           CGPoint(x: c.x + r * 0.35, y: c.y + r * 1.3)],
+                     maxWidth: r * 0.4, color: Palette.green, minF: 0.7)
 
-        // A cinnamon stick.
-        Brush.stroke(ctx, [CGPoint(x: body.midX - w * 0.04, y: rim.midY), CGPoint(x: body.midX + w * 0.06, y: ht * 0.92),
-                           CGPoint(x: body.midX + w * 0.14, y: ht - 2)],
-                     maxWidth: h * 0.06, color: bark, minF: 0.9)
+        // The lid: a rim, a raised top and a sip hole.
+        let lid = Palette.plum.mixed(with: Palette.rust, 0.2)
+        ctx.setFillColor(lid)
+        ctx.addPath(CGPath(roundedRect: CGRect(x: w * 0.06, y: ht * 0.74, width: w * 0.88, height: ht * 0.08),
+                           cornerWidth: ht * 0.03, cornerHeight: ht * 0.03, transform: nil))
+        ctx.fillPath()
+        ctx.setFillColor(lid.mixed(with: Palette.peach, 0.15))
+        ctx.addPath(CGPath(roundedRect: CGRect(x: w * 0.16, y: ht * 0.8, width: w * 0.68, height: ht * 0.1),
+                           cornerWidth: ht * 0.04, cornerHeight: ht * 0.04, transform: nil))
+        ctx.fillPath()
+        ctx.setFillColor(Palette.shadowInk)
+        ctx.fillEllipse(in: CGRect(x: w * latteSteam.x - w * 0.07, y: ht * latteSteam.y - ht * 0.012, width: w * 0.14, height: ht * 0.03))
+        // A sprinkle of cinnamon on the sleeve's edge, for fun.
+        ctx.setFillColor(Palette.rust.mixed(with: Palette.plum, 0.4))
+        for (x, y) in [(0.3, 0.5), (0.36, 0.47), (0.6, 0.49), (0.67, 0.46), (0.52, 0.23)] {
+            ctx.fillEllipse(in: CGRect(x: w * CGFloat(x), y: ht * CGFloat(y), width: w * 0.035, height: w * 0.035))
+        }
     }
 
     private static func heart(_ ctx: CGContext, center c: CGPoint, size s: CGFloat, color: CGColor) {
@@ -401,7 +418,7 @@ enum CozyArt {
         return texture
     }
 
-    /// A wisp of steam rising from the mug.
+    /// A wisp of steam rising from the latte.
     static func steamTexture(unit h: CGFloat, variant: Int, scale: CGFloat) -> SKTexture {
         let size = CGSize(width: (h * 0.16).rounded(), height: (h * 0.36).rounded())
         let key = "steam-\(Int(h))-\(variant)-\(scale)"
@@ -419,14 +436,23 @@ enum CozyArt {
 
     // MARK: Squirrel
 
+    /// The box the squirrel is drawn in, and the room left of and above it so the big curly tail
+    /// (and its swish) isn't cut off.
+    private static func squirrelBody(unit h: CGFloat) -> CGSize { CGSize(width: h * 0.62, height: h * 0.56) }
+    private static func squirrelRoom(unit h: CGFloat) -> CGSize { CGSize(width: h * 0.14, height: h * 0.1) }
+
     /// The squirrel's size for pumpkins `h` points tall. The body and tail textures share it,
     /// so they line up when stacked.
     static func squirrelSize(unit h: CGFloat) -> CGSize {
-        CGSize(width: (h * 0.62).rounded(), height: (h * 0.56).rounded())
+        let body = squirrelBody(unit: h), room = squirrelRoom(unit: h)
+        return CGSize(width: (body.width + room.width).rounded(), height: (body.height + room.height).rounded())
     }
 
     /// Where the tail joins the body, as a fraction of the squirrel's size.
-    static let tailBase = CGPoint(x: 0.36, y: 0.22)
+    static func tailBase(unit h: CGFloat) -> CGPoint {
+        let size = squirrelSize(unit: h), body = squirrelBody(unit: h), room = squirrelRoom(unit: h)
+        return CGPoint(x: (room.width + body.width * 0.36) / size.width, y: body.height * 0.22 / size.height)
+    }
 
     private static let fur = Palette.rust.mixed(with: Palette.orange, 0.3)
 
@@ -436,7 +462,9 @@ enum CozyArt {
         let key = "squirrel-\(Int(h))-\(scale)"
         if let cached = cache[key] { return cached }
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            let w = size.width, ht = size.height
+            let body = squirrelBody(unit: h)
+            ctx.translateBy(x: squirrelRoom(unit: h).width, y: 0)
+            let w = body.width, ht = body.height
             func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
             let furDark = fur.mixed(with: Palette.plum, 0.3)
 
@@ -475,7 +503,9 @@ enum CozyArt {
         let key = "squirrel-tail-\(Int(h))-\(scale)"
         if let cached = cache[key] { return cached }
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            let w = size.width, ht = size.height
+            let body = squirrelBody(unit: h)
+            ctx.translateBy(x: squirrelRoom(unit: h).width, y: 0)
+            let w = body.width, ht = body.height
             func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
             Brush.stroke(ctx, [p(0.38, 0.2), p(0.02, 0.2), p(0.02, 0.92), p(0.34, 0.86)],
                          maxWidth: 0.3 * w, color: fur.mixed(with: Palette.orange, 0.2), minF: 0.5, endF: 0.25)

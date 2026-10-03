@@ -45,7 +45,7 @@ struct WelcomeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 tip("menubar.rectangle", "Everything is in the 🎃 menu in your menu bar.")
                 tip("hand.tap", "Click a pumpkin to smash it. A new one grows back a few seconds later.")
-                tip("cursorarrow.rays", "Point at the leaves, the mug and the lantern. Click them too.")
+                tip("cursorarrow.rays", "Point at the leaves, the latte and the lantern. Click them too.")
                 tip("magnifyingglass", "If your Dock magnifies, the harvest grows along with it.")
             }
             .frame(maxWidth: .infinity, alignment: .leading)

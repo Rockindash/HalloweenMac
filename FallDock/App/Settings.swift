@@ -57,7 +57,7 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.showVines) }
     }
 
-    /// Hay bales, leaf piles, acorns, apples, the mug and lantern, and the squirrel.
+    /// Hay bales, leaf piles, acorns, apples, the pumpkin spice latte and lantern, and the squirrel.
     static var cozyExtras: Bool {
         get { defaults.bool(forKey: Key.cozyExtras) }
         set { defaults.set(newValue, forKey: Key.cozyExtras) }
