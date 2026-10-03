@@ -14,6 +14,8 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var smashCount: Int
     @Published private(set) var isPaused = false
+    /// The Mac's Light or Dark setting, which the art follows.
+    @Published private(set) var appearance = Palette.Appearance.dark
 
     @Published var showPumpkins: Bool {
         didSet { Settings.showPumpkins = showPumpkins; overlay.refresh() }
@@ -91,7 +93,9 @@ final class AppModel: ObservableObject {
             reason: "Keeping the pumpkins in step with the Dock"
         )
         overlay.onResume = { [weak self] in self?.isPaused = false }
+        overlay.onAppearanceChange = { [weak self] in self?.appearance = Palette.appearance }
         overlay.start()
+        appearance = Palette.appearance
     }
 
     func stop() {

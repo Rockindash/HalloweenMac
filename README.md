@@ -68,6 +68,7 @@ When Fall Dock starts by itself at login, the window stays closed.
 - With **Reduce Motion** on (System Settings → Accessibility → Display), nothing moves by itself: no wobbling, falling leaves, steam or squirrel. Things still react when you click them.
 - Fall Dock checks for the Dock often only while the pointer is near the bottom of the screen, so it uses very little battery while the Dock is hidden.
 - Magnification follows the Dock's own setting (System Settings → Desktop & Dock → Magnification).
+- The harvest follows your Mac's **Light or Dark** setting (System Settings → Appearance): rich, deep colors on a dark Dock, and softer, lighter ones on a light Dock. It switches straight away, keeping the same pumpkins.
 - All the art is drawn in code (see `FallDock/Art/Art.swift` and `FallDock/Art/CozyArt.swift`), in the flat style of a hand-drawn harvest wagon, using six colors. You can change them in `Palette` near the top of the file.
 
 ## How it works

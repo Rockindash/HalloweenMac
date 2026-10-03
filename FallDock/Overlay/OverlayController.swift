@@ -78,6 +78,25 @@ final class OverlayController {
 
     /// Called when a pause runs out by itself.
     var onResume: (() -> Void)?
+
+    /// Called after the Mac switches between Light and Dark and the art has been redrawn.
+    var onAppearanceChange: (() -> Void)?
+    private var appearanceObservation: NSKeyValueObservation?
+
+    /// Uses the light or dark colors to match the Mac, and redraws everything when that changes.
+    private func followAppearance() {
+        Palette.appearance = .system
+        appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            Task { @MainActor in
+                let appearance = Palette.Appearance.system
+                guard appearance != Palette.appearance else { return }
+                Palette.appearance = appearance
+                ArtCache.clear()
+                self?.scene?.repaint()
+                self?.onAppearanceChange?()
+            }
+        }
+    }
     var isDockPrecise: Bool { currentDock?.isPrecise ?? false }
 
     /// What the app window's Dock tab shows.
@@ -96,6 +115,7 @@ final class OverlayController {
     }
 
     func start() {
+        followAppearance()
         let onChange: @Sendable (Notification) -> Void = { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }

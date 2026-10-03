@@ -254,6 +254,12 @@ final class PumpkinScene: SKScene {
         ]), withKey: "grow")
     }
 
+    /// Draws the same harvest again, after the Mac switches between Light and Dark.
+    func repaint() {
+        guard dockRect.width > 0 else { return }
+        rebuild()
+    }
+
     private func rebuild() {
         removeAllActions()
         pumpkinLayer.removeAllChildren()
@@ -401,7 +407,7 @@ final class PumpkinScene: SKScene {
         cast.anchorPoint = pumpkin.anchorPoint
         cast.color = NSColor(cgColor: Palette.shadowInk) ?? .black
         cast.colorBlendFactor = 1
-        cast.alpha = 0.24
+        cast.alpha = Palette.appearance == .dark ? 0.24 : 0.16
         cast.position = CGPoint(x: 3 * unit, y: -1.5 * unit)
         cast.zPosition = -0.6
         pumpkin.addChild(cast)

@@ -6,13 +6,14 @@ import SwiftUI
 // The tabs of the app window (see MainWindow.swift), in the harvest-wagon colors:
 // a live little harvest to play with, stat tiles, cards with colored badges, and picture tiles.
 
+/// The window's own colors: the dark wagon colors, whatever the Dock art is using.
 extension Color {
-    static let pumpkin = Color(cgColor: Palette.orange)
-    static let harvestPlum = Color(cgColor: Palette.plum)
-    static let harvestRust = Color(cgColor: Palette.rust)
-    static let harvestMustard = Color(cgColor: Palette.mustard)
-    static let harvestPeach = Color(cgColor: Palette.peach)
-    static let harvestGreen = Color(cgColor: Palette.green)
+    static let pumpkin = Color(cgColor: .hex(0xEB6C15))
+    static let harvestPlum = Color(cgColor: .hex(0x5D1C2B))
+    static let harvestRust = Color(cgColor: .hex(0xA24B22))
+    static let harvestMustard = Color(cgColor: .hex(0xDB9D24))
+    static let harvestPeach = Color(cgColor: .hex(0xFCDCBE))
+    static let harvestGreen = Color(cgColor: .hex(0x627329))
 }
 
 // MARK: - Building blocks
@@ -198,7 +199,8 @@ struct LiveHarvestView: View {
 
     /// The settings that change what grows; the little harvest regrows when any of them change.
     private var look: [AnyHashable] {
-        [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves]
+        [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves,
+         model.appearance]
     }
 
     private let icons: [(String, Color)] = [
@@ -623,6 +625,7 @@ struct ExtraTile: View {
     var title: String
     var isOn: Bool
     var action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
@@ -642,7 +645,7 @@ struct ExtraTile: View {
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isOn ? Color.harvestPlum.opacity(0.35) : Color.clear))
+                .fill(isOn ? (colorScheme == .dark ? Color.harvestPlum.opacity(0.35) : Color.pumpkin.opacity(0.1)) : Color.clear))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(isOn ? Color.pumpkin.opacity(0.7) : Color.secondary.opacity(0.25), lineWidth: isOn ? 1.5 : 1))
             .overlay(alignment: .topTrailing) {
@@ -661,7 +664,7 @@ enum ExtraArt {
     private static var cache: [String: NSImage] = [:]
 
     static func image(for kind: DecorKind) -> NSImage {
-        let key = kind.rawValue
+        let key = "\(kind.rawValue)-\(Palette.appearance)"
         if let image = cache[key] { return image }
         let unit: CGFloat = 60
         let size = CozyArt.size(of: kind, unit: unit)
@@ -672,7 +675,8 @@ enum ExtraArt {
     }
 
     static func squirrel() -> NSImage {
-        if let image = cache["squirrel"] { return image }
+        let key = "squirrel-\(Palette.appearance)"
+        if let image = cache[key] { return image }
         let unit: CGFloat = 60
         let size = CozyArt.squirrelSize(unit: unit)
         let texture = TextureMaker.make(size: size, scale: 2) { ctx in
@@ -680,22 +684,23 @@ enum ExtraArt {
             ctx.draw(CozyArt.squirrelTexture(unit: unit, scale: 2).cgImage(), in: CGRect(origin: .zero, size: size))
         }
         let image = NSImage(cgImage: texture.cgImage(), size: size)
-        cache["squirrel"] = image
+        cache[key] = image
         return image
     }
 }
 
 /// A little picture of each season's harvest, drawn with the same art as the Dock.
 enum ThemePreview {
-    private static var cache: [Settings.Theme: NSImage] = [:]
+    private static var cache: [String: NSImage] = [:]
 
     static func image(for theme: Settings.Theme) -> NSImage {
-        if let image = cache[theme] { return image }
+        let key = "\(theme.rawValue)-\(Palette.appearance)"
+        if let image = cache[key] { return image }
         let image: NSImage
         switch theme {
         case .fall: image = fall()
         }
-        cache[theme] = image
+        cache[key] = image
         return image
     }
 

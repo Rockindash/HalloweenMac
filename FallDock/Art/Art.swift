@@ -33,18 +33,46 @@ extension CGColor {
     }
 }
 
+/// The six wagon colors, in two versions: rich and deep for a dark Dock, and softer, lighter and
+/// warmer for a light one, so the harvest never looks heavy on light frosted glass. The Mac's
+/// Light/Dark setting picks one (see `OverlayController`); textures are drawn with the current one,
+/// and redrawn after a switch.
 enum Palette {
-    // The six wagon colors.
-    static let green = CGColor.hex(0x627329)
-    static let rust = CGColor.hex(0xA24B22)
-    static let mustard = CGColor.hex(0xDB9D24)
-    static let orange = CGColor.hex(0xEB6C15)
-    static let plum = CGColor.hex(0x5D1C2B)
-    static let peach = CGColor.hex(0xFCDCBE)
+    enum Appearance {
+        case light, dark
 
-    static let stemCut = CGColor.hex(0xC9773D)
-    static let shadowInk = CGColor.hex(0x3B1420)
-    static let seed = CGColor.hex(0xF6E4C1)
+        /// The Mac's current setting.
+        static var system: Appearance {
+            NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? .dark : .light
+        }
+    }
+
+    static var appearance: Appearance = .dark
+
+    private static func pick(dark: UInt32, light: UInt32) -> CGColor {
+        CGColor.hex(appearance == .dark ? dark : light)
+    }
+
+    static var green: CGColor { pick(dark: 0x627329, light: 0x7C9440) }
+    static var rust: CGColor { pick(dark: 0xA24B22, light: 0xBF6438) }
+    static var mustard: CGColor { pick(dark: 0xDB9D24, light: 0xEDB54C) }
+    static var orange: CGColor { pick(dark: 0xEB6C15, light: 0xF58A3A) }
+    static var plum: CGColor { pick(dark: 0x5D1C2B, light: 0x8A4452) }
+    static var peach: CGColor { pick(dark: 0xFCDCBE, light: 0xFFF2E3) }
+
+    static var stemCut: CGColor { pick(dark: 0xC9773D, light: 0xDE9A5E) }
+    static var shadowInk: CGColor { pick(dark: 0x3B1420, light: 0x7A5446) }
+    static var seed: CGColor { pick(dark: 0xF6E4C1, light: 0xFFF7E8) }
+}
+
+/// Forgets every drawn texture, so everything is drawn again in the current palette.
+enum ArtCache {
+    static func clear() {
+        PumpkinArt.clearCache()
+        LeafArt.clearCache()
+        VineArt.clearCache()
+        CozyArt.clearCache()
+    }
 }
 
 // MARK: - Seeded randomness (so a pumpkin looks the same every time it's drawn)
@@ -226,6 +254,7 @@ enum PumpkinKind: CaseIterable {
 
 enum PumpkinArt {
     private static var cache: [String: SKTexture] = [:]
+    static func clearCache() { cache.removeAll() }
     static let pad: CGFloat = 2
 
     /// Body size (the `w` x `h` box the lobe shapes are measured against) for a slot height.
@@ -572,6 +601,7 @@ enum LeafKind: CaseIterable {
 
 enum LeafArt {
     private static var cache: [String: SKTexture] = [:]
+    static func clearCache() { cache.removeAll() }
 
     /// A single leaf in a square sprite, for falling and flying leaves.
     static func texture(_ kind: LeafKind, size: CGFloat, variant: Int, scale: CGFloat) -> SKTexture {
@@ -646,6 +676,7 @@ enum LeafArt {
 /// vine that swells and pinches, with fine ridges, two-tone curls and buds, and no leaves.
 enum VineArt {
     private static var cache: [String: SKTexture] = [:]
+    static func clearCache() { cache.removeAll() }
 
     /// Where the middle of the main vine sits, measured up from the bottom of the vine texture.
     /// `x` is measured from the texture's left edge; `k` is the size unit (1 ≈ a 62 pt pumpkin).

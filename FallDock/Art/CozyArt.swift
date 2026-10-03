@@ -30,12 +30,13 @@ enum DecorKind: String, CaseIterable {
 
 enum CozyArt {
     private static var cache: [String: SKTexture] = [:]
+    static func clearCache() { cache.removeAll() }
 
-    private static let straw = Palette.mustard.mixed(with: Palette.peach, 0.18)
-    private static let strawLight = Palette.mustard.mixed(with: Palette.peach, 0.5)
-    private static let strawDark = Palette.mustard.mixed(with: Palette.rust, 0.38)
-    private static let bark = Palette.rust.mixed(with: Palette.plum, 0.55)
-    private static let wood = Palette.rust.mixed(with: Palette.peach, 0.22)
+    private static var straw: CGColor { Palette.mustard.mixed(with: Palette.peach, 0.18) }
+    private static var strawLight: CGColor { Palette.mustard.mixed(with: Palette.peach, 0.5) }
+    private static var strawDark: CGColor { Palette.mustard.mixed(with: Palette.rust, 0.38) }
+    private static var bark: CGColor { Palette.rust.mixed(with: Palette.plum, 0.55) }
+    private static var wood: CGColor { Palette.rust.mixed(with: Palette.peach, 0.22) }
 
     /// Point size of a decoration for pumpkins `h` points tall.
     static func size(of kind: DecorKind, unit h: CGFloat) -> CGSize {
@@ -472,7 +473,7 @@ enum CozyArt {
         return texture
     }
 
-    private static let fur = Palette.rust.mixed(with: Palette.orange, 0.3)
+    private static var fur: CGColor { Palette.rust.mixed(with: Palette.orange, 0.3) }
 
     /// The squirrel's body, facing right.
     static func squirrelTexture(unit h: CGFloat, scale: CGFloat) -> SKTexture {
