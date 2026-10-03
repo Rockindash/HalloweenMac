@@ -68,14 +68,22 @@ enum DockLocator {
     }
 
     private static var dockWindowSupported: Bool?
+    private static var cachedDockPID: pid_t?
+
+    /// The Dock's process. Looking it up is slow and this runs often, so remember it until the
+    /// Dock restarts (when the old process is gone).
+    private static func dockPID() -> pid_t? {
+        if let pid = cachedDockPID, kill(pid, 0) == 0 { return pid }
+        cachedDockPID = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.processIdentifier
+        return cachedDockPID
+    }
 
     /// The Dock keeps a screen-sized window at Dock level that is on screen only while the Dock
     /// can be seen, and it moves to whichever display the Dock is on. In a full-screen app (or
     /// with auto-hide) the Dock slides away and that window goes off screen. Window positions
     /// and owners are readable without Screen Recording permission.
     static func dockScreen() -> DockState {
-        guard let dockPID = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.processIdentifier
-        else { return .unknown }
+        guard let dockPID = dockPID() else { return .unknown }
         let dockLevel = Int(CGWindowLevelForKey(.dockWindow))
         let screenSizes = NSScreen.screens.map { $0.frame.size }
 
@@ -183,10 +191,10 @@ enum DockLocator {
     /// Reads the Dock's icon list frame through the Accessibility API.
     static func accessibilityDockFrame() -> CGRect? {
         guard AXIsProcessTrusted(),
-              let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first
+              let dockPID = dockPID()
         else { return nil }
 
-        let app = AXUIElementCreateApplication(dockApp.processIdentifier)
+        let app = AXUIElementCreateApplication(dockPID)
         var childrenRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(app, kAXChildrenAttribute as CFString, &childrenRef) == .success,
               let children = childrenRef as? [AXUIElement],

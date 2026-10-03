@@ -44,13 +44,17 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
 - **How Full**: A Few, Plenty or Overflowing, which sets how closely pumpkins and extras are packed. They always stay the same size: when the Dock gets longer or shorter (adding apps, or changing its size in System Settings), pumpkins and extras grow in or shrink away at the end instead of everything stretching.
 - **Grow New Pumpkins**: a fresh set of pumpkins.
+- **Pause for 1 Hour**: hides everything for an hour, for presentations and screen sharing (or **Resume** early).
 - **Fit Pumpkins to Dock Exactly…**: by default the app estimates how wide your Dock is. If the pumpkins hang past the ends of your Dock, allow Fall Dock under System Settings → Privacy & Security → Accessibility and it will measure the Dock exactly. It only reads the Dock's size.
 - **Open at Login**: starts Fall Dock when you log in (use the copy in Applications).
+- **Welcome to Fall Dock…**: shows the welcome window again. It opens by itself the first time.
 
 ## Good to know
 
 - Pumpkins only show when the Dock is at the **bottom** of the screen. They hide and come back with the Dock (for example in full-screen apps), and follow it to another display.
 - Clicks only stop at a pumpkin or a cozy extra. Everywhere else, the Dock and your windows work normally.
+- With **Reduce Motion** on (System Settings → Accessibility → Display), nothing moves by itself: no wobbling, falling leaves, steam or squirrel. Things still react when you click them.
+- Fall Dock checks for the Dock often only while the pointer is near the bottom of the screen, so it uses very little battery while the Dock is hidden.
 - Magnification follows the Dock's own setting (System Settings → Desktop & Dock → Magnification).
 - All the art is drawn in code (see `FallDock/Art/Art.swift` and `FallDock/Art/CozyArt.swift`), in the flat style of a hand-drawn harvest wagon, using six colors. You can change them in `Palette` near the top of the file.
 
@@ -64,6 +68,7 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `App/MenuContent.swift` | The 🎃 menu (SwiftUI) |
 | `App/AppModel.swift` | What the menu shows and changes |
 | `App/Settings.swift` | Remembers your menu choices |
+| `App/Welcome.swift` | The welcome window shown on first launch |
 | `Overlay/DockLocator.swift` | Works out where the Dock is, which display it's on and whether it's showing |
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
@@ -75,8 +80,37 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.
 
+## The app icon
+
+The icon is drawn by the app's own art code. To redraw it after changing the art, run:
+
+```sh
+scripts/make-icon.sh
+```
+
+## Releasing
+
+To let other people download Fall Dock, it has to be signed with a Developer ID and notarized by Apple.
+
+One-time setup:
+
+1. Join the [Apple Developer Program](https://developer.apple.com/programs/).
+2. In Xcode → Settings → Accounts, select your team, click **Manage Certificates…**, and add a **Developer ID Application** certificate.
+3. Save your notarization login in the keychain (use an [app-specific password](https://support.apple.com/102654)):
+
+   ```sh
+   xcrun notarytool store-credentials FallDock --apple-id you@example.com --team-id ABCDE12345
+   ```
+
+Then, for each release, set the version in Xcode (target → General → Version) and run:
+
+```sh
+TEAM_ID=ABCDE12345 scripts/release.sh
+```
+
+It builds, signs, notarizes and staples the app, and leaves a zip in `build/release/` to put on your website.
+
 ## Not done yet
 
 - Docks on the left or right edge. Auto-hiding Docks aren't tested yet.
-- A proper app icon.
-- Signing with an Apple Developer account so other people can download it.
+- Payments and license keys, automatic updates (Sparkle) and crash reporting.

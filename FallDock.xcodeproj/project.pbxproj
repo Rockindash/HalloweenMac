@@ -19,6 +19,8 @@
 		A1C0FFEE00000000000000A1 /* CozyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B1 /* CozyArt.swift */; };
 		A1C0FFEE00000000000000A2 /* DockSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B2 /* DockSprite.swift */; };
 		A1C0FFEE00000000000000A3 /* PumpkinScene+Cozy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */; };
+		A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B6 /* Welcome.swift */; };
+		A1C0FFEE00000000000000A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B7 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +37,8 @@
 		A1C0FFEE00000000000000B1 /* CozyArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CozyArt.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B2 /* DockSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DockSprite.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Cozy.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B6 /* Welcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Welcome.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -56,6 +60,7 @@
 				FFF5ADC5213DEDA82B422AA4 /* App */,
 				DCC2EE75B074CBF4BDA78682 /* Art */,
 				982F557585F86331490CFAB3 /* Overlay */,
+				A1C0FFEE00000000000000B7 /* Assets.xcassets */,
 			);
 			path = FallDock;
 			sourceTree = "<group>";
@@ -93,6 +98,7 @@
 				F0F389C82E96F35A6292A1D7 /* FallDockApp.swift */,
 				BF8354B1DB7F276E1BA05DE3 /* MenuContent.swift */,
 				F99464A212618FEB7553190F /* Settings.swift */,
+				A1C0FFEE00000000000000B6 /* Welcome.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -105,6 +111,7 @@
 			buildConfigurationList = 7ABEB4F87ABA327B2618914A /* Build configuration list for PBXNativeTarget "FallDock" */;
 			buildPhases = (
 				076639A851266A3152AF469C /* Sources */,
+				A1C0FFEE00000000000000C1 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -150,6 +157,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		A1C0FFEE00000000000000C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE00000000000000A7 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		076639A851266A3152AF469C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -167,6 +185,7 @@
 				A1C0FFEE00000000000000A1 /* CozyArt.swift in Sources */,
 				A1C0FFEE00000000000000A2 /* DockSprite.swift in Sources */,
 				A1C0FFEE00000000000000A3 /* PumpkinScene+Cozy.swift in Sources */,
+				A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

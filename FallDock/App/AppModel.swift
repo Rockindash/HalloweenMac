@@ -6,9 +6,11 @@ import SwiftUI
 @MainActor
 final class AppModel: ObservableObject {
     private let overlay = OverlayController()
+    private let welcome = WelcomeWindow()
     private var activity: NSObjectProtocol?
 
     @Published private(set) var smashCount: Int
+    @Published private(set) var isPaused = false
 
     @Published var showPumpkins: Bool {
         didSet { Settings.showPumpkins = showPumpkins; overlay.refresh() }
@@ -63,11 +65,26 @@ final class AppModel: ObservableObject {
             options: [.userInitiatedAllowingIdleSystemSleep],
             reason: "Keeping the pumpkins in step with the Dock"
         )
+        overlay.onResume = { [weak self] in self?.isPaused = false }
         overlay.start()
     }
 
     func stop() {
         overlay.stop()
+    }
+
+    func showWelcome() {
+        welcome.show(model: self)
+    }
+
+    func pauseForAnHour() {
+        overlay.pause(for: 60 * 60)
+        isPaused = true
+    }
+
+    func resume() {
+        overlay.pause(for: nil)
+        isPaused = false
     }
 
     func regrow() {

@@ -78,6 +78,7 @@ extension PumpkinScene {
     }
 
     private func startSteam(_ mug: DecorNode, unit h: CGFloat) {
+        guard !Self.reduceMotion else { return }
         mug.run(.repeatForever(.sequence([
             .wait(forDuration: 0.7, withRange: 0.5),
             .run { [weak self, weak mug] in
@@ -127,7 +128,7 @@ extension PumpkinScene {
                 .scale(to: CGFloat.random(in: 0.94...1.04), duration: duration),
             ])
         }
-        glow.run(.repeatForever(.sequence(steps)), withKey: "flicker")
+        if !Self.reduceMotion { glow.run(.repeatForever(.sequence(steps)), withKey: "flicker") }
     }
 
     // MARK: Poking decorations
@@ -172,6 +173,7 @@ extension PumpkinScene {
 
     func scheduleSquirrel(first: Bool) {
         removeAction(forKey: "squirrel")
+        guard !Self.reduceMotion else { return }
         run(.sequence([
             .wait(forDuration: first ? Double.random(in: 10...20) : Double.random(in: 45...90)),
             .run { [weak self] in self?.squirrelVisit() },

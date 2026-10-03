@@ -315,13 +315,8 @@ final class PumpkinScene: SKScene {
         let dt = lastUpdate == 0 ? 1.0 / 30 : (currentTime - lastUpdate).clamped(to: 0...0.1)
         lastUpdate = currentTime
 
-        var onDock = isPointerOnDock
+        let onDock = isPointerOnDock
         if onDock, let pointer { pointerX = pointer.x }
-        #if DEBUG
-        // `open "Fall Dock.app" --args -fakeDockPointer 0.4` magnifies as if the pointer sat 40% along the Dock.
-        let fake = UserDefaults.standard.double(forKey: "fakeDockPointer")
-        if fake > 0 { onDock = magnifier.enabled; pointerX = dockRect.minX + dockRect.width * fake }
-        #endif
         // The Dock eases in and out of magnification, but tracks the pointer instantly.
         magnifyStrength += ((onDock ? 1 : 0) - magnifyStrength) * (1 - exp(-CGFloat(dt) * 14))
         if magnifyStrength < 0.001 { magnifyStrength = 0 }
@@ -414,7 +409,12 @@ final class PumpkinScene: SKScene {
         startWobble(pumpkin)
     }
 
+    /// With Reduce Motion on (System Settings → Accessibility → Display), nothing moves by itself:
+    /// no wobbling, falling leaves, steam, flicker or visiting squirrel. Things still react when clicked.
+    static var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+
     func startWobble(_ node: SKNode, amount: ClosedRange<CGFloat> = 0.02...0.04) {
+        guard !Self.reduceMotion else { return }
         let angle = CGFloat.random(in: amount)
         let duration = Double.random(in: 1.6...2.6)
         let left = SKAction.rotate(toAngle: angle, duration: duration)
@@ -589,6 +589,7 @@ final class PumpkinScene: SKScene {
 
     /// Sweeping the pointer quickly across the pumpkins rocks them, like brushing past in a field.
     private func brushPast(_ point: CGPoint) {
+        guard !Self.reduceMotion else { return }
         let now = CACurrentMediaTime()
         defer { lastPointer = (point, now) }
         guard let last = lastPointer, now - last.time > 0.001, now - last.time < 0.25 else { return }
@@ -622,6 +623,7 @@ final class PumpkinScene: SKScene {
 
     private func startFallingLeaves() {
         removeAction(forKey: "leaves")
+        guard !Self.reduceMotion else { return }
         run(.repeatForever(.sequence([
             .wait(forDuration: 5, withRange: 6),
             .run { [weak self] in self?.dropLeaf() },

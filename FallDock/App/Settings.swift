@@ -14,6 +14,7 @@ enum Settings {
         static let pumpkinCount = "pumpkinCount" // replaced by fullness; read once to carry it over
         static let fullness = "fullness"
         static let smashCount = "smashCount"
+        static let hasSeenWelcome = "hasSeenWelcome"
     }
 
     static func registerDefaults() {
@@ -91,5 +92,10 @@ enum Settings {
     static var smashCount: Int {
         get { defaults.integer(forKey: Key.smashCount) }
         set { defaults.set(newValue, forKey: Key.smashCount) }
+    }
+
+    static var hasSeenWelcome: Bool {
+        get { defaults.bool(forKey: Key.hasSeenWelcome) }
+        set { defaults.set(newValue, forKey: Key.hasSeenWelcome) }
     }
 }

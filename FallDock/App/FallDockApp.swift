@@ -23,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         model.start()
+        if !Settings.hasSeenWelcome {
+            model.showWelcome()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

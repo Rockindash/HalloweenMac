@@ -46,12 +46,38 @@ final class OverlayController {
     private var hoverTimer: Timer?
     private var dockWatchTimer: Timer?
     private var lastDockState: DockLocator.DockState = .unknown
+    private var lastDockCheck: TimeInterval = 0
     private var isHiding = false
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
     var onSmash: (() -> Void)?
+
+    /// While paused (for presentations or screen sharing) the pumpkins stay hidden.
+    private(set) var pausedUntil: Date?
+    private var resumeTimer: Timer?
+    var isPaused: Bool { pausedUntil.map { $0 > Date() } ?? false }
+
+    /// Hides the pumpkins for `duration` seconds, or brings them back when it's nil.
+    func pause(for duration: TimeInterval?) {
+        resumeTimer?.invalidate()
+        resumeTimer = nil
+        pausedUntil = duration.map { Date().addingTimeInterval($0) }
+        if let duration {
+            resumeTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+                Task { @MainActor in
+                    self?.pausedUntil = nil
+                    self?.onResume?()
+                    self?.refresh()
+                }
+            }
+        }
+        refresh()
+    }
+
+    /// Called when a pause runs out by itself.
+    var onResume: (() -> Void)?
     var isDockPrecise: Bool { currentDock?.isPrecise ?? false }
 
     func start() {
@@ -66,16 +92,25 @@ final class OverlayController {
             (workspace, workspace.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main, using: onChange)),
+            // Reduce Motion turned on or off: grow the harvest again with or without the movement.
+            (workspace, workspace.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil,
+                                              queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.refresh(force: true) }
+            }),
         ]
 
         // Safety net: Dock settings changes (size, position, auto-hide) don't always send a notification.
+        // Only needed while the pumpkins are showing; watchDock notices the Dock coming back.
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor in
+                guard let self, self.panel?.isVisible == true, !self.isHiding else { return }
+                self.refresh()
+            }
         }
         timer?.tolerance = 0.5
 
         // The Dock slides away in full-screen apps (and with auto-hide), so check often
-        // whether it's on screen. This check is cheap; the full re-measure above is not.
+        // whether it's on screen (watchDock decides how often it's worth it).
         dockWatchTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.watchDock() }
         }
@@ -96,7 +131,7 @@ final class OverlayController {
     /// Re-measures the Dock and moves, shows or hides the overlay.
     func refresh(force: Bool = false) {
         lastDockState = DockLocator.dockScreen()
-        guard Settings.showPumpkins, let dock = DockLocator.locate() else {
+        guard Settings.showPumpkins, !isPaused, let dock = DockLocator.locate() else {
             hide()
             return
         }
@@ -108,7 +143,16 @@ final class OverlayController {
     /// Hides the pumpkins as soon as the Dock goes away, brings them back with it,
     /// and follows it when it moves to another display.
     private func watchDock() {
-        guard Settings.showPumpkins else { return }
+        guard Settings.showPumpkins, !isPaused else { return }
+        // A hidden Dock only comes back when the pointer reaches the bottom of a screen (or the
+        // desktop changes, which sends its own notification), and a Dock showing over a full-screen
+        // app goes away when the pointer leaves it. So check often while the pointer is near the
+        // bottom of a screen, and only about once a second otherwise, to save battery.
+        let now = ProcessInfo.processInfo.systemUptime
+        let mouse = NSEvent.mouseLocation
+        let nearBottom = NSScreen.screens.contains { $0.frame.contains(mouse) && mouse.y - $0.frame.minY < 250 }
+        guard nearBottom || now - lastDockCheck >= 1 else { return }
+        lastDockCheck = now
         if DockLocator.dockScreen() != lastDockState {
             refresh()
         }

@@ -21,6 +21,11 @@ struct MenuContent: View {
 
         Button("Grow New Pumpkins") { model.regrow() }
             .keyboardShortcut("r")
+        if model.isPaused {
+            Button("Resume") { model.resume() }
+        } else {
+            Button("Pause for 1 Hour") { model.pauseForAnHour() }
+        }
 
         Divider()
 
@@ -28,6 +33,7 @@ struct MenuContent: View {
             Button("Fit Pumpkins to Dock Exactly…") { model.askForAccessibility() }
         }
         Toggle("Open at Login", isOn: $model.openAtLogin)
+        Button("Welcome to Fall Dock…") { model.showWelcome() }
 
         Divider()
 
