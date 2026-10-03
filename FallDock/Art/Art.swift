@@ -185,11 +185,6 @@ enum PumpkinShape {
 enum PumpkinKind: CaseIterable {
     case roundOrange, roundMustard, squatMustard, squatOrange, tallOrange, tallMustard
     case butternutOrange, butternutMustard, littleGreen
-    /// A rare, sparkly golden pumpkin.
-    case golden
-
-    /// Every kind except the golden one, which only turns up now and then.
-    static let everyday = allCases.filter { $0 != .golden }
 
     struct Look {
         var shape: PumpkinShape
@@ -223,16 +218,10 @@ enum PumpkinKind: CaseIterable {
             return Look(shape: .butternut, body: Palette.mustard, side: mustardSide, rib: Palette.rust, aspect: 0.56, heightFactor: 1.05)
         case .littleGreen:
             return Look(shape: .squat, body: Palette.green, side: greenSide, rib: Palette.plum, aspect: 1.7, heightFactor: 0.5)
-        case .golden:
-            return Look(shape: .round, body: Palette.mustard.mixed(with: Palette.peach, 0.34), side: Palette.mustard,
-                        rib: Palette.mustard.mixed(with: Palette.rust, 0.45), aspect: 1.3, heightFactor: 0.95)
         }
     }
 
     var isRound: Bool { look.shape != .butternut }
-
-    /// Whether a face can be carved into it (not the skinny butternuts or the little green ones).
-    var isCarvable: Bool { isRound && self != .littleGreen }
 }
 
 enum PumpkinArt {

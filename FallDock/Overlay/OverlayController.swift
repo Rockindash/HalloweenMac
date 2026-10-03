@@ -34,9 +34,8 @@ final class ClickThroughSKView: SKView {
 /// should reach the pumpkins (only while the pointer is over one).
 @MainActor
 final class OverlayController {
-    /// How much room above the Dock the window covers, for tossed pumpkins, flying chunks,
-    /// bats and falling leaves.
-    private let headroom: CGFloat = 420
+    /// How much room above the Dock the window covers, for flying chunks and falling leaves.
+    private let headroom: CGFloat = 240
 
     private var panel: OverlayPanel?
     private var skView: ClickThroughSKView?
@@ -52,8 +51,7 @@ final class OverlayController {
     private var localMouseMonitor: Any?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
-    /// Called after every smash; `true` for a golden pumpkin.
-    var onSmash: ((Bool) -> Void)?
+    var onSmash: (() -> Void)?
     var isDockPrecise: Bool { currentDock?.isPrecise ?? false }
 
     func start() {
@@ -87,7 +85,7 @@ final class OverlayController {
         globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
             Task { @MainActor in self?.updateHover() }
         }
-        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .mouseExited, .leftMouseUp]) { [weak self] event in
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .mouseExited]) { [weak self] event in
             Task { @MainActor in self?.updateHover() }
             return event
         }
@@ -130,8 +128,8 @@ final class OverlayController {
             view.ignoresSiblingOrder = true
             view.autoresizingMask = [.width, .height]
             let scene = PumpkinScene(size: frame.size)
-            scene.onSmash = { [weak self] golden in
-                self?.onSmash?(golden)
+            scene.onSmash = { [weak self] in
+                self?.onSmash?()
                 self?.updateHover()
             }
             view.presentScene(scene)
@@ -196,13 +194,12 @@ final class OverlayController {
         scene.pointerMoved(to: point)
         let target = scene.target(at: point)
         scene.setHovered(target)
-        // Keep the clicks while a pumpkin is being dragged, even when the pointer runs ahead of it.
-        let wantsClicks = target != nil || scene.isHolding
+        let wantsClicks = target != nil
         if panel.ignoresMouseEvents == wantsClicks {
             panel.ignoresMouseEvents = !wantsClicks
         }
         if wantsClicks {
-            (scene.isHolding ? NSCursor.closedHand : target is PumpkinNode ? NSCursor.openHand : NSCursor.pointingHand).set()
+            NSCursor.pointingHand.set()
             // While we're catching clicks, the whole window would block the screen below it,
             // so keep checking quickly until the pointer leaves it.
             if hoverTimer == nil {
@@ -214,11 +211,6 @@ final class OverlayController {
             hoverTimer?.invalidate()
             hoverTimer = nil
         }
-    }
-
-    /// Carves or uncarves jack-o'-lanterns after the menu setting changes.
-    func refreshLanterns() {
-        scene?.updateLanterns(animated: true)
     }
 
     func stop() {

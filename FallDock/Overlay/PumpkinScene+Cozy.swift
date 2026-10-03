@@ -2,6 +2,12 @@ import SpriteKit
 
 /// The cozy extras: decorations between the pumpkins and the visiting squirrel.
 extension PumpkinScene {
+    /// The lantern glows brighter in the evening.
+    private static var isEvening: Bool {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour >= 18 || hour < 7
+    }
+
     // MARK: Decorations
 
     func addDecorations() {
@@ -130,10 +136,8 @@ extension PumpkinScene {
         let h = pumpkinHeight
         switch decor.kind {
         case .leafPile:
-            sounds.play(.rustle)
             scatter(decor)
         case .mug:
-            sounds.play(.pop, volume: 0.4)
             for i in 0..<5 {
                 decor.run(.sequence([.wait(forDuration: Double(i) * 0.07), .run { [weak self, weak decor] in
                     guard let self, let decor else { return }
@@ -142,12 +146,8 @@ extension PumpkinScene {
             }
             decor.run(.sequence([.rotate(toAngle: 0.14, duration: 0.1), .rotate(toAngle: -0.08, duration: 0.12), .rotate(toAngle: 0, duration: 0.12)]))
         case .lantern:
-            sounds.play(.chime, volume: 0.35)
             decor.childNode(withName: "glow")?.run(.sequence([.scale(to: 1.7, duration: 0.15), .scale(to: 1, duration: 0.6)]))
             decor.run(DockSprite.hop(height: h * 0.08, duration: 0.25), withKey: "hop")
-        case .acorns:
-            decor.run(DockSprite.hop(height: h * 0.12, duration: 0.3), withKey: "hop")
-            dropTreat(from: decor)
         default:
             decor.run(DockSprite.hop(height: h * 0.12, duration: 0.3), withKey: "hop")
         }
@@ -178,53 +178,28 @@ extension PumpkinScene {
         ]), withKey: "squirrel")
     }
 
-    /// A squirrel hops in from one end, stops by the acorns (or the acorn it was called for) for a
-    /// nibble, looks around and hops off the other end.
-    func squirrelVisit(treat: TreatNode? = nil) {
-        guard Settings.cozyExtras, dockRect.width > 300 else {
+    /// A squirrel hops in from one end, stops by the acorns for a nibble, looks around and hops off the other end.
+    private func squirrelVisit() {
+        guard Settings.cozyExtras, dockRect.width > 300, !pumpkinLayer.children.contains(where: { $0 is SquirrelNode }) else {
             scheduleSquirrel(first: false)
-            return
-        }
-        if let squirrel = pumpkinLayer.children.compactMap({ $0 as? SquirrelNode }).first {
-            // Already here: if it's been called for a treat and isn't running off, go and get it.
-            if let treat, !squirrel.isFleeing { fetch(treat, with: squirrel) } else if treat == nil { scheduleSquirrel(first: false) }
             return
         }
         let h = pumpkinHeight
         let squirrel = makeSquirrel()
-        let spot: CGFloat
-        if let treat {
-            spot = treat.restX
-        } else {
-            // Head for the acorns if there are some, otherwise somewhere in the middle third.
-            let acorns = pumpkinLayer.children.compactMap { $0 as? DecorNode }.filter { $0.kind == .acorns }.map(\.restX)
-            spot = acorns.randomElement() ?? CGFloat.random(in: (dockRect.minX + dockRect.width / 3)...(dockRect.maxX - dockRect.width / 3))
-        }
-        // Come in from the end nearer the spot, so a called squirrel doesn't take forever.
-        let fromLeft = treat != nil ? spot - dockRect.minX < dockRect.maxX - spot : Bool.random()
+        let fromLeft = Bool.random()
         let startX = fromLeft ? dockRect.minX + h * 0.3 : dockRect.maxX - h * 0.3
+        let endX = fromLeft ? dockRect.maxX - h * 0.3 : dockRect.minX + h * 0.3
+        // Head for the acorns if there are some, otherwise somewhere in the middle third.
+        let acorns = pumpkinLayer.children.compactMap { $0 as? DecorNode }.filter { $0.kind == .acorns }.map(\.restX)
+        let spot = acorns.randomElement() ?? CGFloat.random(in: (dockRect.minX + dockRect.width / 3)...(dockRect.maxX - dockRect.width / 3))
+        let stopX = spot + (fromLeft ? -h * 0.32 : h * 0.32)
+        let dir: CGFloat = fromLeft ? 1 : -1
+
         squirrel.restX = startX
-        squirrel.facing = fromLeft ? 1 : -1
+        squirrel.facing = dir
         squirrel.alpha = 0
         pumpkinLayer.addChild(squirrel)
-        squirrel.run(.sequence([.fadeIn(withDuration: 0.25), visitSteps(squirrel, from: startX, to: spot, treat: treat)]), withKey: "visit")
-    }
 
-    /// Sends a squirrel that's already on the Dock to a treat.
-    private func fetch(_ treat: TreatNode, with squirrel: SquirrelNode) {
-        squirrel.removeAction(forKey: "visit")
-        squirrel.bounce = 0
-        squirrel.facing = treat.restX > squirrel.restX ? 1 : -1
-        squirrel.run(visitSteps(squirrel, from: squirrel.restX, to: treat.restX, treat: treat), withKey: "visit")
-    }
-
-    /// Hop to `spot`, have a snack (picking up `treat` if there is one), look around and hop off
-    /// the far end of the Dock.
-    private func visitSteps(_ squirrel: SquirrelNode, from startX: CGFloat, to spot: CGFloat, treat: TreatNode?) -> SKAction {
-        let h = pumpkinHeight
-        let dir: CGFloat = spot >= startX ? 1 : -1
-        let stopX = spot - dir * h * (treat == nil ? 0.32 : 0.2)
-        let endX = dir > 0 ? dockRect.maxX - h * 0.3 : dockRect.minX + h * 0.3
         let nibble = SKAction.repeat(DockSprite.hop(height: h * 0.025, duration: 0.14), count: 7)
         let lookAround = SKAction.sequence([
             .wait(forDuration: 0.6),
@@ -233,13 +208,9 @@ extension PumpkinScene {
             .run { [weak squirrel] in squirrel?.facing = dir },
             .wait(forDuration: 0.4),
         ])
-        return .sequence([
-            .run { [weak squirrel] in squirrel?.facing = dir },
+        squirrel.run(.sequence([
+            .fadeIn(withDuration: 0.25),
             hops(from: startX, to: stopX, hopLength: h * 0.42, height: h * 0.16, duration: 0.2),
-            .run { [weak self, weak squirrel, weak treat] in
-                guard let self, let squirrel, let treat else { return }
-                self.pickUp(treat, by: squirrel)
-            },
             .wait(forDuration: 0.3),
             nibble,
             lookAround,
@@ -247,7 +218,7 @@ extension PumpkinScene {
             .fadeOut(withDuration: 0.25),
             .removeFromParent(),
             .run { [weak self] in self?.scheduleSquirrel(first: false) },
-        ])
+        ]), withKey: "visit")
     }
 
     private func makeSquirrel() -> SquirrelNode {
@@ -270,7 +241,7 @@ extension PumpkinScene {
     }
 
     /// Hops along the Dock from one x to another.
-    func hops(from x0: CGFloat, to x1: CGFloat, hopLength: CGFloat, height: CGFloat, duration: TimeInterval) -> SKAction {
+    private func hops(from x0: CGFloat, to x1: CGFloat, hopLength: CGFloat, height: CGFloat, duration: TimeInterval) -> SKAction {
         let count = max(1, Int((abs(x1 - x0) / hopLength).rounded()))
         let steps = (1...count).map { i -> SKAction in
             let x = x0 + (x1 - x0) * CGFloat(i) / CGFloat(count)

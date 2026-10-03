@@ -9,7 +9,6 @@ final class AppModel: ObservableObject {
     private var activity: NSObjectProtocol?
 
     @Published private(set) var smashCount: Int
-    @Published private(set) var goldenCount: Int
 
     @Published var showPumpkins: Bool {
         didSet { Settings.showPumpkins = showPumpkins; overlay.refresh() }
@@ -25,10 +24,6 @@ final class AppModel: ObservableObject {
 
     @Published var fallingLeaves: Bool {
         didSet { Settings.fallingLeaves = fallingLeaves }
-    }
-
-    @Published var jackOLanterns: Settings.JackOLanterns {
-        didSet { Settings.jackOLanterns = jackOLanterns; overlay.refreshLanterns() }
     }
 
     @Published var sound: Bool {
@@ -48,8 +43,6 @@ final class AppModel: ObservableObject {
     init() {
         Settings.registerDefaults()
         smashCount = Settings.smashCount
-        goldenCount = Settings.goldenCount
-        jackOLanterns = Settings.jackOLanterns
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras
@@ -60,13 +53,9 @@ final class AppModel: ObservableObject {
     }
 
     func start() {
-        overlay.onSmash = { [weak self] golden in
+        overlay.onSmash = { [weak self] in
             Settings.smashCount += 1
             self?.smashCount = Settings.smashCount
-            if golden {
-                Settings.goldenCount += 1
-                self?.goldenCount = Settings.goldenCount
-            }
         }
         // A menu bar app is never "active", so macOS may put it to sleep (App Nap) and slow
         // its timers to once every few seconds. Opt out so the pumpkins keep up with the Dock.

@@ -128,11 +128,6 @@ final class DecorNode: DockSprite {
     override var isInteractive: Bool { kind != .hayBale && !isScattered }
 }
 
-/// An acorn dropped for the squirrel.
-final class TreatNode: DockSprite {
-    override var isInteractive: Bool { false }
-}
-
 /// The squirrel that drops by now and then.
 final class SquirrelNode: DockSprite {
     var isFleeing = false
