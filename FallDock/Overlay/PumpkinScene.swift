@@ -1,14 +1,12 @@
 import SpriteKit
 
-/// A pumpkin sitting on the Dock.
+/// A pumpkin sitting on the Dock (or, at Halloween, a tombstone standing in its place).
 final class PumpkinNode: DockSprite {
     let kind: PumpkinKind
     let slot: Int
     let slotHeight: CGFloat
     let variant: Int
     var isSmashing = false
-    /// Carved into a glowing jack-o'-lantern (at Halloween).
-    var isLantern = false
 
     init(kind: PumpkinKind, slot: Int, slotHeight: CGFloat, variant: Int, texture: SKTexture, size: CGSize) {
         self.kind = kind
@@ -144,9 +142,9 @@ final class PumpkinScene: SKScene {
         // Something in the gaps between pumpkins only if some of those extras are switched on.
         let gapsOn = extras && !Self.gapCycle.isEmpty
         let minSpace = h * Settings.fullness.spacing
-        // Hay bales in fall, coffins at Halloween.
+        // Hay bales in fall; at Halloween the tombstones stand on the ground.
         let perch = Settings.theme.perch
-        let bale = CozyArt.size(of: perch, unit: h)
+        let bale = perch.map { CozyArt.size(of: $0, unit: h) } ?? .zero
         slotKinds = []; slotScale = []; slotPerch = []; gapKinds = []
         var widths: [CGFloat] = [] // pumpkin, decoration, pumpkin, … from left to right
         var used: CGFloat = 0
@@ -159,8 +157,8 @@ final class PumpkinScene: SKScene {
                 gapKind = kind
                 gapWidth = CozyArt.size(of: kind, unit: decorUnit).width
             }
-            // A hay bale (or coffin) under every fifth pumpkin.
-            let onBale = extras && Settings.isEnabled(perch) && slot % 5 == 2
+            // A hay bale under every fifth pumpkin.
+            let onBale = extras && perch.map(Settings.isEnabled) == true && slot % 5 == 2
             var rng = SeededRandom(seed: UInt64(slot + 1) &* 7537)
             // Pumpkins vary a little in size, every third one a bit smaller.
             let scale = onBale ? rng.float(0.76...0.82) : slot % 3 == 1 ? rng.float(0.82...0.88) : rng.float(0.92...1.0)
@@ -202,7 +200,7 @@ final class PumpkinScene: SKScene {
         let kinds: [PumpkinKind]
         switch Settings.theme {
         case .fall: kinds = onBale ? [.roundOrange, .roundMustard, .squatOrange, .squatMustard] : PumpkinKind.fall
-        case .halloween: kinds = onBale ? [.roundOrange, .squatOrange] : PumpkinKind.halloween
+        case .halloween: kinds = PumpkinKind.halloween
         }
         return kinds[Int(rng.next() % UInt64(kinds.count))]
     }
@@ -284,6 +282,7 @@ final class PumpkinScene: SKScene {
             scheduleVisitor(first: true)
         }
         startAmbient()
+        scheduleHands()
     }
 
     private func restingY(slot: Int) -> CGFloat {
@@ -432,8 +431,8 @@ final class PumpkinScene: SKScene {
 
         if grow { popIn(pumpkin) }
         startWobble(pumpkin)
-        // At Halloween, the orange pumpkins are jack-o'-lanterns.
-        if Settings.theme == .halloween && kind.isCarvable { carve(pumpkin, animated: grow) }
+        // Crows like to perch on the round-topped and flat-topped tombstones (not the pointy or broken ones).
+        if kind.isTombstone && kind != .tombObelisk && kind != .tombCracked && slot % 3 == 1 && Settings.cozyExtras && Settings.crows { perchCrow(on: pumpkin) }
     }
 
     /// With Reduce Motion on (System Settings → Accessibility → Display), nothing moves by itself:
@@ -476,7 +475,7 @@ final class PumpkinScene: SKScene {
             ghostFlee(ghost)
         } else if let sprite {
             sprite.run(DockSprite.animate(\.hoverScale, to: 1.08, duration: 0.12, curve: .easeOut), withKey: "hover")
-            if let pumpkin = sprite as? PumpkinNode { flare(pumpkin) }
+            if let hand = sprite as? HandNode { duck(hand) }
             if let decor = sprite as? DecorNode, decor.kind == .blackCat { catNotices(decor) }
         }
     }
@@ -485,10 +484,13 @@ final class PumpkinScene: SKScene {
 
     override func mouseDown(with event: NSEvent) {
         switch target(at: event.location(in: self)) {
-        case let pumpkin as PumpkinNode: smash(pumpkin)
+        case let pumpkin as PumpkinNode:
+            // Tombstones aren't for smashing; something stirs instead.
+            if pumpkin.kind.isTombstone { haunt(pumpkin) } else { smash(pumpkin) }
         case let decor as DecorNode: poke(decor)
         case let squirrel as SquirrelNode: squirrelFlee(squirrel)
         case let ghost as GhostNode: ghostFlee(ghost)
+        case let hand as HandNode: duck(hand)
         default: break
         }
     }
@@ -510,10 +512,6 @@ final class PumpkinScene: SKScene {
             .run { [weak self, weak pumpkin] in
                 guard let self, let pumpkin else { return }
                 self.burst(pumpkin, scale: magnification)
-                // A bat was hiding in the jack-o'-lantern.
-                if pumpkin.isLantern {
-                    self.releaseBat(from: CGPoint(x: pumpkin.position.x, y: pumpkin.position.y + pumpkin.size.height * magnification * 0.5))
-                }
                 pumpkin.removeFromParent()
             },
         ]))
@@ -573,13 +571,8 @@ final class PumpkinScene: SKScene {
                    radius: 1.5, damping: 0.3, life: 1.0)
         }
 
-        if Settings.theme == .halloween {
-            // Jack-o'-lanterns are full of candy.
-            candyBurst(count: 3, from: center)
-        } else {
-            // A couple of leaves that flutter out and drift down slowly.
-            flutterLeaves(count: 2, from: center, size: (h * 0.26).rounded())
-        }
+        // A couple of leaves that flutter out and drift down slowly.
+        flutterLeaves(count: 2, from: center, size: (h * 0.26).rounded())
     }
 
     /// Leaves that pop up from `center` and drift down slowly.

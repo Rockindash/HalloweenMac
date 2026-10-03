@@ -1,8 +1,8 @@
 import AppKit
 import SpriteKit
 
-// Halloween's art: jack-o'-lantern faces, coffins, tombstones, a black cat, a bubbling cauldron,
-// candy corn, dripping candles, a friendly ghost, bats, a dangling spider and cobwebs.
+// Halloween's art: tombstones, crows, zombie hands, coffins, a witch's broom, a black cat, a bubbling
+// cauldron, candy corn, dripping candles, a friendly ghost, bats, a dangling spider and cobwebs.
 // Same flat harvest-wagon style as everything else: flat fills, a darker right side,
 // tapered brush strokes and no outlines.
 
@@ -43,7 +43,7 @@ enum SpookyArt {
     static func draw(_ kind: DecorKind, _ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
         switch kind {
         case .coffin: drawCoffin(ctx, size: size, h: h)
-        case .tombstone: drawTombstone(ctx, size: size, h: h, rng: &rng)
+        case .broom: drawBroom(ctx, size: size, h: h, rng: &rng)
         case .blackCat: drawCat(ctx, size: size, h: h)
         case .cauldron: drawCauldron(ctx, size: size, h: h)
         case .candyCorn: drawCandyCornPile(ctx, size: size, h: h, rng: &rng)
@@ -79,37 +79,248 @@ enum SpookyArt {
         }
     }
 
-    /// A rounded gravestone with "RIP", a crack and tufts of grass.
-    private static func drawTombstone(_ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
-        let w = size.width, ht = size.height
-        let stone = CGMutablePath()
-        let left = w * 0.12, right = w * 0.88, top = ht * 0.96, base = ht * 0.05
-        let radius = (right - left) / 2
-        stone.move(to: CGPoint(x: left, y: base))
-        stone.addLine(to: CGPoint(x: left, y: top - radius))
-        stone.addArc(center: CGPoint(x: w / 2, y: top - radius), radius: radius, startAngle: .pi, endAngle: 0, clockwise: true)
-        stone.addLine(to: CGPoint(x: right, y: base))
-        stone.closeSubpath()
-        fillShaded(ctx, stone, Palette.stone, from: 0.7, amount: 0.25)
+    // MARK: Tombstones (Halloween's main objects, standing where pumpkins would)
 
-        // "RIP", carved in.
-        let font = NSFont.systemFont(ofSize: h * 0.15, weight: .heavy)
-        let text = "RIP" as NSString
-        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor(cgColor: shade(Palette.stone, 0.45)) ?? .gray]
-        let textSize = text.size(withAttributes: attributes)
+    /// A tombstone sprite the same size as a pumpkin of that kind and height would be.
+    static func tombstoneTexture(kind: PumpkinKind, height: CGFloat, variant: Int, scale: CGFloat) -> SKTexture {
+        let size = PumpkinArt.size(of: kind, height: height)
+        let body = PumpkinArt.bodySize(of: kind, height: height)
+        return cached("tomb-\(kind)-\(Int(height))-\(variant % 3)", size: size, scale: scale) { ctx in
+            var rng = SeededRandom(seed: UInt64(variant + 7) &* 977)
+            let box = CGRect(x: (size.width - body.width) / 2, y: PumpkinArt.pad, width: body.width, height: body.height * 1.08)
+            drawTomb(kind, ctx, box: box, mossy: variant % 3 != 0, rng: &rng)
+        }
+    }
+
+    private static func drawTomb(_ kind: PumpkinKind, _ ctx: CGContext, box: CGRect, mossy: Bool, rng: inout SeededRandom) {
+        let w = box.width, ht = box.height
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: box.minX + x * w, y: box.minY + y * ht) }
+        let stone = Palette.stone
+        let carved = shade(stone, 0.45)
+        ctx.saveGState()
+        if kind == .tombCracked {
+            // It's been leaning for a century or two.
+            ctx.translateBy(x: box.midX, y: box.minY)
+            ctx.rotate(by: -0.08)
+            ctx.translateBy(x: -box.midX, y: -box.minY)
+        }
+        let shape = CGMutablePath()
+        switch kind {
+        case .tombObelisk:
+            // A tall pillar with a pointed top, on a wider base.
+            shape.addRect(CGRect(x: box.minX, y: box.minY, width: w, height: ht * 0.1))
+            shape.addLines(between: [p(0.14, 0.1), p(0.14, 0.82), p(0.5, 1), p(0.86, 0.82), p(0.86, 0.1)])
+            shape.closeSubpath()
+        case .tombSkull, .tombBoo:
+            // A slab with rounded top corners.
+            let r = w * (kind == .tombBoo ? 0.14 : 0.22)
+            shape.move(to: p(0.04, 0))
+            shape.addLine(to: CGPoint(x: box.minX + w * 0.04, y: box.maxY - r))
+            shape.addQuadCurve(to: CGPoint(x: box.minX + w * 0.04 + r, y: box.maxY), control: CGPoint(x: box.minX + w * 0.04, y: box.maxY))
+            shape.addLine(to: CGPoint(x: box.maxX - w * 0.04 - r, y: box.maxY))
+            shape.addQuadCurve(to: CGPoint(x: box.maxX - w * 0.04, y: box.maxY - r), control: CGPoint(x: box.maxX - w * 0.04, y: box.maxY))
+            shape.addLine(to: p(0.96, 0))
+            shape.closeSubpath()
+        default:
+            // The classic: straight sides and a round top.
+            let radius = w * 0.4
+            shape.move(to: p(0.1, 0))
+            shape.addLine(to: CGPoint(x: box.minX + w * 0.1, y: box.maxY - radius))
+            shape.addArc(center: CGPoint(x: box.midX, y: box.maxY - radius), radius: radius, startAngle: .pi, endAngle: 0, clockwise: true)
+            shape.addLine(to: p(0.9, 0))
+            shape.closeSubpath()
+        }
+        fillShaded(ctx, shape, stone, from: 0.7, amount: 0.25)
+
+        ctx.saveGState()
+        ctx.addPath(shape)
+        ctx.clip()
+        switch kind {
+        case .tombRound:
+            engrave("RIP", ctx, center: p(0.5, 0.56), size: w * 0.24, color: carved)
+            Brush.stroke(ctx, [p(0.3, 0.32), p(0.7, 0.32), p(0.7, 0.32)], maxWidth: max(1, w * 0.025), color: carved, minF: 1)
+        case .tombObelisk:
+            Brush.stroke(ctx, [p(0.5, 0.3), p(0.5, 0.5), p(0.5, 0.7)], maxWidth: max(1, w * 0.06), color: carved, minF: 1)
+            ctx.setFillColor(carved)
+            ctx.fillEllipse(in: CGRect(x: box.minX + w * 0.4, y: box.minY + ht * 0.74, width: w * 0.2, height: w * 0.2))
+        case .tombSkull:
+            skull(ctx, center: p(0.5, 0.58), size: w * 0.42, color: carved)
+            Brush.stroke(ctx, [p(0.24, 0.24), p(0.5, 0.24), p(0.76, 0.24)], maxWidth: max(1, w * 0.025), color: carved, minF: 1)
+        case .tombCracked:
+            engrave("RIP", ctx, center: p(0.48, 0.5), size: w * 0.22, color: carved.withAlpha(0.6))
+            // A chunk knocked off the top right, and a crack running down from it.
+            ctx.setBlendMode(.clear)
+            let chip = CGMutablePath()
+            chip.addLines(between: [p(0.62, 1.05), p(0.66, 0.86), p(0.78, 0.9), p(0.86, 0.76), p(1.05, 0.8), p(1.05, 1.05)])
+            chip.closeSubpath()
+            ctx.addPath(chip)
+            ctx.fillPath()
+            ctx.setBlendMode(.normal)
+            Brush.stroke(ctx, [p(0.7, 0.86), p(0.58, 0.6), p(0.66, 0.34), p(0.56, 0.12)], maxWidth: max(1, w * 0.03), color: carved, minF: 0.6, endF: 0.1)
+        case .tombBoo:
+            engrave("BOO!", ctx, center: p(0.5, 0.5), size: ht * 0.36, color: carved)
+        default:
+            break
+        }
+        // Moss creeping over the top.
+        if mossy {
+            ctx.setFillColor(Palette.green.withAlpha(0.75))
+            let top = kind == .tombObelisk ? 0.84 : 0.94
+            for _ in 0..<4 {
+                let x = rng.float(0.2...0.7)
+                ctx.fillEllipse(in: CGRect(x: box.minX + w * x, y: box.minY + ht * CGFloat(top) - w * 0.05, width: w * rng.float(0.1...0.2), height: w * 0.12))
+            }
+        }
+        ctx.restoreGState()
+        ctx.restoreGState()
+
+        // Tufts of grass at the foot.
+        for _ in 0..<8 {
+            let x = box.minX + rng.float(-0.05...1.05) * w
+            let lean = rng.float(-3...3)
+            Brush.stroke(ctx, [CGPoint(x: x, y: box.minY - 1), CGPoint(x: x + lean * 0.5, y: box.minY + ht * 0.05),
+                               CGPoint(x: x + lean, y: box.minY + ht * rng.float(0.08...0.14))],
+                         maxWidth: max(1.2, w * 0.04), color: Palette.green, minF: 0.9, endF: 0.1)
+        }
+    }
+
+    /// Letters carved into stone.
+    private static func engrave(_ text: String, _ ctx: CGContext, center: CGPoint, size: CGFloat, color: CGColor) {
+        let font = NSFont.systemFont(ofSize: size, weight: .heavy)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor(cgColor: color) ?? .gray]
+        let textSize = (text as NSString).size(withAttributes: attributes)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
-        text.draw(at: NSPoint(x: w / 2 - textSize.width / 2, y: ht * 0.52 - textSize.height / 2), withAttributes: attributes)
+        (text as NSString).draw(at: NSPoint(x: center.x - textSize.width / 2, y: center.y - textSize.height / 2), withAttributes: attributes)
         NSGraphicsContext.restoreGraphicsState()
+    }
 
-        // A crack, and moss at the foot.
-        Brush.stroke(ctx, [CGPoint(x: w * 0.3, y: top - radius * 0.3), CGPoint(x: w * 0.38, y: ht * 0.7), CGPoint(x: w * 0.32, y: ht * 0.62)],
-                     maxWidth: max(1, h * 0.02), color: shade(Palette.stone, 0.5), minF: 0.4, endF: 0.1)
-        for _ in 0..<7 {
-            let x = rng.float(w * 0.08...w * 0.92)
-            let lean = rng.float(-3...3)
-            Brush.stroke(ctx, [CGPoint(x: x, y: 0), CGPoint(x: x + lean * 0.5, y: ht * 0.07), CGPoint(x: x + lean, y: ht * rng.float(0.1...0.16))],
-                         maxWidth: max(1.2, h * 0.025), color: Palette.green, minF: 0.9, endF: 0.1)
+    /// A cute little skull, carved in.
+    private static func skull(_ ctx: CGContext, center c: CGPoint, size s: CGFloat, color: CGColor) {
+        ctx.setFillColor(color)
+        ctx.fillEllipse(in: CGRect(x: c.x - s / 2, y: c.y - s * 0.3, width: s, height: s * 0.8))
+        ctx.fill(CGRect(x: c.x - s * 0.28, y: c.y - s * 0.5, width: s * 0.56, height: s * 0.3))
+        ctx.setFillColor(Palette.stone)
+        ctx.fillEllipse(in: CGRect(x: c.x - s * 0.3, y: c.y - s * 0.08, width: s * 0.22, height: s * 0.24))
+        ctx.fillEllipse(in: CGRect(x: c.x + s * 0.08, y: c.y - s * 0.08, width: s * 0.22, height: s * 0.24))
+        for i in 0..<3 {
+            ctx.fill(CGRect(x: c.x - s * 0.2 + CGFloat(i) * s * 0.16, y: c.y - s * 0.48, width: s * 0.06, height: s * 0.16))
+        }
+    }
+
+    /// A witch's broom, leaning: a crooked handle and a bundle of straw tied with twine.
+    private static func drawBroom(_ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
+        let w = size.width, ht = size.height
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+        Brush.stroke(ctx, [p(0.82, 0.98), p(0.6, 0.7), p(0.48, 0.3)], maxWidth: h * 0.06, color: Palette.rust.mixed(with: Palette.plum, 0.4), minF: 0.8)
+        let straw = Palette.mustard.mixed(with: Palette.peach, 0.15)
+        let bundle = CGMutablePath()
+        bundle.addLines(between: [p(0.38, 0.36), p(0.56, 0.38), p(0.86, 0.02), p(0.04, 0.02)])
+        bundle.closeSubpath()
+        fillShaded(ctx, bundle, straw, from: 0.6, amount: 0.2)
+        for _ in 0..<9 {
+            let x0 = rng.float(0.4...0.54), x1 = rng.float(0.06...0.84)
+            Brush.stroke(ctx, [p(x0, 0.34), p((x0 + x1) / 2, 0.18), p(x1, 0.03)], maxWidth: max(0.8, h * 0.014),
+                         color: Palette.mustard.mixed(with: Palette.rust, 0.4), minF: 0.4, endF: 0.2)
+        }
+        Brush.stroke(ctx, [p(0.36, 0.32), p(0.47, 0.33), p(0.6, 0.34)], maxWidth: h * 0.05, color: Palette.plum, minF: 1)
+    }
+
+    // MARK: Crows
+
+    static func crowSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.36).rounded(), height: (h * 0.32).rounded()) }
+
+    /// A crow perched, facing right.
+    static func crowTexture(unit h: CGFloat, scale: CGFloat) -> SKTexture {
+        let size = crowSize(unit: h)
+        return cached("crow", size: size, scale: scale) { ctx in
+            let w = size.width, ht = size.height
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+            let feathers = Palette.soot
+            // Legs, tail, body, a wing with a purple sheen, head, beak and eye.
+            for x in [CGFloat(0.44), 0.54] {
+                Brush.stroke(ctx, [p(x, 0.22), p(x, 0.1), p(x + 0.04, 0.02)], maxWidth: max(1, h * 0.02), color: Palette.mustard.mixed(with: Palette.rust, 0.3), minF: 1)
+            }
+            let tail = CGMutablePath()
+            tail.addLines(between: [p(0.3, 0.38), p(0.02, 0.2), p(0.06, 0.12), p(0.36, 0.26)])
+            tail.closeSubpath()
+            ctx.addPath(tail)
+            ctx.setFillColor(feathers)
+            ctx.fillPath()
+            fillShaded(ctx, CGPath(ellipseIn: CGRect(x: w * 0.2, y: ht * 0.18, width: w * 0.56, height: ht * 0.48), transform: nil), feathers, from: 0.7)
+            Brush.stroke(ctx, [p(0.3, 0.5), p(0.46, 0.36), p(0.66, 0.34)], maxWidth: ht * 0.16, color: feathers.mixed(with: Palette.witch, 0.35), minF: 0.6, endF: 0.2)
+            ctx.setFillColor(feathers)
+            ctx.fillEllipse(in: CGRect(x: w * 0.56, y: ht * 0.5, width: w * 0.3, height: ht * 0.34))
+            let beak = CGMutablePath()
+            beak.addLines(between: [p(0.84, 0.7), p(1.0, 0.62), p(0.84, 0.58)])
+            beak.closeSubpath()
+            ctx.addPath(beak)
+            ctx.setFillColor(Palette.mustard.mixed(with: Palette.rust, 0.3))
+            ctx.fillPath()
+            ctx.setFillColor(Palette.ghost)
+            ctx.fillEllipse(in: CGRect(x: w * 0.7, y: ht * 0.66, width: w * 0.07, height: w * 0.07))
+            ctx.setFillColor(feathers)
+            ctx.fillEllipse(in: CGRect(x: w * 0.725, y: ht * 0.675, width: w * 0.035, height: w * 0.035))
+        }
+    }
+
+    /// A crow in flight, wings up (`frame` 0) or down (1), facing right.
+    static func flyingCrowTexture(frame: Int, unit h: CGFloat, scale: CGFloat) -> SKTexture {
+        let size = CGSize(width: (h * 0.5).rounded(), height: (h * 0.32).rounded())
+        return cached("crow-fly-\(frame)", size: size, scale: scale) { ctx in
+            let w = size.width, ht = size.height
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+            let feathers = Palette.soot
+            let up = frame == 0
+            let wing = CGMutablePath()
+            wing.addLines(between: [p(0.36, 0.5), p(up ? 0.3 : 0.34, up ? 1.0 : 0.02), p(0.62, 0.5)])
+            wing.closeSubpath()
+            ctx.addPath(wing)
+            ctx.setFillColor(feathers.mixed(with: Palette.witch, 0.25))
+            ctx.fillPath()
+            ctx.setFillColor(feathers)
+            ctx.fillEllipse(in: CGRect(x: w * 0.18, y: ht * 0.36, width: w * 0.56, height: ht * 0.28))
+            let tail = CGMutablePath()
+            tail.addLines(between: [p(0.22, 0.52), p(0.0, 0.62), p(0.0, 0.38), p(0.22, 0.46)])
+            tail.closeSubpath()
+            ctx.addPath(tail)
+            ctx.fillPath()
+            ctx.fillEllipse(in: CGRect(x: w * 0.66, y: ht * 0.4, width: w * 0.18, height: ht * 0.3))
+            let beak = CGMutablePath()
+            beak.addLines(between: [p(0.82, 0.58), p(0.96, 0.53), p(0.82, 0.48)])
+            beak.closeSubpath()
+            ctx.addPath(beak)
+            ctx.setFillColor(Palette.mustard.mixed(with: Palette.rust, 0.3))
+            ctx.fillPath()
+        }
+    }
+
+    // MARK: Zombie hand
+
+    static func handSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.3).rounded(), height: (h * 0.46).rounded()) }
+
+    /// A zombie hand reaching up out of the ground, with a torn sleeve.
+    static func handTexture(unit h: CGFloat, scale: CGFloat) -> SKTexture {
+        let size = handSize(unit: h)
+        return cached("hand", size: size, scale: scale) { ctx in
+            let w = size.width, ht = size.height
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+            let skin = Palette.slime.mixed(with: Palette.stone, 0.45)
+            // Forearm and palm.
+            fillShaded(ctx, CGPath(roundedRect: CGRect(x: w * 0.32, y: 0, width: w * 0.36, height: ht * 0.55), cornerWidth: w * 0.08, cornerHeight: w * 0.08, transform: nil), skin, from: 0.62)
+            fillShaded(ctx, CGPath(roundedRect: CGRect(x: w * 0.22, y: ht * 0.42, width: w * 0.56, height: ht * 0.26), cornerWidth: w * 0.14, cornerHeight: w * 0.14, transform: nil), skin, from: 0.66)
+            // Fingers, a little crooked, and a thumb.
+            for (i, x) in [0.29, 0.42, 0.56, 0.69].enumerated() {
+                let length = [0.24, 0.3, 0.28, 0.22][i]
+                Brush.stroke(ctx, [p(CGFloat(x), 0.64), p(CGFloat(x) + 0.02, 0.64 + CGFloat(length) * 0.6), p(CGFloat(x) - 0.03, 0.64 + CGFloat(length))],
+                             maxWidth: w * 0.12, color: skin, minF: 0.8, endF: 0.6)
+            }
+            Brush.stroke(ctx, [p(0.24, 0.5), p(0.1, 0.58), p(0.06, 0.7)], maxWidth: w * 0.12, color: skin, minF: 0.8, endF: 0.6)
+            // A torn, purple sleeve at the bottom.
+            let sleeve = CGMutablePath()
+            sleeve.addLines(between: [p(0.24, 0), p(0.24, 0.2), p(0.34, 0.15), p(0.42, 0.24), p(0.52, 0.16), p(0.62, 0.23), p(0.76, 0.17), p(0.76, 0)])
+            sleeve.closeSubpath()
+            fillShaded(ctx, sleeve, Palette.witch.mixed(with: Palette.soot, 0.3), from: 0.62)
         }
     }
 
@@ -310,98 +521,6 @@ enum SpookyArt {
             ctx.setFillColor(Palette.mustard.mixed(with: Palette.ghost, 0.4))
             ctx.fillPath()
         }
-    }
-
-    // MARK: Jack-o'-lantern faces
-
-    static let faceCount = 4
-
-    /// A carved face to lay over a pumpkin sprite of the same kind and height (same size and anchor).
-    /// Each cut shows the pumpkin's dark wall, then candlelight inside, brightest in the middle.
-    static func faceTexture(kind: PumpkinKind, height: CGFloat, face: Int, scale: CGFloat) -> SKTexture {
-        let size = PumpkinArt.size(of: kind, height: height)
-        let body = PumpkinArt.bodySize(of: kind, height: height)
-        return cached("face-\(kind)-\(Int(height))-\(face)", size: size, scale: scale) { ctx in
-            let cx = size.width / 2, base = PumpkinArt.pad
-            // Faces on tall pumpkins stay narrower.
-            let w = min(body.width, body.height * 1.15), h = body.height
-            for cut in faceCuts(face, cx: cx, base: base, w: w, h: h) {
-                carve(ctx, cut)
-            }
-        }
-    }
-
-    private static func faceCuts(_ face: Int, cx: CGFloat, base: CGFloat, w: CGFloat, h: CGFloat) -> [CGPath] {
-        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: cx + x * w, y: base + y * h) }
-        func polygon(_ points: [CGPoint]) -> CGPath {
-            let path = CGMutablePath()
-            path.addLines(between: points)
-            path.closeSubpath()
-            return path
-        }
-        func ellipse(_ c: CGPoint, _ rx: CGFloat, _ ry: CGFloat) -> CGPath {
-            CGPath(ellipseIn: CGRect(x: c.x - rx, y: c.y - ry, width: rx * 2, height: ry * 2), transform: nil)
-        }
-        switch face % faceCount {
-        case 0:
-            // Classic: triangle eyes and nose, a wide grin with two square teeth.
-            let mouth = CGMutablePath()
-            mouth.move(to: p(-0.27, 0.36))
-            mouth.addQuadCurve(to: p(0.27, 0.36), control: p(0, 0.08))
-            mouth.addQuadCurve(to: p(-0.27, 0.36), control: p(0, 0.24))
-            mouth.addRect(CGRect(origin: p(-0.12, 0.27), size: CGSize(width: w * 0.07, height: h * 0.06)))
-            mouth.addRect(CGRect(origin: p(0.05, 0.27), size: CGSize(width: w * 0.07, height: h * 0.06)))
-            return [
-                polygon([p(-0.24, 0.52), p(-0.06, 0.52), p(-0.15, 0.68)]),
-                polygon([p(0.06, 0.52), p(0.24, 0.52), p(0.15, 0.68)]),
-                polygon([p(-0.05, 0.4), p(0.05, 0.4), p(0, 0.48)]),
-                mouth,
-            ]
-        case 1:
-            // Happy: round eyes and a big grin with a row of pointy teeth along the top.
-            var smile: [CGPoint] = []
-            for i in 0...10 {
-                let t = CGFloat(i) / 10
-                let tooth: CGFloat = i % 2 == 1 && i < 10 ? 0.06 : 0
-                smile.append(p(-0.3 + 0.6 * t, 0.42 - 0.1 * sin(.pi * t) - tooth))
-            }
-            for i in stride(from: 10, through: 0, by: -1) {
-                let t = CGFloat(i) / 10
-                smile.append(p(-0.3 + 0.6 * t, 0.42 - 0.3 * sin(.pi * t)))
-            }
-            return [ellipse(p(-0.15, 0.62), w * 0.075, h * 0.11), ellipse(p(0.15, 0.62), w * 0.075, h * 0.11),
-                    polygon([p(-0.04, 0.47), p(0.04, 0.47), p(0, 0.53)]), polygon(smile)]
-        case 2:
-            // Spooky: slanted eyes and a jagged mouth.
-            var jagged: [CGPoint] = []
-            for i in 0...6 { jagged.append(p(-0.26 + CGFloat(i) * 0.52 / 6, i % 2 == 0 ? 0.32 : 0.25)) }
-            for i in stride(from: 6, through: 0, by: -1) { jagged.append(p(-0.26 + CGFloat(i) * 0.52 / 6, i % 2 == 0 ? 0.18 : 0.12)) }
-            return [polygon([p(-0.25, 0.6), p(-0.06, 0.52), p(-0.1, 0.62)]),
-                    polygon([p(0.25, 0.6), p(0.06, 0.52), p(0.1, 0.62)]),
-                    polygon([p(-0.04, 0.4), p(0.04, 0.4), p(0, 0.47)]), polygon(jagged)]
-        default:
-            // Surprised: round eyes, a little nose and an "O" mouth.
-            return [ellipse(p(-0.14, 0.58), w * 0.07, h * 0.11), ellipse(p(0.14, 0.58), w * 0.07, h * 0.11),
-                    polygon([p(-0.035, 0.43), p(0.035, 0.43), p(0, 0.48)]), ellipse(p(0, 0.25), w * 0.09, h * 0.11)]
-        }
-    }
-
-    private static func carve(_ ctx: CGContext, _ cut: CGPath) {
-        let box = cut.boundingBoxOfPath
-        func scaled(_ s: CGFloat, dy: CGFloat = 0) -> CGPath {
-            var t = CGAffineTransform(translationX: box.midX, y: box.midY + dy).scaledBy(x: s, y: s).translatedBy(x: -box.midX, y: -box.midY)
-            return cut.copy(using: &t) ?? cut
-        }
-        // The cut wall, candlelight, and its bright middle. Even-odd filling leaves teeth uncut.
-        ctx.addPath(cut)
-        ctx.setFillColor(Palette.rust.mixed(with: Palette.shadowInk, 0.55))
-        ctx.fillPath(using: .evenOdd)
-        ctx.addPath(scaled(0.84, dy: box.height * 0.05))
-        ctx.setFillColor(Palette.mustard.mixed(with: Palette.orange, 0.25))
-        ctx.fillPath(using: .evenOdd)
-        ctx.addPath(scaled(0.5, dy: box.height * 0.08))
-        ctx.setFillColor(Palette.peach)
-        ctx.fillPath(using: .evenOdd)
     }
 
     // MARK: The ghost

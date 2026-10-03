@@ -74,6 +74,14 @@ final class AppModel: ObservableObject {
         didSet { Settings.ghost = ghost; overlay.refresh(force: true) }
     }
 
+    @Published var crows: Bool {
+        didSet { Settings.crows = crows; overlay.refresh(force: true) }
+    }
+
+    @Published var zombieHands: Bool {
+        didSet { Settings.zombieHands = zombieHands }
+    }
+
     @Published var fallingLeaves: Bool {
         didSet { Settings.fallingLeaves = fallingLeaves }
     }
@@ -105,6 +113,8 @@ final class AppModel: ObservableObject {
         theme = Settings.theme
         bats = Settings.bats
         ghost = Settings.ghost
+        crows = Settings.crows
+        zombieHands = Settings.zombieHands
         fallingLeaves = Settings.fallingLeaves
         sound = Settings.sound
         fullness = Settings.fullness

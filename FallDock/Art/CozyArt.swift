@@ -10,7 +10,7 @@ enum DecorKind: String, CaseIterable {
     // Fall.
     case hayBale, leafPile, acorns, mug, lantern, apples
     // Halloween (drawn in SpookyArt).
-    case coffin, tombstone, blackCat, cauldron, candyCorn, candles
+    case coffin, broom, blackCat, cauldron, candyCorn, candles
 
     var title: String {
         switch self {
@@ -21,7 +21,7 @@ enum DecorKind: String, CaseIterable {
         case .lantern: return "Lantern"
         case .apples: return "Crate of apples"
         case .coffin: return "Coffins"
-        case .tombstone: return "Tombstones"
+        case .broom: return "Witch's broom"
         case .blackCat: return "Black cat"
         case .cauldron: return "Cauldron"
         case .candyCorn: return "Candy corn"
@@ -52,8 +52,8 @@ enum CozyArt {
         case .mug: s = CGSize(width: h * 0.46, height: h * latteHeight)
         case .lantern: s = CGSize(width: h * 0.46, height: h * 0.82)
         case .apples: s = CGSize(width: h * 0.92, height: h * 0.58)
-        case .coffin: s = CGSize(width: h * 1.4, height: h * 0.5)
-        case .tombstone: s = CGSize(width: h * 0.6, height: h * 0.72)
+        case .coffin: s = CGSize(width: h * 1.2, height: h * 0.44)
+        case .broom: s = CGSize(width: h * 0.52, height: h * 0.95)
         case .blackCat: s = CGSize(width: h * 0.7, height: h * 0.82)
         case .cauldron: s = CGSize(width: h * 0.82, height: h * 0.64)
         case .candyCorn: s = CGSize(width: h * 0.7, height: h * 0.36)
@@ -76,7 +76,7 @@ enum CozyArt {
             case .mug: drawMug(ctx, size: size, h: h)
             case .lantern: drawLantern(ctx, size: size, h: h)
             case .apples: drawApples(ctx, size: size, h: h, rng: &rng)
-            case .coffin, .tombstone, .blackCat, .cauldron, .candyCorn, .candles:
+            case .coffin, .broom, .blackCat, .cauldron, .candyCorn, .candles:
                 SpookyArt.draw(kind, ctx, size: size, h: h, rng: &rng)
             }
         }

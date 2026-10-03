@@ -201,7 +201,7 @@ struct LiveHarvestView: View {
     /// The settings that change what grows; the little harvest regrows when any of them change.
     private var look: [AnyHashable] {
         [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves,
-         model.appearance, model.theme, model.bats, model.ghost]
+         model.appearance, model.theme, model.bats, model.ghost, model.crows, model.zombieHands]
     }
 
     private let icons: [(String, Color)] = [
@@ -285,7 +285,7 @@ struct GeneralTab: View {
                     .padding(14)
                 }
                 .overlay(alignment: .topTrailing) {
-                    Text("Click a pumpkin!")
+                    Text(model.theme == .halloween ? "Click a tombstone!" : "Click a pumpkin!")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color.harvestPlum)
                         .padding(.horizontal, 9)
@@ -604,7 +604,8 @@ struct ThemeTab: View {
                                isOn: model.fallingLeaves) { model.fallingLeaves.toggle() }
                 }
                 ActionTile(symbol: halloween ? "theatermasks.fill" : "basket.fill", title: theme.extrasTitle,
-                           detail: model.cozyExtras ? "Between the pumpkins" : "Off", isOn: model.cozyExtras) { model.cozyExtras.toggle() }
+                           detail: model.cozyExtras ? (halloween ? "Between the tombstones" : "Between the pumpkins") : "Off",
+                           isOn: model.cozyExtras) { model.cozyExtras.toggle() }
             }
 
             Card(title: "Pick your extras") {
@@ -615,6 +616,8 @@ struct ThemeTab: View {
                         }
                     }
                     if halloween {
+                        ExtraTile(image: ExtraArt.crow(), title: "Crows", isOn: model.crows) { model.crows.toggle() }
+                        ExtraTile(image: ExtraArt.hand(), title: "Zombie hands", isOn: model.zombieHands) { model.zombieHands.toggle() }
                         ExtraTile(image: ExtraArt.ghost(), title: theme.visitorTitle, isOn: model.ghost) { model.ghost.toggle() }
                     } else {
                         ExtraTile(image: ExtraArt.squirrel(), title: theme.visitorTitle, isOn: model.squirrel) { model.squirrel.toggle() }
@@ -623,7 +626,7 @@ struct ThemeTab: View {
                 .disabled(!model.cozyExtras)
                 .opacity(model.cozyExtras ? 1 : 0.45)
                 Text(halloween
-                     ? "Tap to switch each one on or off. On the Dock, click the tombstones, the cat, the cauldron, the candles and the coffins, and smash a jack-o'-lantern to free its bat. Point at the ghost to spook it."
+                     ? "Tap to switch each one on or off. On the Dock, click a tombstone to wake its ghost (and shoo its crow), and click the cat, the cauldron, the candles, the broom and the coffins. Point at the ghost or a zombie hand to spook it."
                      : "Tap to switch each one on or off. On the Dock, click the leaf piles, the latte and the lantern.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -686,6 +689,22 @@ enum ExtraArt {
         let size = CozyArt.size(of: kind, unit: unit)
         let texture = kind.isSpooky ? SpookyArt.tile(kind, unit: unit, scale: 2) : CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
         let image = NSImage(cgImage: texture.cgImage(), size: size)
+        cache[key] = image
+        return image
+    }
+
+    static func crow() -> NSImage {
+        let key = "crow-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let image = NSImage(cgImage: SpookyArt.crowTexture(unit: 90, scale: 2).cgImage(), size: SpookyArt.crowSize(unit: 90))
+        cache[key] = image
+        return image
+    }
+
+    static func hand() -> NSImage {
+        let key = "hand-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let image = NSImage(cgImage: SpookyArt.handTexture(unit: 60, scale: 2).cgImage(), size: SpookyArt.handSize(unit: 60))
         cache[key] = image
         return image
     }
@@ -830,30 +849,16 @@ enum ThemePreview {
             let web = CGSize(width: h * 0.7, height: h * 0.7)
             ctx.draw(SpookyArt.cobwebTexture(size: web, scale: scale).cgImage(), in: CGRect(origin: CGPoint(x: 2, y: shelf - 3), size: web))
 
-            enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), coffin(PumpkinKind) }
-            let items: [Item] = [.lantern(.roundOrange, 1, 0), .decor(.tombstone), .pumpkin(.ghostWhite, 0.8), .decor(.cauldron),
-                                 .coffin(.squatOrange), .decor(.blackCat), .lantern(.tallOrange, 0.95, 2), .decor(.candles),
-                                 .lantern(.roundOrange, 0.86, 1), .decor(.candyCorn)]
+            enum Item { case tomb(PumpkinKind, CGFloat, crow: Bool), decor(DecorKind), hand }
+            let items: [Item] = [.tomb(.tombRound, 1, crow: true), .decor(.cauldron), .tomb(.tombSkull, 0.9, crow: false), .decor(.candles),
+                                 .tomb(.tombObelisk, 1, crow: false), .decor(.blackCat), .hand, .tomb(.tombBoo, 0.95, crow: true),
+                                 .decor(.broom), .tomb(.tombCracked, 0.92, crow: false), .decor(.candyCorn)]
             let decorUnit = (h * 0.75).rounded()
             func width(_ item: Item) -> CGFloat {
                 switch item {
-                case let .lantern(kind, s, _), let .pumpkin(kind, s): return PumpkinArt.size(of: kind, height: (h * s).rounded()).width
+                case let .tomb(kind, s, _): return PumpkinArt.size(of: kind, height: (h * s).rounded()).width
                 case let .decor(kind): return CozyArt.size(of: kind, unit: decorUnit).width
-                case .coffin: return CozyArt.size(of: .coffin, unit: h).width
-                }
-            }
-            func drawPumpkin(_ kind: PumpkinKind, height: CGFloat, centerX: CGFloat, y: CGFloat, face: Int?) {
-                let s = PumpkinArt.size(of: kind, height: height)
-                let rect = CGRect(x: centerX - s.width / 2, y: y, width: s.width, height: s.height)
-                if let face {
-                    // The candle's glow around a jack-o'-lantern.
-                    let glow = s.width * 1.5
-                    ctx.draw(CozyArt.glowTexture(color: Palette.orange.mixed(with: Palette.mustard, 0.5), diameter: glow, scale: scale).cgImage(),
-                             in: CGRect(x: centerX - glow / 2, y: y + s.height * 0.42 - glow / 2, width: glow, height: glow))
-                }
-                ctx.draw(PumpkinArt.texture(kind: kind, height: height, variant: 1, scale: scale).cgImage(), in: rect)
-                if let face {
-                    ctx.draw(SpookyArt.faceTexture(kind: kind, height: height, face: face, scale: scale).cgImage(), in: rect)
+                case .hand: return SpookyArt.handSize(unit: h * 0.8).width
                 }
             }
             let used = items.map(width).reduce(0, +)
@@ -863,19 +868,24 @@ enum ThemePreview {
                 let w = width(item)
                 let center = x + w / 2
                 switch item {
-                case let .lantern(kind, s, face):
-                    drawPumpkin(kind, height: (h * s).rounded(), centerX: center, y: shelf - 3, face: face)
-                case let .pumpkin(kind, s):
-                    drawPumpkin(kind, height: (h * s).rounded(), centerX: center, y: shelf - 3, face: nil)
+                case let .tomb(kind, s, crow):
+                    let height = (h * s).rounded()
+                    let tomb = PumpkinArt.size(of: kind, height: height)
+                    ctx.draw(PumpkinArt.texture(kind: kind, height: height, variant: 1, scale: scale).cgImage(),
+                             in: CGRect(x: center - tomb.width / 2, y: shelf - 3, width: tomb.width, height: tomb.height))
+                    if crow {
+                        let c = SpookyArt.crowSize(unit: h)
+                        ctx.draw(SpookyArt.crowTexture(unit: h, scale: scale).cgImage(),
+                                 in: CGRect(x: center - c.width / 2, y: shelf - 3 + tomb.height * 0.94 - c.height * 0.04, width: c.width, height: c.height))
+                    }
                 case let .decor(kind):
                     let s = CozyArt.size(of: kind, unit: decorUnit)
                     ctx.draw(SpookyArt.tile(kind, unit: decorUnit, scale: scale).cgImage(),
                              in: CGRect(x: center - s.width / 2, y: shelf - 2, width: s.width, height: s.height))
-                case let .coffin(kind):
-                    let s = CozyArt.size(of: .coffin, unit: h)
-                    ctx.draw(CozyArt.texture(.coffin, unit: h, variant: 2, scale: scale).cgImage(),
+                case .hand:
+                    let s = SpookyArt.handSize(unit: h * 0.8)
+                    ctx.draw(SpookyArt.handTexture(unit: h * 0.8, scale: scale).cgImage(),
                              in: CGRect(x: center - s.width / 2, y: shelf - 3, width: s.width, height: s.height))
-                    drawPumpkin(kind, height: (h * 0.78).rounded(), centerX: center, y: shelf - 3 + s.height * 0.86, face: 3)
                 }
                 x += w + space
             }
