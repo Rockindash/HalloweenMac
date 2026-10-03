@@ -18,6 +18,10 @@ final class AppModel: ObservableObject {
         didSet { Settings.showVines = showVines; overlay.refresh(force: true) }
     }
 
+    @Published var cozyExtras: Bool {
+        didSet { Settings.cozyExtras = cozyExtras; overlay.refresh(force: true) }
+    }
+
     @Published var fallingLeaves: Bool {
         didSet { Settings.fallingLeaves = fallingLeaves }
     }
@@ -41,6 +45,7 @@ final class AppModel: ObservableObject {
         smashCount = Settings.smashCount
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
+        cozyExtras = Settings.cozyExtras
         fallingLeaves = Settings.fallingLeaves
         sound = Settings.sound
         pumpkinCount = Settings.pumpkinCount

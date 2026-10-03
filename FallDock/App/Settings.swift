@@ -8,6 +8,7 @@ enum Settings {
         static let showPumpkins = "showPumpkins"
         static let fallingLeaves = "fallingLeaves"
         static let showVines = "showVines"
+        static let cozyExtras = "cozyExtras"
         static let sound = "sound"
         static let pumpkinCount = "pumpkinCount"
         static let smashCount = "smashCount"
@@ -18,6 +19,7 @@ enum Settings {
             Key.showPumpkins: true,
             Key.fallingLeaves: true,
             Key.showVines: true,
+            Key.cozyExtras: true,
             Key.sound: true,
             Key.pumpkinCount: 10,
             Key.smashCount: 0,
@@ -41,6 +43,12 @@ enum Settings {
     static var showVines: Bool {
         get { defaults.bool(forKey: Key.showVines) }
         set { defaults.set(newValue, forKey: Key.showVines) }
+    }
+
+    /// Hay bales, leaf piles, the mug and lantern, lights on the vine and the squirrel.
+    static var cozyExtras: Bool {
+        get { defaults.bool(forKey: Key.cozyExtras) }
+        set { defaults.set(newValue, forKey: Key.cozyExtras) }
     }
 
     static var sound: Bool {

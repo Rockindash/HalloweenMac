@@ -147,9 +147,9 @@ final class OverlayController {
         let scale = NSScreen.screens.first(where: { $0.frame == screen })?.backingScaleFactor ?? 2
         if force {
             // Rebuild from scratch (e.g. the pumpkin count changed).
-            scene.configure(dockRect: .zero, pixelScale: scale, count: 0)
+            scene.configure(dockRect: .zero, pixelScale: scale, count: 0, magnifier: DockMagnifier.current())
         }
-        scene.configure(dockRect: localDock, pixelScale: scale, count: Settings.pumpkinCount)
+        scene.configure(dockRect: localDock, pixelScale: scale, count: Settings.pumpkinCount, magnifier: DockMagnifier.current())
         skView?.isPaused = false
         if !panel.isVisible || isHiding {
             // Fade in alongside the Dock.
@@ -184,7 +184,8 @@ final class OverlayController {
         })
     }
 
-    /// Lets clicks through everywhere except right on top of a pumpkin.
+    /// Tells the scene where the pointer is, and lets clicks through everywhere except right on top
+    /// of a pumpkin or something else that reacts to a click.
     private func updateHover() {
         guard let panel, let scene, panel.isVisible, !isHiding else {
             hoverTimer?.invalidate()
@@ -193,16 +194,17 @@ final class OverlayController {
         }
         let mouse = NSEvent.mouseLocation
         let point = CGPoint(x: mouse.x - panel.frame.minX, y: mouse.y - panel.frame.minY)
-        let pumpkin = scene.pumpkin(at: point)
-        scene.setHovered(pumpkin)
-        let wantsClicks = pumpkin != nil
+        scene.pointerMoved(to: point)
+        let target = scene.target(at: point)
+        scene.setHovered(target)
+        let wantsClicks = target != nil
         if panel.ignoresMouseEvents == wantsClicks {
             panel.ignoresMouseEvents = !wantsClicks
         }
         if wantsClicks {
             NSCursor.pointingHand.set()
             // While we're catching clicks, the whole window would block the screen below it,
-            // so keep checking quickly until the pointer leaves the pumpkin.
+            // so keep checking quickly until the pointer leaves it.
             if hoverTimer == nil {
                 hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
                     Task { @MainActor in self?.updateHover() }

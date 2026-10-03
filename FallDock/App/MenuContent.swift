@@ -11,6 +11,7 @@ struct MenuContent: View {
 
         Toggle("Show Pumpkins", isOn: $model.showPumpkins)
         Toggle("Vines", isOn: $model.showVines)
+        Toggle("Cozy Extras", isOn: $model.cozyExtras)
         Toggle("Falling Leaves", isOn: $model.fallingLeaves)
         Toggle("Smash Sound", isOn: $model.sound)
 
