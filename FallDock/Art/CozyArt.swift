@@ -159,7 +159,7 @@ enum CozyArt {
     }
 
     /// An acorn standing on `bottom`, tilted `angle` degrees.
-    private static func acorn(_ ctx: CGContext, bottom: CGPoint, size s: CGFloat, angle: CGFloat) {
+    static func acorn(_ ctx: CGContext, bottom: CGPoint, size s: CGFloat, angle: CGFloat) {
         ctx.saveGState()
         ctx.translateBy(x: bottom.x, y: bottom.y)
         ctx.rotate(by: angle * .pi / 180)

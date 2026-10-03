@@ -7,6 +7,16 @@ final class PumpkinNode: DockSprite {
     let slotHeight: CGFloat
     let variant: Int
     var isSmashing = false
+    /// A rare golden pumpkin.
+    var isGolden: Bool { kind == .golden }
+    /// Carved into a glowing jack-o'-lantern.
+    var isLantern = false
+    /// Being dragged, or flying through the air after a toss.
+    var isHeld = false
+    var isFlying = false
+    var velocity = CGVector.zero
+    /// Its usual depth among the other pumpkins (it comes to the front while it's tossed).
+    var homeZ: CGFloat = 0
 
     init(kind: PumpkinKind, slot: Int, slotHeight: CGFloat, variant: Int, texture: SKTexture, size: CGSize) {
         self.kind = kind
@@ -28,7 +38,7 @@ final class PumpkinNode: DockSprite {
 @MainActor
 final class PumpkinScene: SKScene {
     /// Called after every smash (used for the counter in the menu).
-    var onSmash: (() -> Void)?
+    var onSmash: ((Bool) -> Void)?
 
     private(set) var dockRect: CGRect = .zero
     var pixelScale: CGFloat = 2
@@ -45,9 +55,13 @@ final class PumpkinScene: SKScene {
     var gapKinds: [DecorKind] = []
     private var decorStart = 0
     /// Picks each slot's kind of pumpkin; a new one for every fresh harvest.
-    private var harvestSeed: UInt64 = 1
-    private var pumpkins: [Int: PumpkinNode] = [:]
-    private weak var hovered: DockSprite?
+    private(set) var harvestSeed: UInt64 = 1
+    var pumpkins: [Int: PumpkinNode] = [:]
+    private(set) weak var hovered: DockSprite?
+    /// The pumpkin under the pointer while the mouse button is down, until it's dragged or let go.
+    var grab: Grab?
+    /// Recent smashes, for combos.
+    var streak = (count: 0, time: TimeInterval(0))
 
     private let vineLayer = SKNode()
     let pumpkinLayer = SKNode()
@@ -69,7 +83,7 @@ final class PumpkinScene: SKScene {
 
     /// Size unit for the vine: 1 for a typical 60 pt pumpkin.
     var unit: CGFloat { pumpkinHeight / 60 }
-    private let sound = SmashSound()
+    let sounds = Sounds()
 
     override init(size: CGSize) {
         super.init(size: size)
@@ -193,7 +207,7 @@ final class PumpkinScene: SKScene {
     private func pumpkinKind(slot: Int, onBale: Bool) -> PumpkinKind {
         var rng = SeededRandom(seed: harvestSeed &+ UInt64(slot) &* 2_654_435_761)
         // Tall butternuts would tower over everything on top of a hay bale.
-        let kinds = onBale ? [PumpkinKind.roundOrange, .roundMustard, .squatOrange, .squatMustard] : PumpkinKind.allCases
+        let kinds = onBale ? [PumpkinKind.roundOrange, .roundMustard, .squatOrange, .squatMustard] : PumpkinKind.everyday
         return kinds[Int(rng.next() % UInt64(kinds.count))]
     }
 
@@ -242,6 +256,7 @@ final class PumpkinScene: SKScene {
 
     /// Grows something in from nothing, with a little overshoot.
     func popIn(_ sprite: DockSprite) {
+        sounds.play(.pop, volume: 0.5)
         sprite.popScale = 0.05
         sprite.run(.sequence([
             DockSprite.animate(\.popScale, to: 1.12, duration: 0.35, curve: .easeOut),
@@ -264,9 +279,10 @@ final class PumpkinScene: SKScene {
             scheduleSquirrel(first: true)
         }
         startFallingLeaves()
+        startFunTimers()
     }
 
-    private func restingY(slot: Int) -> CGFloat {
+    func restingY(slot: Int) -> CGFloat {
         // Sink 3 pt into the Dock so pumpkins look like they're sitting on it.
         // Smaller pumpkins sit a touch lower, as if they're in front.
         dockRect.maxY - 3 - (slotPerch[slot] > 0 ? 0 : (1 - slotScale[slot]) * 5)
@@ -329,13 +345,14 @@ final class PumpkinScene: SKScene {
             configure(dockRect: pending, pixelScale: pixelScale, magnifier: magnifier, regrow: false)
         }
 
+        updateFlights(dt: CGFloat(dt))
         for case let sprite as DockSprite in pumpkinLayer.children where !sprite.isDetached {
             place(sprite)
         }
         warpVine()
     }
 
-    private func place(_ sprite: DockSprite) {
+    func place(_ sprite: DockSprite) {
         let d = sprite.restX - pointerX
         let s = magnifier.scale(at: d, strength: magnifyStrength)
         sprite.position = CGPoint(x: sprite.restX + magnifier.shift(at: d, strength: magnifyStrength),
@@ -375,8 +392,9 @@ final class PumpkinScene: SKScene {
 
     // MARK: Pumpkins
 
-    private func addPumpkin(slot: Int, grow: Bool) {
-        let kind = slotKinds[slot]
+    /// Adds a pumpkin to a slot. Now and then a regrown one comes back golden.
+    func addPumpkin(slot: Int, grow: Bool, golden: Bool = false) {
+        let kind = golden || (grow && Int.random(in: 0..<20) == 0) ? .golden : slotKinds[slot]
         let variant = Int.random(in: 0..<6)
         let height = (pumpkinHeight * slotScale[slot]).rounded()
         let size = PumpkinArt.size(of: kind, height: height)
@@ -388,6 +406,7 @@ final class PumpkinScene: SKScene {
         pumpkin.perch = slotPerch[slot]
         // Smaller pumpkins in front of bigger ones.
         pumpkin.zPosition = (1.2 - slotScale[slot]) * 10 + CGFloat(slot) * 0.01
+        pumpkin.homeZ = pumpkin.zPosition
 
         let shadowWidth = (size.width * 1.0).rounded()
         let shadow = SKSpriteNode(texture: PumpkinArt.shadowTexture(width: shadowWidth, scale: pixelScale),
@@ -412,6 +431,8 @@ final class PumpkinScene: SKScene {
 
         if grow { popIn(pumpkin) }
         startWobble(pumpkin)
+        if pumpkin.isGolden { addSparkles(to: pumpkin) }
+        if lanternsLit && wantsLantern(slot: slot, kind: kind) { carve(pumpkin, animated: grow) }
     }
 
     func startWobble(_ node: SKNode, amount: ClosedRange<CGFloat> = 0.02...0.04) {
@@ -447,25 +468,39 @@ final class PumpkinScene: SKScene {
             squirrelFlee(squirrel)
         } else if let sprite {
             sprite.run(DockSprite.animate(\.hoverScale, to: 1.08, duration: 0.12, curve: .easeOut), withKey: "hover")
+            if let pumpkin = sprite as? PumpkinNode { flare(pumpkin) }
         }
     }
 
     // MARK: Clicking
 
+    /// Pumpkins wait for the mouse button to come back up: a click smashes, a drag picks them up
+    /// (see `PumpkinScene+Fun.swift`). Everything else reacts straight away.
     override func mouseDown(with event: NSEvent) {
-        switch target(at: event.location(in: self)) {
-        case let pumpkin as PumpkinNode: smash(pumpkin)
+        let point = event.location(in: self)
+        switch target(at: point) {
+        case let pumpkin as PumpkinNode: grab = Grab(pumpkin: pumpkin, start: point)
         case let decor as DecorNode: poke(decor)
         case let squirrel as SquirrelNode: squirrelFlee(squirrel)
         default: break
         }
     }
 
+    override func mouseDragged(with event: NSEvent) {
+        dragGrab(to: event.location(in: self))
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        releaseGrab()
+    }
+
     func smash(_ pumpkin: PumpkinNode) {
         guard !pumpkin.isSmashing else { return }
         pumpkin.isSmashing = true
         pumpkin.isDetached = true
-        pumpkins[pumpkin.slot] = nil
+        pumpkin.isFlying = false
+        if grab?.pumpkin === pumpkin { grab = nil }
+        if pumpkins[pumpkin.slot] === pumpkin { pumpkins[pumpkin.slot] = nil }
         if hovered === pumpkin { hovered = nil }
         pumpkin.removeAllActions()
 
@@ -482,13 +517,29 @@ final class PumpkinScene: SKScene {
             },
         ]))
 
-        if Settings.sound { sound.play() }
+        sounds.play(.smash)
         nudgeNeighbors(of: pumpkin)
-        onSmash?()
+        onSmash?(pumpkin.isGolden)
+        celebrate(pumpkin)
 
         let slot = pumpkin.slot
         run(.sequence([
             .wait(forDuration: Double.random(in: 6...11)),
+            .run { [weak self] in
+                guard let self, self.pumpkins[slot] == nil, slot < self.pumpkinCount else { return }
+                self.addPumpkin(slot: slot, grow: true)
+            },
+        ]), withKey: "respawn-\(slot)")
+    }
+
+    /// A pumpkin tossed off the end of the Dock: it's gone, and grows back later like a smashed one.
+    func lose(_ pumpkin: PumpkinNode) {
+        pumpkin.isSmashing = true
+        if pumpkins[pumpkin.slot] === pumpkin { pumpkins[pumpkin.slot] = nil }
+        pumpkin.removeFromParent()
+        let slot = pumpkin.slot
+        run(.sequence([
+            .wait(forDuration: Double.random(in: 4...7)),
             .run { [weak self] in
                 guard let self, self.pumpkins[slot] == nil, slot < self.pumpkinCount else { return }
                 self.addPumpkin(slot: slot, grow: true)
@@ -553,7 +604,7 @@ final class PumpkinScene: SKScene {
         }
     }
 
-    private func launch(_ node: SKSpriteNode, from center: CGPoint, spread: CGFloat,
+    func launch(_ node: SKSpriteNode, from center: CGPoint, spread: CGFloat,
                         velocity: CGVector, radius: CGFloat, damping: CGFloat, life: TimeInterval) {
         node.position = CGPoint(x: center.x + CGFloat.random(in: -spread...spread), y: center.y + CGFloat.random(in: -spread...spread) * 0.5)
         node.zRotation = CGFloat.random(in: 0...(.pi * 2))
@@ -597,25 +648,31 @@ final class PumpkinScene: SKScene {
         for case let sprite as DockSprite in pumpkinLayer.children where !sprite.isDetached && sprite.action(forKey: "rock") == nil {
             let frame = sprite.frame
             guard point.x > frame.minX - 4, point.x < frame.maxX + 4, point.y < frame.maxY + 6 else { continue }
-            let lean = -(vx > 0 ? 1 : -1) * CGFloat.random(in: 0.12...0.18)
-            let rock = SKAction.sequence([
-                .rotate(toAngle: lean, duration: 0.09),
-                .rotate(toAngle: -lean * 0.55, duration: 0.16),
-                .rotate(toAngle: lean * 0.25, duration: 0.16),
-                .rotate(toAngle: 0, duration: 0.2),
-            ])
-            rock.timingMode = .easeInEaseOut
-            let wobble = sprite.action(forKey: "wobble")
-            sprite.removeAction(forKey: "wobble")
-            sprite.run(.sequence([rock, .run { [weak self, weak sprite] in
-                guard let self, let sprite, wobble != nil else { return }
-                self.startWobble(sprite)
-            }]), withKey: "rock")
+            rock(sprite, toward: vx > 0 ? 1 : -1)
             if let decor = sprite as? DecorNode, decor.kind == .leafPile, !decor.isScattered {
                 flutterLeaves(count: 1, from: CGPoint(x: frame.midX, y: frame.maxY - 4), size: (pumpkinHeight * 0.22).rounded(),
                               upward: 60...140)
             }
         }
+    }
+
+    /// Leans `sprite` away from `direction` (+1 is right) and lets it rock back, as if brushed or blown.
+    func rock(_ sprite: DockSprite, toward direction: CGFloat, strength: CGFloat = 1) {
+        guard !sprite.isDetached, sprite.action(forKey: "rock") == nil else { return }
+        let lean = -direction * CGFloat.random(in: 0.12...0.18) * strength
+        let rock = SKAction.sequence([
+            .rotate(toAngle: lean, duration: 0.09),
+            .rotate(toAngle: -lean * 0.55, duration: 0.16),
+            .rotate(toAngle: lean * 0.25, duration: 0.16),
+            .rotate(toAngle: 0, duration: 0.2),
+        ])
+        rock.timingMode = .easeInEaseOut
+        let wobble = sprite.action(forKey: "wobble")
+        sprite.removeAction(forKey: "wobble")
+        sprite.run(.sequence([rock, .run { [weak self, weak sprite] in
+            guard let self, let sprite, wobble != nil else { return }
+            self.startWobble(sprite)
+        }]), withKey: "rock")
     }
 
     // MARK: Falling leaves

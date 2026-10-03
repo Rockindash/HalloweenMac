@@ -14,6 +14,8 @@ enum Settings {
         static let pumpkinCount = "pumpkinCount" // replaced by fullness; read once to carry it over
         static let fullness = "fullness"
         static let smashCount = "smashCount"
+        static let goldenCount = "goldenCount"
+        static let jackOLanterns = "jackOLanterns"
     }
 
     static func registerDefaults() {
@@ -32,6 +34,8 @@ enum Settings {
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
             Key.smashCount: 0,
+            Key.goldenCount: 0,
+            Key.jackOLanterns: JackOLanterns.evenings.rawValue,
         ])
     }
 
@@ -91,5 +95,28 @@ enum Settings {
     static var smashCount: Int {
         get { defaults.integer(forKey: Key.smashCount) }
         set { defaults.set(newValue, forKey: Key.smashCount) }
+    }
+
+    static var goldenCount: Int {
+        get { defaults.integer(forKey: Key.goldenCount) }
+        set { defaults.set(newValue, forKey: Key.goldenCount) }
+    }
+
+    /// When some pumpkins are carved into glowing jack-o'-lanterns.
+    enum JackOLanterns: Int, CaseIterable {
+        case evenings, always, never
+
+        var title: String {
+            switch self {
+            case .evenings: return "In the Evening"
+            case .always: return "Always"
+            case .never: return "Never"
+            }
+        }
+    }
+
+    static var jackOLanterns: JackOLanterns {
+        get { JackOLanterns(rawValue: defaults.integer(forKey: Key.jackOLanterns)) ?? .evenings }
+        set { defaults.set(newValue.rawValue, forKey: Key.jackOLanterns) }
     }
 }
