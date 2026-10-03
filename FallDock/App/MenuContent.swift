@@ -9,6 +9,11 @@ struct MenuContent: View {
 
         Divider()
 
+        Button("Open Fall Dock…") { model.showMainWindow() }
+            .keyboardShortcut(",")
+
+        Divider()
+
         Toggle("Show Pumpkins", isOn: $model.showPumpkins)
         Toggle("Vines", isOn: $model.showVines)
         Toggle("Cozy Extras", isOn: $model.cozyExtras)

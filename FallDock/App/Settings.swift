@@ -15,6 +15,10 @@ enum Settings {
         static let fullness = "fullness"
         static let smashCount = "smashCount"
         static let hasSeenWelcome = "hasSeenWelcome"
+        static let disabledExtras = "disabledExtras"
+        static let squirrel = "squirrel"
+        static let showMenuBarIcon = "showMenuBarIcon"
+        static let theme = "theme"
     }
 
     static func registerDefaults() {
@@ -30,6 +34,8 @@ enum Settings {
             Key.fallingLeaves: true,
             Key.showVines: true,
             Key.cozyExtras: true,
+            Key.squirrel: true,
+            Key.showMenuBarIcon: true,
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
             Key.smashCount: 0,
@@ -97,5 +103,48 @@ enum Settings {
     static var hasSeenWelcome: Bool {
         get { defaults.bool(forKey: Key.hasSeenWelcome) }
         set { defaults.set(newValue, forKey: Key.hasSeenWelcome) }
+    }
+
+    /// Cozy extras that have been switched off one by one (the rest are on, including any new ones).
+    static func isEnabled(_ kind: DecorKind) -> Bool {
+        !(defaults.stringArray(forKey: Key.disabledExtras) ?? []).contains(kind.rawValue)
+    }
+
+    static func setEnabled(_ kind: DecorKind, _ enabled: Bool) {
+        var off = Set(defaults.stringArray(forKey: Key.disabledExtras) ?? [])
+        if enabled { off.remove(kind.rawValue) } else { off.insert(kind.rawValue) }
+        defaults.set(off.sorted(), forKey: Key.disabledExtras)
+    }
+
+    static var squirrel: Bool {
+        get { defaults.bool(forKey: Key.squirrel) }
+        set { defaults.set(newValue, forKey: Key.squirrel) }
+    }
+
+    static var showMenuBarIcon: Bool {
+        get { defaults.bool(forKey: Key.showMenuBarIcon) }
+        set { defaults.set(newValue, forKey: Key.showMenuBarIcon) }
+    }
+
+    /// The season or festival on the Dock. Only fall so far; each one gets its own tab in the app window.
+    enum Theme: String, CaseIterable {
+        case fall
+
+        var title: String {
+            switch self {
+            case .fall: return "Fall"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .fall: return "leaf.fill"
+            }
+        }
+    }
+
+    static var theme: Theme {
+        get { defaults.string(forKey: Key.theme).flatMap(Theme.init(rawValue:)) ?? .fall }
+        set { defaults.set(newValue.rawValue, forKey: Key.theme) }
     }
 }

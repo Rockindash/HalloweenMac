@@ -173,7 +173,7 @@ extension PumpkinScene {
 
     func scheduleSquirrel(first: Bool) {
         removeAction(forKey: "squirrel")
-        guard !Self.reduceMotion else { return }
+        guard !Self.reduceMotion, Settings.squirrel else { return }
         run(.sequence([
             .wait(forDuration: first ? Double.random(in: 10...20) : Double.random(in: 45...90)),
             .run { [weak self] in self?.squirrelVisit() },
@@ -182,7 +182,7 @@ extension PumpkinScene {
 
     /// A squirrel hops in from one end, stops by the acorns for a nibble, looks around and hops off the other end.
     private func squirrelVisit() {
-        guard Settings.cozyExtras, dockRect.width > 300, !pumpkinLayer.children.contains(where: { $0 is SquirrelNode }) else {
+        guard Settings.cozyExtras, Settings.squirrel, dockRect.width > 300, !pumpkinLayer.children.contains(where: { $0 is SquirrelNode }) else {
             scheduleSquirrel(first: false)
             return
         }

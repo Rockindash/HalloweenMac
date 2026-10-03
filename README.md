@@ -35,6 +35,17 @@ To stop it, press **⌘.** in Xcode or choose **Quit Fall Dock** from the 🎃 m
 
 In Xcode choose **Product → Archive**, then **Distribute App → Custom → Copy App**, and drag the exported **Fall Dock.app** into your Applications folder. Then turn on **Open at Login** in the 🎃 menu.
 
+## The app window
+
+Open **Fall Dock** from your Applications folder (or choose **Open Fall Dock…** from the 🎃 menu) for the app's own window.
+While it's open, Fall Dock shows in the Dock and the app switcher like any app; close it and it goes back to living in the menu bar.
+When Fall Dock starts by itself at login, the window stays closed.
+
+- **General**: whether the harvest is showing, pause it for an hour, grow new pumpkins, pick the season, and your smash count.
+- **Settings**: open at login, show or hide the 🎃 in the menu bar, the smash sound, Reduce Motion, and privacy.
+- **Dock**: what Fall Dock sees of your Dock (position, auto-hide, icon size, magnification, its length and whether that's measured or estimated), the Accessibility permission for an exact fit, and how full the harvest is.
+- **Fall**: the current season's own tab, with a preview, the vine and falling leaves, and each cozy extra (hay bales, leaf piles, acorns, the mug, the lantern, the apples and the squirrel) switched on or off one by one. As more seasons arrive, this tab follows the one you pick.
+
 ## The 🎃 menu
 
 - **Show Pumpkins**: hides or shows everything.
@@ -69,6 +80,8 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `App/AppModel.swift` | What the menu shows and changes |
 | `App/Settings.swift` | Remembers your menu choices |
 | `App/Welcome.swift` | The welcome window shown on first launch |
+| `App/MainWindow.swift` | The app window and its toolbar tabs |
+| `App/MainTabs.swift` | The General, Settings, Dock and season tabs |
 | `Overlay/DockLocator.swift` | Works out where the Dock is, which display it's on and whether it's showing |
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |

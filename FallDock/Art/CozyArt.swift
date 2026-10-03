@@ -6,8 +6,19 @@ import SpriteKit
 // Same flat harvest-wagon style as the pumpkins: wagon colors, flat fills, a darker side,
 // tapered brush strokes and no outlines.
 
-enum DecorKind: CaseIterable {
+enum DecorKind: String, CaseIterable {
     case hayBale, leafPile, acorns, mug, lantern, apples
+
+    var title: String {
+        switch self {
+        case .hayBale: return "Hay bales"
+        case .leafPile: return "Leaf piles"
+        case .acorns: return "Acorns"
+        case .mug: return "Mug of cider"
+        case .lantern: return "Lantern"
+        case .apples: return "Crate of apples"
+        }
+    }
 
     /// The order decorations fill the gaps between pumpkins; it starts at a random point each time
     /// the pumpkins are regrown, so the mug and lantern turn up in different spots.

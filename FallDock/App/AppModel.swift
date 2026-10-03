@@ -2,11 +2,14 @@ import AppKit
 import ServiceManagement
 import SwiftUI
 
-/// Everything the menu shows and changes. Choices are saved in `Settings`.
+/// Everything the menu and the app window show and change. Choices are saved in `Settings`.
 @MainActor
 final class AppModel: ObservableObject {
+    static let shared = AppModel()
+
     private let overlay = OverlayController()
     private let welcome = WelcomeWindow()
+    private let mainWindow = MainWindow()
     private var activity: NSObjectProtocol?
 
     @Published private(set) var smashCount: Int
@@ -22,6 +25,27 @@ final class AppModel: ObservableObject {
 
     @Published var cozyExtras: Bool {
         didSet { Settings.cozyExtras = cozyExtras; overlay.refresh(force: true) }
+    }
+
+    @Published var squirrel: Bool {
+        didSet { Settings.squirrel = squirrel; overlay.refresh(force: true) }
+    }
+
+    /// Which cozy extras are switched on, one by one.
+    @Published private(set) var enabledExtras: Set<DecorKind>
+
+    func setExtra(_ kind: DecorKind, enabled: Bool) {
+        Settings.setEnabled(kind, enabled)
+        if enabled { enabledExtras.insert(kind) } else { enabledExtras.remove(kind) }
+        overlay.refresh(force: true)
+    }
+
+    @Published var showMenuBarIcon: Bool {
+        didSet { Settings.showMenuBarIcon = showMenuBarIcon }
+    }
+
+    @Published var theme: Settings.Theme {
+        didSet { Settings.theme = theme; mainWindow.themeChanged(); overlay.refresh(force: true) }
     }
 
     @Published var fallingLeaves: Bool {
@@ -42,12 +66,16 @@ final class AppModel: ObservableObject {
 
     var hasAccessibility: Bool { DockLocator.hasAccessibility }
 
-    init() {
+    private init() {
         Settings.registerDefaults()
         smashCount = Settings.smashCount
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras
+        squirrel = Settings.squirrel
+        enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
+        showMenuBarIcon = Settings.showMenuBarIcon
+        theme = Settings.theme
         fallingLeaves = Settings.fallingLeaves
         sound = Settings.sound
         fullness = Settings.fullness
@@ -75,6 +103,22 @@ final class AppModel: ObservableObject {
 
     func showWelcome() {
         welcome.show(model: self)
+    }
+
+    func showMainWindow() {
+        mainWindow.show(model: self)
+    }
+
+    var dockStatus: OverlayController.Status { overlay.status }
+
+    /// Measures the Dock again right away.
+    func remeasure() {
+        overlay.refresh()
+    }
+
+    func resetSmashCount() {
+        Settings.smashCount = 0
+        smashCount = 0
     }
 
     func pauseForAnHour() {

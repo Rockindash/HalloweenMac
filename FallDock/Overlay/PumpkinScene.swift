@@ -139,6 +139,8 @@ final class PumpkinScene: SKScene {
     private func layoutSlots() {
         let h = pumpkinHeight
         let extras = Settings.cozyExtras
+        // Something in the gaps between pumpkins only if some of those extras are switched on.
+        let gapsOn = extras && !Self.gapCycle.isEmpty
         let minSpace = h * Settings.fullness.spacing
         let bale = CozyArt.size(of: .hayBale, unit: h)
         slotKinds = []; slotScale = []; slotPerch = []; gapKinds = []
@@ -148,13 +150,13 @@ final class PumpkinScene: SKScene {
         while slot < 200 {
             var gapKind: DecorKind?
             var gapWidth: CGFloat = 0
-            if extras && slot > 0 {
+            if gapsOn && slot > 0 {
                 let kind = decorKind(gap: slot - 1)
                 gapKind = kind
                 gapWidth = CozyArt.size(of: kind, unit: decorUnit).width
             }
             // A hay bale under every fifth pumpkin.
-            let onBale = extras && slot % 5 == 2
+            let onBale = extras && Settings.isEnabled(.hayBale) && slot % 5 == 2
             var rng = SeededRandom(seed: UInt64(slot + 1) &* 7537)
             // Pumpkins vary a little in size, every third one a bit smaller.
             let scale = onBale ? rng.float(0.76...0.82) : slot % 3 == 1 ? rng.float(0.82...0.88) : rng.float(0.92...1.0)
@@ -180,7 +182,7 @@ final class PumpkinScene: SKScene {
         slotX = []
         gapX = []
         for (i, width) in widths.enumerated() {
-            if !extras || i % 2 == 0 {
+            if !gapsOn || i % 2 == 0 {
                 slotX.append(x + width / 2)
             } else {
                 gapX.append(x + width / 2)
@@ -200,11 +202,14 @@ final class PumpkinScene: SKScene {
     /// The decoration in the next gap (`gapKinds` holds the ones before it): down the cycle, with the
     /// mug and lantern at most once every eight gaps.
     private func decorKind(gap: Int) -> DecorKind {
-        let cycle = DecorKind.gapCycle
+        let cycle = Self.gapCycle
         let kind = cycle[(decorStart + gap) % cycle.count]
-        guard kind == .mug || kind == .lantern else { return kind }
-        return gapKinds.suffix(8).contains(kind) ? .leafPile : kind
+        guard kind == .mug || kind == .lantern, gapKinds.suffix(8).contains(kind) else { return kind }
+        return cycle.first { $0 != .mug && $0 != .lantern } ?? kind
     }
+
+    /// `DecorKind.gapCycle` without the extras that are switched off.
+    private static var gapCycle: [DecorKind] { DecorKind.gapCycle.filter(Settings.isEnabled) }
 
     /// The Dock got longer or shorter. Everything keeps its size and slides to its new spot;
     /// pumpkins and decorations grow in or shrink away at the end.

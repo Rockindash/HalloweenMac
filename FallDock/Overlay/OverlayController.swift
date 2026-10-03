@@ -80,6 +80,21 @@ final class OverlayController {
     var onResume: (() -> Void)?
     var isDockPrecise: Bool { currentDock?.isPrecise ?? false }
 
+    /// What the app window's Dock tab shows.
+    struct Status {
+        var isShowing: Bool
+        /// The Dock's length in points, while it's showing.
+        var length: CGFloat?
+        var isPrecise: Bool
+        var pumpkins: Int
+        var extras: Int
+    }
+
+    var status: Status {
+        Status(isShowing: panel?.isVisible == true && !isHiding, length: currentDock?.dockFrame.width,
+               isPrecise: currentDock?.isPrecise ?? false, pumpkins: scene?.pumpkinCount ?? 0, extras: scene?.gapKinds.count ?? 0)
+    }
+
     func start() {
         let onChange: @Sendable (Notification) -> Void = { [weak self] _ in
             Task { @MainActor in self?.refresh() }
