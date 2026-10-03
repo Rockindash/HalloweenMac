@@ -73,7 +73,7 @@ final class PumpkinScene: SKScene {
 
     /// Places (or moves) the pumpkins along the top edge of `dockRect` (scene coordinates).
     func configure(dockRect: CGRect, pixelScale: CGFloat, count: Int) {
-        let height = (dockRect.height * 0.85).clamped(to: 30...80).rounded()
+        let height = (dockRect.height * 1.15).clamped(to: 40...110).rounded()
         let needsRebuild = count != pumpkinCount || height != pumpkinHeight || pixelScale != self.pixelScale
         guard needsRebuild || dockRect != self.dockRect else { return }
 

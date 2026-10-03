@@ -19,9 +19,13 @@ enum Settings {
             Key.fallingLeaves: true,
             Key.showVines: true,
             Key.sound: true,
-            Key.pumpkinCount: 9,
+            Key.pumpkinCount: 10,
             Key.smashCount: 0,
         ])
+        // "Plenty" used to mean 9 pumpkins; it's 10 now.
+        if defaults.integer(forKey: Key.pumpkinCount) == 9 {
+            defaults.set(10, forKey: Key.pumpkinCount)
+        }
     }
 
     static var showPumpkins: Bool {

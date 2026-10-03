@@ -30,7 +30,7 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 - **Vines**: a leafy pumpkin vine with curls and buds along the Dock. It weaves behind most pumpkins and loops in front of a few.
 - **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
-- **Number of Pumpkins**: A Few (5), Plenty (9) or Overflowing (13).
+- **Number of Pumpkins**: A Few (5), Plenty (10) or Overflowing (13).
 - **Grow New Pumpkins**: a fresh set of pumpkins.
 - **Fit Pumpkins to Dock Exactly…**: by default the app estimates how wide your Dock is. If the pumpkins hang past the ends of your Dock, allow Fall Dock under System Settings → Privacy & Security → Accessibility and it will measure the Dock exactly. It only reads the Dock's size.
 - **Open at Login**: starts Fall Dock when you log in (use the copy in Applications).

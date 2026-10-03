@@ -16,7 +16,7 @@ struct MenuContent: View {
 
         Picker("Number of Pumpkins", selection: $model.pumpkinCount) {
             Text("A Few (5)").tag(5)
-            Text("Plenty (9)").tag(9)
+            Text("Plenty (10)").tag(10)
             Text("Overflowing (13)").tag(13)
         }
 

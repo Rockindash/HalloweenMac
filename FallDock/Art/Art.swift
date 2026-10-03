@@ -43,7 +43,6 @@ enum Palette {
     static let peach = CGColor.hex(0xFCDCBE)
 
     static let stemCut = CGColor.hex(0xC9773D)
-    static let vineDark = green.mixed(with: plum, 0.3)
     static let shadowInk = CGColor.hex(0x3B1420)
     static let seed = CGColor.hex(0xF6E4C1)
 }
@@ -716,7 +715,7 @@ enum LeafArt {
 // MARK: - Vines
 
 /// The leafy pumpkin vine that runs along the top of the Dock behind the pumpkins: a wavy main
-/// vine that swells and pinches, a thinner darker strand weaving around it, leaves, curls and buds.
+/// vine that swells and pinches, with leaves, curls and buds.
 /// The pieces that loop in front of pumpkins are drawn per pumpkin (see `PumpkinArt.frontVineTexture`).
 enum VineArt {
     private static var cache: [String: SKTexture] = [:]
@@ -760,11 +759,6 @@ enum VineArt {
         var rng = SeededRandom(seed: UInt64(seed) &* 6151 &+ 3)
         let x0: CGFloat = 4, x1 = size.width - 4
         func vy(_ x: CGFloat) -> CGFloat { centerY(x: x, unit: k) }
-
-        // A second, thinner and darker strand weaving around the main vine.
-        taperedVine(ctx, from: x0 + 26 * k, to: x1 - 26 * k, maxWidth: 2.6 * k, color: Palette.vineDark) { x in
-            vy(x) + sin(x / (23 * k)) * 4.5 * k
-        }
 
         // Leaves growing up from the vine, mostly green with a few autumn ones.
         var x = x0 + rng.float(20...40) * k
