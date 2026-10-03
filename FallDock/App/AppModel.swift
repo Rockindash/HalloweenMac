@@ -83,10 +83,7 @@ final class AppModel: ObservableObject {
     }
 
     func start() {
-        overlay.onSmash = { [weak self] in
-            Settings.smashCount += 1
-            self?.smashCount = Settings.smashCount
-        }
+        overlay.onSmash = { [weak self] in self?.recordSmash() }
         // A menu bar app is never "active", so macOS may put it to sleep (App Nap) and slow
         // its timers to once every few seconds. Opt out so the pumpkins keep up with the Dock.
         activity = ProcessInfo.processInfo.beginActivity(
@@ -114,6 +111,12 @@ final class AppModel: ObservableObject {
     /// Measures the Dock again right away.
     func remeasure() {
         overlay.refresh()
+    }
+
+    /// A pumpkin was smashed, on the Dock or in the app window's little harvest.
+    func recordSmash() {
+        Settings.smashCount += 1
+        smashCount = Settings.smashCount
     }
 
     func resetSmashCount() {

@@ -694,24 +694,9 @@ enum VineArt {
         let dark = Palette.green.mixed(with: Palette.plum, 0.38)
         let width = 6 * k
 
-        // The main vine.
-        taperedVine(ctx, from: x0, to: x1, maxWidth: width, color: Palette.green) { vy($0) }
-
-        // Fine ridges across the stem.
-        var ridges = SeededRandom(seed: UInt64(seed) &* 911 &+ 7)
-        var x = x0 + 3 * k
-        while x < x1 - 3 * k {
-            if ridges.float(0...1) < 0.65 {
-                let y = vy(x)
-                Brush.stroke(ctx, [CGPoint(x: x - 1.2 * k, y: y - width * 0.32), CGPoint(x: x, y: y - width * 0.05),
-                                   CGPoint(x: x + 1.4 * k, y: y + width * 0.18)],
-                             maxWidth: max(0.6, 0.75 * k), color: dark.withAlpha(0.7), minF: 0.3)
-            }
-            x += ridges.float(5...9) * k
-        }
-
-        // Curly tendrils of mixed sizes, each with a darker shadow.
-        x = x0 + rng.float(50...90) * k
+        // Curly tendrils of mixed sizes, each with a darker shadow, drawn first so they grow
+        // from behind the vine.
+        var x = x0 + rng.float(50...90) * k
         var i = 0
         while x < x1 - 30 * k {
             let start = CGPoint(x: x, y: vy(x))
@@ -721,6 +706,22 @@ enum VineArt {
             Brush.tendril(ctx, from: start, dir: dir, size: size, color: Palette.green)
             x += rng.float(75...140) * k
             i += 1
+        }
+
+        // The main vine.
+        taperedVine(ctx, from: x0, to: x1, maxWidth: width, color: Palette.green) { vy($0) }
+
+        // Fine ridges across the stem.
+        var ridges = SeededRandom(seed: UInt64(seed) &* 911 &+ 7)
+        x = x0 + 3 * k
+        while x < x1 - 3 * k {
+            if ridges.float(0...1) < 0.65 {
+                let y = vy(x)
+                Brush.stroke(ctx, [CGPoint(x: x - 1.2 * k, y: y - width * 0.32), CGPoint(x: x, y: y - width * 0.05),
+                                   CGPoint(x: x + 1.4 * k, y: y + width * 0.18)],
+                             maxWidth: max(0.6, 0.75 * k), color: dark.withAlpha(0.7), minF: 0.3)
+            }
+            x += ridges.float(5...9) * k
         }
 
         // A few small buds on short stalks.

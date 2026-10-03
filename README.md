@@ -41,10 +41,10 @@ Open **Fall Dock** from your Applications folder (or choose **Open Fall Dock…*
 While it's open, Fall Dock shows in the Dock and the app switcher like any app; close it and it goes back to living in the menu bar.
 When Fall Dock starts by itself at login, the window stays closed.
 
-- **General**: whether the harvest is showing, pause it for an hour, grow new pumpkins, pick the season, and your smash count.
+- **General**: a live little harvest on a pretend Dock (click its pumpkins to smash them), your smash count and what's on your Dock, and big buttons to show or hide the harvest, pause it for an hour, or grow new pumpkins.
 - **Settings**: open at login, show or hide the 🎃 in the menu bar, the smash sound, Reduce Motion, and privacy.
 - **Dock**: what Fall Dock sees of your Dock (position, auto-hide, icon size, magnification, its length and whether that's measured or estimated), the Accessibility permission for an exact fit, and how full the harvest is.
-- **Fall**: the current season's own tab, with a preview, the vine and falling leaves, and each cozy extra (hay bales, leaf piles, acorns, the mug, the lantern, the apples and the squirrel) switched on or off one by one. As more seasons arrive, this tab follows the one you pick.
+- **Fall**: the current season's own tab, with a preview, the vine, falling leaves and cozy extras, and a picture tile for each extra (hay bales, leaf piles, acorns, the mug, the lantern, the apples and the squirrel) to switch it on or off. As more seasons arrive, this tab follows the one you pick.
 
 ## The 🎃 menu
 

@@ -54,7 +54,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
     }
 
     private func item<Content: View>(_ view: Content, title: String, symbol: String) -> NSTabViewItem {
-        let host = NSHostingController(rootView: view.frame(width: 520))
+        let host = NSHostingController(rootView: view.frame(width: 560))
         host.sizingOptions = [.preferredContentSize]
         let item = NSTabViewItem(viewController: host)
         item.label = title
