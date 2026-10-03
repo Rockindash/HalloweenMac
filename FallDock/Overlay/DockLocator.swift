@@ -151,13 +151,17 @@ enum DockLocator {
         let pinnedIDs: Set<String> = Set(pinned.compactMap { entry in
             (entry["tile-data"] as? [String: Any])?["bundle-identifier"] as? String
         })
-        let unpinnedRunning = NSWorkspace.shared.runningApplications.filter { app in
-            app.activationPolicy == .regular
-                && app.bundleIdentifier != "com.apple.finder"
-                && !(app.bundleIdentifier.map { pinnedIDs.contains($0) } ?? false)
-        }.count
-
-        let extras = unpinnedRunning + (showRecents ? 1 : 0)
+        let unpinnedRunning = Set(NSWorkspace.shared.runningApplications.compactMap { app -> String? in
+            guard app.activationPolicy == .regular, let id = app.bundleIdentifier,
+                  id != "com.apple.finder", !pinnedIDs.contains(id) else { return nil }
+            return id
+        })
+        // The section after the pinned apps holds the running apps that aren't pinned, plus the
+        // recently used ones when "Show suggested and recent apps" is on.
+        let recents = showRecents ? Set((dock?.array(forKey: "recent-apps") as? [[String: Any]] ?? []).compactMap { entry in
+            (entry["tile-data"] as? [String: Any])?["bundle-identifier"] as? String
+        }) : []
+        let extras = unpinnedRunning.union(recents).subtracting(pinnedIDs).count
         let tiles = 1 /* Finder */ + pinned.count + extras + others + 1 /* Trash */
         let separators = extras > 0 ? 2 : 1
 

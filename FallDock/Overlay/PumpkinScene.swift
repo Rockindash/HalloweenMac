@@ -64,6 +64,8 @@ final class PumpkinScene: SKScene {
     private var lastUpdate: TimeInterval = 0
     private var vineWarpStrength: CGFloat = -1
     private var vineWarpX: CGFloat = 0
+    /// A new Dock size that arrived while the Dock was magnified.
+    private var pendingDockRect: CGRect?
 
     /// Size unit for the vine: 1 for a typical 60 pt pumpkin.
     var unit: CGFloat { pumpkinHeight / 60 }
@@ -92,7 +94,7 @@ final class PumpkinScene: SKScene {
 
     /// How tall pumpkins are. It stays the same whatever size the Dock is: a longer Dock fits more
     /// pumpkins and decorations rather than bigger ones.
-    static let itemHeight: CGFloat = 80
+    static let itemHeight: CGFloat = 90
     /// Decorations are drawn a bit smaller than the pumpkins.
     static let decorScale: CGFloat = 0.75
     var decorUnit: CGFloat { (pumpkinHeight * Self.decorScale).rounded() }
@@ -102,9 +104,17 @@ final class PumpkinScene: SKScene {
     func configure(dockRect: CGRect, pixelScale: CGFloat, magnifier: DockMagnifier, regrow: Bool) {
         self.magnifier = magnifier
         let fresh = regrow || pixelScale != self.pixelScale || self.dockRect.width == 0
-        guard fresh || dockRect != self.dockRect else { return }
-        // The Dock's measured width can swell while it magnifies; wait until it settles.
-        if !fresh && magnifyStrength > 0.01 { return }
+        guard fresh || dockRect != self.dockRect else {
+            pendingDockRect = nil
+            return
+        }
+        // The Dock's measured width can swell while it magnifies, so wait until the pointer leaves it
+        // (`update` applies it then). Resizing by dragging the Dock's divider happens with the pointer on it.
+        if !fresh && magnifyStrength > 0.01 {
+            pendingDockRect = dockRect
+            return
+        }
+        pendingDockRect = nil
 
         self.dockRect = dockRect
         self.pixelScale = pixelScale
@@ -315,6 +325,9 @@ final class PumpkinScene: SKScene {
         // The Dock eases in and out of magnification, but tracks the pointer instantly.
         magnifyStrength += ((onDock ? 1 : 0) - magnifyStrength) * (1 - exp(-CGFloat(dt) * 14))
         if magnifyStrength < 0.001 { magnifyStrength = 0 }
+        if let pending = pendingDockRect, magnifyStrength == 0 {
+            configure(dockRect: pending, pixelScale: pixelScale, magnifier: magnifier, regrow: false)
+        }
 
         for case let sprite as DockSprite in pumpkinLayer.children where !sprite.isDetached {
             place(sprite)
