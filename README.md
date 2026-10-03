@@ -2,7 +2,8 @@
 
 A cozy little Mac app that fills the top of your Dock with a fall harvest: flat, hand-drawn pumpkins on a
 curling vine, evenly spaced, with hay bales, leaf piles, acorns, a crate of apples, a steaming pumpkin spice latte
-and a glowing lantern in between. A squirrel stops by now and then.
+and a glowing lantern in between. A squirrel stops by now and then: it picks up an acorn and carries it
+back the way it came (with the acorns switched off, it just hops across).
 
 If your Dock magnifies, everything grows, rises and spreads apart with the icons under the pointer.
 

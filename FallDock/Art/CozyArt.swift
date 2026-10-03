@@ -454,6 +454,24 @@ enum CozyArt {
         return CGPoint(x: (room.width + body.width * 0.36) / size.width, y: body.height * 0.22 / size.height)
     }
 
+    /// Where the squirrel's front paws are, measured from the middle of its bottom edge (facing right).
+    static func squirrelPaws(unit h: CGFloat) -> CGPoint {
+        let size = squirrelSize(unit: h), body = squirrelBody(unit: h), room = squirrelRoom(unit: h)
+        return CGPoint(x: room.width + body.width * 0.8 - size.width / 2, y: body.height * 0.42)
+    }
+
+    /// One acorn, standing up, for the squirrel to carry.
+    static func acornTexture(size s: CGFloat, scale: CGFloat) -> SKTexture {
+        let key = "acorn-\(Int(s * 10))-\(scale)"
+        if let cached = cache[key] { return cached }
+        let size = CGSize(width: s * 0.8, height: s)
+        let texture = TextureMaker.make(size: size, scale: scale) { ctx in
+            acorn(ctx, bottom: CGPoint(x: size.width / 2, y: 0.5), size: s * 0.95, angle: 0)
+        }
+        cache[key] = texture
+        return texture
+    }
+
     private static let fur = Palette.rust.mixed(with: Palette.orange, 0.3)
 
     /// The squirrel's body, facing right.

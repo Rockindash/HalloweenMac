@@ -182,7 +182,9 @@ extension PumpkinScene {
         ]), withKey: "squirrel")
     }
 
-    /// A squirrel hops in from one end, stops by the acorns for a nibble, looks around and hops off the other end.
+    /// A squirrel hops in from one end. If there are acorns on the Dock, it stops by them, picks one
+    /// up, nibbles, looks around and hops back the way it came holding it. Without acorns it just
+    /// hops across to the other end.
     private func squirrelVisit() {
         guard Settings.cozyExtras, Settings.squirrel, dockRect.width > 300, !pumpkinLayer.children.contains(where: { $0 is SquirrelNode }) else {
             scheduleSquirrel(first: false)
@@ -193,10 +195,6 @@ extension PumpkinScene {
         let fromLeft = Bool.random()
         let startX = fromLeft ? dockRect.minX + h * 0.3 : dockRect.maxX - h * 0.3
         let endX = fromLeft ? dockRect.maxX - h * 0.3 : dockRect.minX + h * 0.3
-        // Head for the acorns if there are some, otherwise somewhere in the middle third.
-        let acorns = pumpkinLayer.children.compactMap { $0 as? DecorNode }.filter { $0.kind == .acorns }.map(\.restX)
-        let spot = acorns.randomElement() ?? CGFloat.random(in: (dockRect.minX + dockRect.width / 3)...(dockRect.maxX - dockRect.width / 3))
-        let stopX = spot + (fromLeft ? -h * 0.32 : h * 0.32)
         let dir: CGFloat = fromLeft ? 1 : -1
 
         squirrel.restX = startX
@@ -204,6 +202,22 @@ extension PumpkinScene {
         squirrel.alpha = 0
         pumpkinLayer.addChild(squirrel)
 
+        let leave = SKAction.sequence([
+            .fadeOut(withDuration: 0.25),
+            .removeFromParent(),
+            .run { [weak self] in self?.scheduleSquirrel(first: false) },
+        ])
+        let acorns = pumpkinLayer.children.compactMap { $0 as? DecorNode }.filter { $0.kind == .acorns }.map(\.restX)
+        guard let spot = acorns.randomElement() else {
+            squirrel.run(.sequence([
+                .fadeIn(withDuration: 0.25),
+                hops(from: startX, to: endX, hopLength: h * 0.42, height: h * 0.16, duration: 0.2),
+                leave,
+            ]), withKey: "visit")
+            return
+        }
+
+        let stopX = spot - dir * h * 0.32
         let nibble = SKAction.repeat(DockSprite.hop(height: h * 0.025, duration: 0.14), count: 7)
         let lookAround = SKAction.sequence([
             .wait(forDuration: 0.6),
@@ -216,13 +230,34 @@ extension PumpkinScene {
             .fadeIn(withDuration: 0.25),
             hops(from: startX, to: stopX, hopLength: h * 0.42, height: h * 0.16, duration: 0.2),
             .wait(forDuration: 0.3),
+            // Bob down to the acorns and come up holding one.
+            DockSprite.hop(height: -h * 0.04, duration: 0.25),
+            .run { [weak self, weak squirrel] in
+                guard let self, let squirrel else { return }
+                self.giveAcorn(to: squirrel)
+            },
+            .wait(forDuration: 0.3),
             nibble,
             lookAround,
-            hops(from: stopX, to: endX, hopLength: h * 0.42, height: h * 0.16, duration: 0.2),
-            .fadeOut(withDuration: 0.25),
-            .removeFromParent(),
-            .run { [weak self] in self?.scheduleSquirrel(first: false) },
+            // Then back the way it came, acorn in hand.
+            .run { [weak squirrel] in squirrel?.facing = -dir },
+            .wait(forDuration: 0.2),
+            hops(from: stopX, to: startX, hopLength: h * 0.42, height: h * 0.16, duration: 0.2),
+            leave,
         ]), withKey: "visit")
+    }
+
+    /// Puts an acorn in the squirrel's front paws.
+    private func giveAcorn(to squirrel: SquirrelNode) {
+        let h = pumpkinHeight
+        let s = (h * 0.14).rounded()
+        let acorn = SKSpriteNode(texture: CozyArt.acornTexture(size: s, scale: pixelScale), size: CGSize(width: s * 0.8, height: s))
+        acorn.anchorPoint = CGPoint(x: 0.5, y: 0.3)
+        acorn.position = CozyArt.squirrelPaws(unit: h)
+        acorn.zPosition = 0.1
+        acorn.setScale(0.2)
+        squirrel.addChild(acorn)
+        acorn.run(.scale(to: 1, duration: 0.15))
     }
 
     private func makeSquirrel() -> SquirrelNode {
