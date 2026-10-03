@@ -8,8 +8,16 @@ struct FallDockApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @ObservedObject private var model = AppModel.shared
 
+    /// SwiftUI writes this back whenever it redraws the menu bar item, even when nothing changed.
+    /// Passing every write on would announce a change, redraw, write again, and so on forever,
+    /// freezing the app, so only real changes get through.
+    private var showMenuBarIcon: Binding<Bool> {
+        Binding(get: { model.showMenuBarIcon },
+                set: { if $0 != model.showMenuBarIcon { model.showMenuBarIcon = $0 } })
+    }
+
     var body: some Scene {
-        MenuBarExtra(isInserted: $model.showMenuBarIcon) {
+        MenuBarExtra(isInserted: showMenuBarIcon) {
             MenuContent(model: model)
         } label: {
             Text("🎃")
