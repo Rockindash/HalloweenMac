@@ -145,11 +145,8 @@ final class OverlayController {
 
         let localDock = dock.dockFrame.offsetBy(dx: -frame.minX, dy: -frame.minY)
         let scale = NSScreen.screens.first(where: { $0.frame == screen })?.backingScaleFactor ?? 2
-        if force {
-            // Rebuild from scratch (e.g. the pumpkin count changed).
-            scene.configure(dockRect: .zero, pixelScale: scale, count: 0, magnifier: DockMagnifier.current())
-        }
-        scene.configure(dockRect: localDock, pixelScale: scale, count: Settings.pumpkinCount, magnifier: DockMagnifier.current())
+        // A forced refresh (a menu change) grows a fresh harvest.
+        scene.configure(dockRect: localDock, pixelScale: scale, magnifier: DockMagnifier.current(), regrow: force)
         skView?.isPaused = false
         if !panel.isVisible || isHiding {
             // Fade in alongside the Dock.

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// User preferences, saved between launches.
@@ -10,24 +11,28 @@ enum Settings {
         static let showVines = "showVines"
         static let cozyExtras = "cozyExtras"
         static let sound = "sound"
-        static let pumpkinCount = "pumpkinCount"
+        static let pumpkinCount = "pumpkinCount" // replaced by fullness; read once to carry it over
+        static let fullness = "fullness"
         static let smashCount = "smashCount"
     }
 
     static func registerDefaults() {
+        // The menu used to pick a number of pumpkins; now it picks how full the Dock is.
+        // (Checked before registering defaults, which would make every key look set.)
+        if defaults.object(forKey: Key.fullness) == nil, defaults.object(forKey: Key.pumpkinCount) != nil {
+            let count = defaults.integer(forKey: Key.pumpkinCount)
+            defaults.set((count <= 6 ? Fullness.aFew : count >= 12 ? .overflowing : .plenty).rawValue, forKey: Key.fullness)
+            defaults.removeObject(forKey: Key.pumpkinCount)
+        }
         defaults.register(defaults: [
             Key.showPumpkins: true,
             Key.fallingLeaves: true,
             Key.showVines: true,
             Key.cozyExtras: true,
             Key.sound: true,
-            Key.pumpkinCount: 10,
+            Key.fullness: Fullness.plenty.rawValue,
             Key.smashCount: 0,
         ])
-        // "Plenty" used to mean 9 pumpkins; it's 10 now.
-        if defaults.integer(forKey: Key.pumpkinCount) == 9 {
-            defaults.set(10, forKey: Key.pumpkinCount)
-        }
     }
 
     static var showPumpkins: Bool {
@@ -56,9 +61,31 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.sound) }
     }
 
-    static var pumpkinCount: Int {
-        get { min(15, max(1, defaults.integer(forKey: Key.pumpkinCount))) }
-        set { defaults.set(newValue, forKey: Key.pumpkinCount) }
+    /// How closely pumpkins and extras are packed. Their size stays the same; a longer Dock fits more of them.
+    enum Fullness: Int, CaseIterable {
+        case aFew, plenty, overflowing
+
+        var title: String {
+            switch self {
+            case .aFew: return "A Few"
+            case .plenty: return "Plenty"
+            case .overflowing: return "Overflowing"
+            }
+        }
+
+        /// The smallest space between neighbors, as a fraction of a pumpkin's height.
+        var spacing: CGFloat {
+            switch self {
+            case .aFew: return 0.9
+            case .plenty: return 0.16
+            case .overflowing: return 0.03
+            }
+        }
+    }
+
+    static var fullness: Fullness {
+        get { Fullness(rawValue: defaults.integer(forKey: Key.fullness)) ?? .plenty }
+        set { defaults.set(newValue.rawValue, forKey: Key.fullness) }
     }
 
     static var smashCount: Int {

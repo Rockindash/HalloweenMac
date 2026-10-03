@@ -11,57 +11,69 @@ extension PumpkinScene {
     // MARK: Decorations
 
     func addDecorations() {
-        let h = pumpkinHeight
-
-        // Hay bales under the pumpkins that sit up high, behind every pumpkin.
         for (slot, perch) in slotPerch.enumerated() where perch > 0 {
-            let size = CozyArt.size(of: .hayBale, unit: h)
-            let bale = DecorNode(kind: .hayBale, gap: -(slot + 1),
-                                 texture: CozyArt.texture(.hayBale, unit: h, variant: slot, scale: pixelScale), size: size)
-            bale.anchorPoint = CGPoint(x: 0.5, y: 0)
-            bale.restX = slotX[slot]
-            bale.restY = dockRect.maxY - 3
-            bale.zPosition = 0.5
-            pumpkinLayer.addChild(bale)
+            addBale(slot: slot, grow: false)
         }
-
-        // Something cozy in every gap between pumpkins, in front of them.
-        let unit = (h * decorFit).rounded()
-        for (gap, kind) in gapKinds.enumerated() {
-            let x = gapX[gap]
-            let size = CozyArt.size(of: kind, unit: unit)
-            let decor = DecorNode(kind: kind, gap: gap,
-                                  texture: CozyArt.texture(kind, unit: unit, variant: gap, scale: pixelScale), size: size)
-            decor.anchorPoint = CGPoint(x: 0.5, y: 0)
-            decor.restX = x
-            decor.restY = dockRect.maxY - 2
-            decor.zPosition = 6 + CGFloat(gap) * 0.01
-            pumpkinLayer.addChild(decor)
-
-            switch kind {
-            case .mug: startSteam(decor, unit: unit)
-            case .lantern: addLanternGlow(decor, unit: unit)
-            default: break
-            }
+        for gap in gapKinds.indices {
+            addDecor(gap: gap, grow: false)
         }
     }
 
-    /// Puts decorations back in their gaps after the Dock changes width.
-    func moveDecorations() {
-        for case let decor as DecorNode in pumpkinLayer.children {
-            let x: CGFloat
+    /// A hay bale under a pumpkin that sits up high, behind every pumpkin.
+    private func addBale(slot: Int, grow: Bool) {
+        let h = pumpkinHeight
+        let bale = DecorNode(kind: .hayBale, gap: -(slot + 1),
+                             texture: CozyArt.texture(.hayBale, unit: h, variant: slot, scale: pixelScale),
+                             size: CozyArt.size(of: .hayBale, unit: h))
+        bale.anchorPoint = CGPoint(x: 0.5, y: 0)
+        bale.restX = slotX[slot]
+        bale.restY = dockRect.maxY - 3
+        bale.zPosition = 0.5
+        pumpkinLayer.addChild(bale)
+        if grow { popIn(bale) }
+    }
+
+    /// Something cozy in a gap between pumpkins, in front of them.
+    private func addDecor(gap: Int, grow: Bool) {
+        let kind = gapKinds[gap]
+        let unit = decorUnit
+        let decor = DecorNode(kind: kind, gap: gap,
+                              texture: CozyArt.texture(kind, unit: unit, variant: gap, scale: pixelScale),
+                              size: CozyArt.size(of: kind, unit: unit))
+        decor.anchorPoint = CGPoint(x: 0.5, y: 0)
+        decor.restX = gapX[gap]
+        decor.restY = dockRect.maxY - 2
+        decor.zPosition = 6 + CGFloat(gap % 100) * 0.01
+        pumpkinLayer.addChild(decor)
+        if grow { popIn(decor) }
+
+        switch kind {
+        case .mug: startSteam(decor, unit: unit)
+        case .lantern: addLanternGlow(decor, unit: unit)
+        default: break
+        }
+    }
+
+    /// After the Dock changes length: decorations still in use slide to their new spots, the rest
+    /// shrink away, and new gaps get theirs.
+    func rearrangeDecorations() {
+        var present = Set<Int>()
+        for case let decor as DecorNode in pumpkinLayer.children where !decor.isLeaving {
             if decor.gap >= 0 {
-                guard decor.gap < gapX.count else { continue }
-                x = gapX[decor.gap]
+                guard decor.gap < gapKinds.count, gapKinds[decor.gap] == decor.kind else { retire(decor); continue }
+                slide(decor, to: CGPoint(x: gapX[decor.gap], y: dockRect.maxY - 2))
             } else {
                 let slot = -decor.gap - 1
-                guard slot < slotX.count else { continue }
-                x = slotX[slot]
+                guard slot < slotPerch.count, slotPerch[slot] > 0 else { retire(decor); continue }
+                slide(decor, to: CGPoint(x: slotX[slot], y: dockRect.maxY - 3))
             }
-            decor.run(.group([
-                DockSprite.animate(\.restX, to: x, duration: 0.35),
-                DockSprite.animate(\.restY, to: dockRect.maxY - (decor.kind == .hayBale ? 3 : 2), duration: 0.35),
-            ]), withKey: "move")
+            present.insert(decor.gap)
+        }
+        for slot in slotPerch.indices where slotPerch[slot] > 0 && !present.contains(-(slot + 1)) {
+            addBale(slot: slot, grow: true)
+        }
+        for gap in gapKinds.indices where !present.contains(gap) {
+            addDecor(gap: gap, grow: true)
         }
     }
 

@@ -30,8 +30,8 @@ final class AppModel: ObservableObject {
         didSet { Settings.sound = sound }
     }
 
-    @Published var pumpkinCount: Int {
-        didSet { Settings.pumpkinCount = pumpkinCount; overlay.refresh(force: true) }
+    @Published var fullness: Settings.Fullness {
+        didSet { Settings.fullness = fullness; overlay.refresh(force: true) }
     }
 
     @Published var openAtLogin: Bool {
@@ -48,7 +48,7 @@ final class AppModel: ObservableObject {
         cozyExtras = Settings.cozyExtras
         fallingLeaves = Settings.fallingLeaves
         sound = Settings.sound
-        pumpkinCount = Settings.pumpkinCount
+        fullness = Settings.fullness
         openAtLogin = SMAppService.mainApp.status == .enabled
     }
 

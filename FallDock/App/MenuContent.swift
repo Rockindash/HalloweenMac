@@ -15,10 +15,8 @@ struct MenuContent: View {
         Toggle("Falling Leaves", isOn: $model.fallingLeaves)
         Toggle("Smash Sound", isOn: $model.sound)
 
-        Picker("Number of Pumpkins", selection: $model.pumpkinCount) {
-            Text("A Few (5)").tag(5)
-            Text("Plenty (10)").tag(10)
-            Text("Overflowing (13)").tag(13)
+        Picker("How Full", selection: $model.fullness) {
+            ForEach(Settings.Fullness.allCases, id: \.self) { Text($0.title).tag($0) }
         }
 
         Button("Grow New Pumpkins") { model.regrow() }

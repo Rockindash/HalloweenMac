@@ -68,6 +68,8 @@ class DockSprite: SKSpriteNode {
     var facing: CGFloat = 1
     /// Set while something else (a smash) moves and scales the node directly.
     var isDetached = false
+    /// Set while it shrinks away because the Dock got shorter.
+    var isLeaving = false
     /// Whether clicking it does something, so the pointer turns into a hand over it.
     var isInteractive: Bool { true }
 

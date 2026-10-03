@@ -38,11 +38,11 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 ## The 🎃 menu
 
 - **Show Pumpkins**: hides or shows everything.
-- **Vines**: a single pumpkin vine with curls and buds along the Dock, behind the pumpkins.
+- **Vines**: a single shaded pumpkin vine along the Dock, behind the pumpkins, with knots, curls, buds and the odd blossom.
 - **Cozy Extras**: the hay bales, leaf piles, acorns, apples, mug, lantern and the squirrel. The lantern glows brighter in the evening.
 - **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
-- **Number of Pumpkins**: A Few (5), Plenty (10) or Overflowing (13).
+- **How Full**: A Few, Plenty or Overflowing, which sets how closely pumpkins and extras are packed. They always stay the same size: when the Dock gets longer or shorter (adding apps, or changing its size in System Settings), pumpkins and extras grow in or shrink away at the end instead of everything stretching.
 - **Grow New Pumpkins**: a fresh set of pumpkins.
 - **Fit Pumpkins to Dock Exactly…**: by default the app estimates how wide your Dock is. If the pumpkins hang past the ends of your Dock, allow Fall Dock under System Settings → Privacy & Security → Accessibility and it will measure the Dock exactly. It only reads the Dock's size.
 - **Open at Login**: starts Fall Dock when you log in (use the copy in Applications).
