@@ -19,7 +19,7 @@ extension PumpkinScene {
         }
     }
 
-    /// A hay bale (or coffin) under a pumpkin that sits up high, behind every pumpkin.
+    /// A hay bale (or stack of spell books) under a pumpkin that sits up high, behind every pumpkin.
     private func addBale(slot: Int, grow: Bool) {
         let h = pumpkinHeight
         let perch = Settings.theme.perch
@@ -155,7 +155,7 @@ extension PumpkinScene {
         case .lantern:
             decor.childNode(withName: "glow")?.run(.sequence([.scale(to: 1.7, duration: 0.15), .scale(to: 1, duration: 0.6)]))
             decor.run(DockSprite.hop(height: h * 0.08, duration: 0.25), withKey: "hop")
-        case .tombstone, .blackCat, .cauldron, .candyCorn, .candles, .coffin:
+        case .tombstone, .blackCat, .cauldron, .candy, .candles, .books, .skull:
             pokeSpooky(decor)
         default:
             decor.run(DockSprite.hop(height: h * 0.12, duration: 0.3), withKey: "hop")

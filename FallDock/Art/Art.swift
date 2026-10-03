@@ -69,6 +69,14 @@ enum Palette {
     static var slime: CGColor { pick(dark: 0x8CC63F, light: 0x9FD453) }
     /// Gravestones.
     static var stone: CGColor { pick(dark: 0x8D8698, light: 0xA9A2B4) }
+    // Candy.
+    static var candyPink: CGColor { pick(dark: 0xF07AB4, light: 0xF58CC0) }
+    static var candyMint: CGColor { pick(dark: 0x6FD9B8, light: 0x86E3C6) }
+    static var candyPurple: CGColor { pick(dark: 0x9B6BD6, light: 0xAE82E0) }
+    static var candyRed: CGColor { pick(dark: 0xE2483F, light: 0xEC5F55) }
+    /// Candlelight shining out of a jack-o'-lantern's face.
+    static var candlelight: CGColor { pick(dark: 0xFFE45A, light: 0xFFE96E) }
+
     /// The creepy Halloween vine.
     static var witch: CGColor { pick(dark: 0x6A4A8C, light: 0x8466A3) }
     /// The black cat, the cauldron and bats.
@@ -715,13 +723,13 @@ enum VineArt {
 
     static func baseLevel(unit k: CGFloat) -> CGFloat { 8 * k }
 
-    static func texture(width: CGFloat, height: CGFloat, seed: Int, unit k: CGFloat, scale: CGFloat, spooky: Bool = false) -> SKTexture {
-        let key = "vine-\(Int(width))-\(Int(height))-\(seed)-\(Int(k * 100))-\(scale)-\(spooky)"
+    static func texture(width: CGFloat, height: CGFloat, seed: Int, unit k: CGFloat, scale: CGFloat) -> SKTexture {
+        let key = "vine-\(Int(width))-\(Int(height))-\(seed)-\(Int(k * 100))-\(scale)"
         if let cached = cache[key] { return cached }
         if cache.count > 40 { cache.removeAll() }
         let size = CGSize(width: width, height: height)
         let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            draw(ctx, size: size, seed: seed, k: k, spooky: spooky)
+            draw(ctx, size: size, seed: seed, k: k)
         }
         cache[key] = texture
         return texture
@@ -747,13 +755,12 @@ enum VineArt {
         }
     }
 
-    /// `spooky` draws Halloween's creepy version: witchy purple, with thorns instead of buds.
-    private static func draw(_ ctx: CGContext, size: CGSize, seed: Int, k: CGFloat, spooky: Bool) {
+    private static func draw(_ ctx: CGContext, size: CGSize, seed: Int, k: CGFloat) {
         var rng = SeededRandom(seed: UInt64(seed) &* 6151 &+ 3)
         let x0: CGFloat = 4, x1 = size.width - 4
         func vy(_ x: CGFloat) -> CGFloat { centerY(x: x, unit: k) }
-        let green = spooky ? Palette.witch : Palette.green
-        let dark = spooky ? Palette.witch.mixed(with: Palette.soot, 0.5) : Palette.green.mixed(with: Palette.plum, 0.38)
+        let green = Palette.green
+        let dark = Palette.green.mixed(with: Palette.plum, 0.38)
         let width = 6 * k
 
         // Curly tendrils of mixed sizes, each with a darker shadow, drawn first so they grow
@@ -784,25 +791,6 @@ enum VineArt {
                              maxWidth: max(0.6, 0.75 * k), color: dark.withAlpha(0.7), minF: 0.3)
             }
             x += ridges.float(5...9) * k
-        }
-
-        // Creepy thorns along the Halloween vine.
-        if spooky {
-            x = x0 + 10 * k
-            var up = true
-            while x < x1 - 10 * k {
-                let y = vy(x) + (up ? width * 0.3 : -width * 0.3)
-                let thorn = CGMutablePath()
-                thorn.addLines(between: [CGPoint(x: x - 2 * k, y: y), CGPoint(x: x + 2.2 * k, y: y),
-                                         CGPoint(x: x + 2.8 * k, y: y + (up ? 5 : -5) * k)])
-                thorn.closeSubpath()
-                ctx.addPath(thorn)
-                ctx.setFillColor(dark)
-                ctx.fillPath()
-                x += rng.float(14...24) * k
-                up.toggle()
-            }
-            return
         }
 
         // A few small buds on short stalks.

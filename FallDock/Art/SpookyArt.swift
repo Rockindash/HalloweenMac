@@ -1,8 +1,9 @@
 import AppKit
 import SpriteKit
 
-// Halloween's art: jack-o'-lantern faces, coffins, tombstones, a black cat, a bubbling cauldron,
-// candy corn, dripping candles, a friendly ghost, bats, a dangling spider and cobwebs.
+// Halloween's art: jack-o'-lantern faces, spell books, tombstones, a black cat, a bubbling cauldron,
+// assorted candy, dripping candles, a skull, a zombie hand, a friendly ghost, bats, a dangling spider,
+// cobwebs and purple graveyard dirt.
 // Same flat harvest-wagon style as everything else: flat fills, a darker right side,
 // tapered brush strokes and no outlines.
 
@@ -42,40 +43,47 @@ enum SpookyArt {
 
     static func draw(_ kind: DecorKind, _ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
         switch kind {
-        case .coffin: drawCoffin(ctx, size: size, h: h)
+        case .books: drawBooks(ctx, size: size, h: h)
         case .tombstone: drawTombstone(ctx, size: size, h: h, rng: &rng)
         case .blackCat: drawCat(ctx, size: size, h: h)
         case .cauldron: drawCauldron(ctx, size: size, h: h)
-        case .candyCorn: drawCandyCornPile(ctx, size: size, h: h, rng: &rng)
+        case .candy: drawCandyPile(ctx, size: size, h: h)
+        case .skull: drawSkull(ctx, size: size, h: h)
         case .candles: drawCandles(ctx, size: size, h: h)
         default: break
         }
     }
 
-    /// A coffin lying on its side: the classic six-sided shape, head to the left.
-    private static func drawCoffin(_ ctx: CGContext, size: CGSize, h: CGFloat) {
+    /// A stack of three old spell books, with gold bands on their spines and cream page edges.
+    private static func drawBooks(_ ctx: CGContext, size: CGSize, h: CGFloat) {
         let w = size.width, ht = size.height
-        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
-        let outline = CGMutablePath()
-        outline.addLines(between: [p(0.03, 0.26), p(0.03, 0.74), p(0.28, 0.98), p(0.97, 0.8), p(0.97, 0.2), p(0.28, 0.02)])
-        outline.closeSubpath()
-        let wood = Palette.plum.mixed(with: Palette.soot, 0.35)
-        fillShaded(ctx, outline, wood, from: 0.72, amount: 0.3)
-        // The lid, a little lighter, set in from the edge.
-        let lid = CGMutablePath()
-        lid.addLines(between: [p(0.09, 0.32), p(0.09, 0.68), p(0.29, 0.86), p(0.91, 0.71), p(0.91, 0.29), p(0.29, 0.14)])
-        lid.closeSubpath()
-        fillShaded(ctx, lid, wood.mixed(with: Palette.rust, 0.28), from: 0.72, amount: 0.22)
-        // Wood grain and brass handles.
-        for y in [CGFloat(0.42), 0.58] {
-            Brush.stroke(ctx, [p(0.36, y), p(0.6, y + 0.02), p(0.84, y - 0.01)], maxWidth: max(1, h * 0.018),
-                         color: wood.mixed(with: Palette.shadowInk, 0.2), minF: 0.2)
-        }
-        ctx.setFillColor(Palette.mustard.mixed(with: Palette.rust, 0.25))
-        for x in [CGFloat(0.42), 0.72] {
-            ctx.addPath(CGPath(roundedRect: CGRect(x: x * w, y: 0.03 * ht, width: w * 0.09, height: ht * 0.08),
-                               cornerWidth: ht * 0.03, cornerHeight: ht * 0.03, transform: nil))
+        let books: [(x: CGFloat, width: CGFloat, height: CGFloat, color: CGColor)] = [
+            (0.03, 0.94, 0.36, Palette.witch.mixed(with: Palette.soot, 0.2)),
+            (0.1, 0.8, 0.3, Palette.green.mixed(with: Palette.slime, 0.15)),
+            (0.05, 0.7, 0.28, Palette.rust.mixed(with: Palette.plum, 0.2)),
+        ]
+        var y: CGFloat = 0
+        for book in books {
+            let rect = CGRect(x: w * book.x, y: y, width: w * book.width, height: ht * book.height)
+            let cover = CGPath(roundedRect: rect, cornerWidth: ht * 0.04, cornerHeight: ht * 0.04, transform: nil)
+            fillShaded(ctx, cover, book.color, from: 0.8, amount: 0.2)
+            // Page edges showing at the right end.
+            let pages = CGRect(x: rect.maxX - rect.width * 0.12, y: rect.minY + rect.height * 0.14, width: rect.width * 0.09, height: rect.height * 0.72)
+            ctx.setFillColor(Palette.ghost.mixed(with: Palette.peach, 0.3))
+            ctx.fill(pages)
+            ctx.setFillColor(Palette.stone.withAlpha(0.5))
+            for i in 1...3 {
+                ctx.fill(CGRect(x: pages.minX, y: pages.minY + pages.height * CGFloat(i) / 4, width: pages.width, height: max(0.5, h * 0.006)))
+            }
+            // Gold bands on the spine and a little title plate.
+            ctx.setFillColor(Palette.mustard)
+            for fx in [CGFloat(0.12), 0.2] {
+                ctx.fill(CGRect(x: rect.minX + rect.width * fx, y: rect.minY, width: rect.width * 0.03, height: rect.height))
+            }
+            ctx.addPath(CGPath(roundedRect: CGRect(x: rect.minX + rect.width * 0.4, y: rect.midY - rect.height * 0.14, width: rect.width * 0.26, height: rect.height * 0.28),
+                               cornerWidth: 2, cornerHeight: 2, transform: nil))
             ctx.fillPath()
+            y += rect.height
         }
     }
 
@@ -225,43 +233,130 @@ enum SpookyArt {
                      maxWidth: h * 0.05, color: Palette.slime, minF: 1, endF: 0.7)
     }
 
-    private static func drawCandyCornPile(_ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
+    /// A heap of assorted candy: a lollipop, a candy cane, wrapped sweets and an eyeball candy.
+    private static func drawCandyPile(_ ctx: CGContext, size: CGSize, h: CGFloat) {
         let w = size.width, ht = size.height
-        let s = h * 0.17
-        // Bottom row first, so the pile builds up.
-        let spots: [(CGFloat, CGFloat)] = [(0.16, 0.24), (0.36, 0.22), (0.58, 0.24), (0.8, 0.22), (0.27, 0.5), (0.5, 0.52), (0.71, 0.48), (0.48, 0.8)]
-        for (x, y) in spots {
-            candyCorn(ctx, center: CGPoint(x: w * x, y: ht * y), size: s, angle: rng.float(-60...60))
-        }
+        let s = h * 0.26
+        candyCane(ctx, bottom: CGPoint(x: w * 0.2, y: ht * 0.06), height: ht * 0.92, angle: 8)
+        lollipop(ctx, bottom: CGPoint(x: w * 0.66, y: ht * 0.08), height: ht * 0.9, angle: -10, color: Palette.candyPink)
+        wrapped(ctx, center: CGPoint(x: w * 0.3, y: ht * 0.2), size: s, angle: -15, color: Palette.candyMint)
+        wrapped(ctx, center: CGPoint(x: w * 0.74, y: ht * 0.2), size: s, angle: 20, color: Palette.candyPurple)
+        eyeball(ctx, center: CGPoint(x: w * 0.5, y: ht * 0.2), radius: s * 0.4, iris: Palette.candyMint.mixed(with: Palette.witch, 0.4))
+        wrapped(ctx, center: CGPoint(x: w * 0.52, y: ht * 0.46), size: s * 0.9, angle: 5, color: Palette.candyPink)
     }
 
-    /// One candy corn: a rounded triangle with a yellow base, an orange middle and a white tip.
-    static func candyCorn(_ ctx: CGContext, center c: CGPoint, size s: CGFloat, angle: CGFloat) {
+    /// A wrapped sweet with twisted ends.
+    static func wrapped(_ ctx: CGContext, center c: CGPoint, size s: CGFloat, angle: CGFloat, color: CGColor) {
         ctx.saveGState()
         ctx.translateBy(x: c.x, y: c.y)
         ctx.rotate(by: angle * .pi / 180)
-        let shape = CGMutablePath()
-        shape.move(to: CGPoint(x: -s * 0.42, y: -s * 0.42))
-        shape.addQuadCurve(to: CGPoint(x: s * 0.42, y: -s * 0.42), control: CGPoint(x: 0, y: -s * 0.56))
-        shape.addQuadCurve(to: CGPoint(x: 0, y: s * 0.55), control: CGPoint(x: s * 0.26, y: s * 0.1))
-        shape.addQuadCurve(to: CGPoint(x: -s * 0.42, y: -s * 0.42), control: CGPoint(x: -s * 0.26, y: s * 0.1))
-        shape.closeSubpath()
-        ctx.addPath(shape)
+        for dir in [CGFloat(-1), 1] {
+            let twist = CGMutablePath()
+            twist.addLines(between: [CGPoint(x: dir * s * 0.3, y: 0), CGPoint(x: dir * s * 0.62, y: s * 0.24), CGPoint(x: dir * s * 0.55, y: 0),
+                                     CGPoint(x: dir * s * 0.62, y: -s * 0.24)])
+            twist.closeSubpath()
+            ctx.addPath(twist)
+            ctx.setFillColor(color.mixed(with: Palette.ghost, 0.25))
+            ctx.fillPath()
+        }
+        let body = CGRect(x: -s * 0.36, y: -s * 0.24, width: s * 0.72, height: s * 0.48)
+        ctx.setFillColor(color)
+        ctx.fillEllipse(in: body)
+        // Stripes and a shine.
+        ctx.saveGState()
+        ctx.addEllipse(in: body)
         ctx.clip()
-        ctx.setFillColor(Palette.mustard)
-        ctx.fill(CGRect(x: -s, y: -s, width: s * 2, height: s * 0.68))
-        ctx.setFillColor(Palette.orange)
-        ctx.fill(CGRect(x: -s, y: -s * 0.32, width: s * 2, height: s * 0.42))
-        ctx.setFillColor(Palette.ghost)
-        ctx.fill(CGRect(x: -s, y: s * 0.1, width: s * 2, height: s))
-        ctx.setFillColor(Palette.shadowInk.withAlpha(0.18))
-        ctx.fill(CGRect(x: s * 0.12, y: -s, width: s, height: s * 2))
+        ctx.setFillColor(Palette.ghost.withAlpha(0.6))
+        for x in [-0.18, 0.06] as [CGFloat] {
+            ctx.fill(CGRect(x: s * x, y: -s * 0.3, width: s * 0.08, height: s * 0.6))
+        }
+        ctx.setFillColor(Palette.shadowInk.withAlpha(0.15))
+        ctx.fill(CGRect(x: -s, y: -s, width: s * 2, height: s * 0.84))
+        ctx.restoreGState()
         ctx.restoreGState()
     }
 
-    static func candyCornTexture(size s: CGFloat, scale: CGFloat) -> SKTexture {
-        cached("candy-corn", size: CGSize(width: s, height: s), scale: scale) { ctx in
-            candyCorn(ctx, center: CGPoint(x: s / 2, y: s / 2), size: s * 0.9, angle: 0)
+    /// A swirly lollipop on a stick.
+    static func lollipop(_ ctx: CGContext, bottom: CGPoint, height: CGFloat, angle: CGFloat, color: CGColor) {
+        ctx.saveGState()
+        ctx.translateBy(x: bottom.x, y: bottom.y)
+        ctx.rotate(by: angle * .pi / 180)
+        let r = height * 0.26
+        Brush.stroke(ctx, [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: height * 0.4), CGPoint(x: 0, y: height - r * 1.6)], maxWidth: max(1.2, r * 0.18),
+                     color: Palette.ghost, minF: 1)
+        let center = CGPoint(x: 0, y: height - r)
+        ctx.setFillColor(color)
+        ctx.fillEllipse(in: CGRect(x: -r, y: center.y - r, width: r * 2, height: r * 2))
+        // The swirl.
+        var points: [CGPoint] = []
+        for i in 0...40 {
+            let t = CGFloat(i) / 40
+            let a = t * .pi * 4
+            points.append(CGPoint(x: center.x + cos(a) * r * 0.85 * t, y: center.y + sin(a) * r * 0.85 * t))
+        }
+        Brush.trail(ctx, points.reversed(), maxWidth: r * 0.3, color: Palette.ghost.withAlpha(0.85), minF: 0.2)
+        ctx.restoreGState()
+    }
+
+    /// A white candy cane with red stripes.
+    static func candyCane(_ ctx: CGContext, bottom: CGPoint, height: CGFloat, angle: CGFloat) {
+        ctx.saveGState()
+        ctx.translateBy(x: bottom.x, y: bottom.y)
+        ctx.rotate(by: angle * .pi / 180)
+        let width = height * 0.16
+        var points: [CGPoint] = []
+        for i in 0...16 { points.append(CGPoint(x: 0, y: height * 0.7 * CGFloat(i) / 16)) }
+        for i in 1...16 {
+            let a = CGFloat.pi - CGFloat.pi * CGFloat(i) / 16
+            points.append(CGPoint(x: height * 0.16 + cos(a) * height * 0.16, y: height * 0.7 + sin(a) * height * 0.2))
+        }
+        ctx.addPath(Brush.outline(points) { _ in width })
+        ctx.setFillColor(Palette.ghost)
+        ctx.fillPath()
+        // Diagonal stripes, clipped to the cane.
+        ctx.saveGState()
+        ctx.addPath(Brush.outline(points) { _ in width })
+        ctx.clip()
+        ctx.setFillColor(Palette.candyRed)
+        var y = -height * 0.1
+        while y < height * 1.2 {
+            let stripe = CGMutablePath()
+            stripe.addLines(between: [CGPoint(x: -width * 2, y: y), CGPoint(x: height * 0.5, y: y + height * 0.2),
+                                      CGPoint(x: height * 0.5, y: y + height * 0.2 + width * 0.6), CGPoint(x: -width * 2, y: y + width * 0.6)])
+            stripe.closeSubpath()
+            ctx.addPath(stripe)
+            ctx.fillPath()
+            y += width * 1.4
+        }
+        ctx.restoreGState()
+        ctx.restoreGState()
+    }
+
+    /// A round eyeball candy with a colored iris.
+    static func eyeball(_ ctx: CGContext, center c: CGPoint, radius r: CGFloat, iris: CGColor) {
+        ctx.setFillColor(Palette.ghost)
+        ctx.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+        ctx.setFillColor(Palette.stone.withAlpha(0.35))
+        ctx.fillEllipse(in: CGRect(x: c.x - r * 0.2, y: c.y - r, width: r * 1.2, height: r * 1.6))
+        ctx.setFillColor(iris)
+        ctx.fillEllipse(in: CGRect(x: c.x - r * 0.15, y: c.y - r * 0.35, width: r * 0.8, height: r * 0.8))
+        ctx.setFillColor(Palette.soot)
+        ctx.fillEllipse(in: CGRect(x: c.x + r * 0.03, y: c.y - r * 0.16, width: r * 0.42, height: r * 0.42))
+        ctx.setFillColor(Palette.ghost)
+        ctx.fillEllipse(in: CGRect(x: c.x + r * 0.08, y: c.y + r * 0.06, width: r * 0.14, height: r * 0.14))
+    }
+
+    /// One piece of candy for flinging: `variant` picks which.
+    static func candyTexture(variant: Int, size s: CGFloat, scale: CGFloat) -> SKTexture {
+        cached("candy-\(variant % 5)", size: CGSize(width: s, height: s), scale: scale) { ctx in
+            let c = CGPoint(x: s / 2, y: s / 2)
+            switch variant % 5 {
+            case 0: wrapped(ctx, center: c, size: s * 0.8, angle: 0, color: Palette.candyPink)
+            case 1: wrapped(ctx, center: c, size: s * 0.8, angle: 0, color: Palette.candyMint)
+            case 2: wrapped(ctx, center: c, size: s * 0.8, angle: 0, color: Palette.candyPurple)
+            case 3: eyeball(ctx, center: c, radius: s * 0.32, iris: Palette.candyPurple)
+            default: lollipop(ctx, bottom: CGPoint(x: s / 2, y: s * 0.05), height: s * 0.9, angle: 0, color: Palette.candyMint)
+            }
         }
     }
 
@@ -316,12 +411,12 @@ enum SpookyArt {
 
     static let faceCount = 4
 
-    /// A carved face to lay over a pumpkin sprite of the same kind and height (same size and anchor).
-    /// Each cut shows the pumpkin's dark wall, then candlelight inside, brightest in the middle.
+    /// A carved face to lay over a pumpkin sprite of the same kind and height (same size and anchor):
+    /// bright candlelight in each cut, with the orange wall of the pumpkin showing along its top edge.
     static func faceTexture(kind: PumpkinKind, height: CGFloat, face: Int, scale: CGFloat) -> SKTexture {
         let size = PumpkinArt.size(of: kind, height: height)
         let body = PumpkinArt.bodySize(of: kind, height: height)
-        return cached("face-\(kind)-\(Int(height))-\(face)", size: size, scale: scale) { ctx in
+        return cached("face-\(kind)-\(Int(height))-\(face % faceCount)", size: size, scale: scale) { ctx in
             let cx = size.width / 2, base = PumpkinArt.pad
             // Faces on tall pumpkins stay narrower.
             let w = min(body.width, body.height * 1.15), h = body.height
@@ -339,110 +434,127 @@ enum SpookyArt {
             path.closeSubpath()
             return path
         }
-        func ellipse(_ c: CGPoint, _ rx: CGFloat, _ ry: CGFloat) -> CGPath {
-            CGPath(ellipseIn: CGRect(x: c.x - rx, y: c.y - ry, width: rx * 2, height: ry * 2), transform: nil)
+        /// A wide grin, with square teeth left uncut along the top (and one at the bottom).
+        func grin(top: CGFloat, depth: CGFloat, width: CGFloat, teeth: [CGFloat], bottomTooth: Bool) -> CGPath {
+            let path = CGMutablePath()
+            // A flat-ish top lip and a deep, round bottom.
+            path.move(to: p(-width, top + 0.02))
+            path.addQuadCurve(to: p(width, top + 0.02), control: p(0, top - depth * 2.6))
+            path.addQuadCurve(to: p(-width, top + 0.02), control: p(0, top - depth * 0.15))
+            let tooth = CGSize(width: w * 0.1, height: h * 0.09)
+            for x in teeth {
+                path.addRect(CGRect(x: cx + x * w - tooth.width / 2, y: base + (top - depth * 0.1) * h - tooth.height, width: tooth.width, height: tooth.height * 1.2))
+            }
+            if bottomTooth {
+                path.addRect(CGRect(x: cx - tooth.width / 2, y: base + (top - depth * 1.32) * h - tooth.height * 0.2, width: tooth.width, height: tooth.height))
+            }
+            return path
         }
         switch face % faceCount {
         case 0:
-            // Classic: triangle eyes and nose, a wide grin with two square teeth.
-            let mouth = CGMutablePath()
-            mouth.move(to: p(-0.27, 0.36))
-            mouth.addQuadCurve(to: p(0.27, 0.36), control: p(0, 0.08))
-            mouth.addQuadCurve(to: p(-0.27, 0.36), control: p(0, 0.24))
-            mouth.addRect(CGRect(origin: p(-0.12, 0.27), size: CGSize(width: w * 0.07, height: h * 0.06)))
-            mouth.addRect(CGRect(origin: p(0.05, 0.27), size: CGSize(width: w * 0.07, height: h * 0.06)))
-            return [
-                polygon([p(-0.24, 0.52), p(-0.06, 0.52), p(-0.15, 0.68)]),
-                polygon([p(0.06, 0.52), p(0.24, 0.52), p(0.15, 0.68)]),
-                polygon([p(-0.05, 0.4), p(0.05, 0.4), p(0, 0.48)]),
-                mouth,
-            ]
+            // Pointy triangle eyes leaning in, and a big toothy grin.
+            return [polygon([p(-0.31, 0.5), p(-0.06, 0.5), p(-0.1, 0.72)]),
+                    polygon([p(0.31, 0.5), p(0.06, 0.5), p(0.1, 0.72)]),
+                    grin(top: 0.4, depth: 0.14, width: 0.34, teeth: [-0.12, 0.12], bottomTooth: true)]
         case 1:
-            // Happy: round eyes and a big grin with a row of pointy teeth along the top.
-            var smile: [CGPoint] = []
-            for i in 0...10 {
-                let t = CGFloat(i) / 10
-                let tooth: CGFloat = i % 2 == 1 && i < 10 ? 0.06 : 0
-                smile.append(p(-0.3 + 0.6 * t, 0.42 - 0.1 * sin(.pi * t) - tooth))
+            // Happy closed eyes, curved like rainbows, and a wide grin.
+            func happyEye(_ x: CGFloat) -> CGPath {
+                let eye = CGMutablePath()
+                eye.move(to: p(x - 0.15, 0.54))
+                eye.addQuadCurve(to: p(x + 0.15, 0.54), control: p(x, 0.82))
+                eye.addQuadCurve(to: p(x - 0.15, 0.54), control: p(x, 0.66))
+                return eye
             }
-            for i in stride(from: 10, through: 0, by: -1) {
-                let t = CGFloat(i) / 10
-                smile.append(p(-0.3 + 0.6 * t, 0.42 - 0.3 * sin(.pi * t)))
-            }
-            return [ellipse(p(-0.15, 0.62), w * 0.075, h * 0.11), ellipse(p(0.15, 0.62), w * 0.075, h * 0.11),
-                    polygon([p(-0.04, 0.47), p(0.04, 0.47), p(0, 0.53)]), polygon(smile)]
+            return [happyEye(-0.17), happyEye(0.17), grin(top: 0.42, depth: 0.15, width: 0.36, teeth: [-0.16, 0, 0.16], bottomTooth: false)]
         case 2:
-            // Spooky: slanted eyes and a jagged mouth.
-            var jagged: [CGPoint] = []
-            for i in 0...6 { jagged.append(p(-0.26 + CGFloat(i) * 0.52 / 6, i % 2 == 0 ? 0.32 : 0.25)) }
-            for i in stride(from: 6, through: 0, by: -1) { jagged.append(p(-0.26 + CGFloat(i) * 0.52 / 6, i % 2 == 0 ? 0.18 : 0.12)) }
-            return [polygon([p(-0.25, 0.6), p(-0.06, 0.52), p(-0.1, 0.62)]),
-                    polygon([p(0.25, 0.6), p(0.06, 0.52), p(0.1, 0.62)]),
-                    polygon([p(-0.04, 0.4), p(0.04, 0.4), p(0, 0.47)]), polygon(jagged)]
+            // Big round eyes and a grin with a gap-toothed smile.
+            func round(_ x: CGFloat) -> CGPath {
+                CGPath(ellipseIn: CGRect(x: cx + (x - 0.12) * w, y: base + 0.5 * h, width: w * 0.24, height: h * 0.24), transform: nil)
+            }
+            return [round(-0.17), round(0.17), grin(top: 0.4, depth: 0.13, width: 0.3, teeth: [-0.1, 0.1], bottomTooth: true)]
         default:
-            // Surprised: round eyes, a little nose and an "O" mouth.
-            return [ellipse(p(-0.14, 0.58), w * 0.07, h * 0.11), ellipse(p(0.14, 0.58), w * 0.07, h * 0.11),
-                    polygon([p(-0.035, 0.43), p(0.035, 0.43), p(0, 0.48)]), ellipse(p(0, 0.25), w * 0.09, h * 0.11)]
+            // Mischievous: eyes slanting down toward the middle, and a jagged grin.
+            var jagged: [CGPoint] = []
+            for i in 0...8 {
+                let t = CGFloat(i) / 8
+                jagged.append(p(-0.32 + 0.64 * t, 0.4 - 0.08 * sin(.pi * t) + (i % 2 == 0 ? 0 : -0.06)))
+            }
+            for i in stride(from: 8, through: 0, by: -1) {
+                let t = CGFloat(i) / 8
+                jagged.append(p(-0.32 + 0.64 * t, 0.36 - 0.24 * sin(.pi * t)))
+            }
+            return [polygon([p(-0.3, 0.68), p(-0.06, 0.56), p(-0.26, 0.5)]),
+                    polygon([p(0.3, 0.68), p(0.06, 0.56), p(0.26, 0.5)]),
+                    polygon(jagged)]
         }
     }
 
     private static func carve(_ ctx: CGContext, _ cut: CGPath) {
         let box = cut.boundingBoxOfPath
-        func scaled(_ s: CGFloat, dy: CGFloat = 0) -> CGPath {
-            var t = CGAffineTransform(translationX: box.midX, y: box.midY + dy).scaledBy(x: s, y: s).translatedBy(x: -box.midX, y: -box.midY)
-            return cut.copy(using: &t) ?? cut
-        }
-        // The cut wall, candlelight, and its bright middle. Even-odd filling leaves teeth uncut.
+        // The orange inside wall, then the candlelight shifted down a little so the wall shows along
+        // the top edge. Even-odd filling leaves teeth uncut.
         ctx.addPath(cut)
-        ctx.setFillColor(Palette.rust.mixed(with: Palette.shadowInk, 0.55))
+        ctx.setFillColor(Palette.orange.mixed(with: Palette.rust, 0.35))
         ctx.fillPath(using: .evenOdd)
-        ctx.addPath(scaled(0.84, dy: box.height * 0.05))
-        ctx.setFillColor(Palette.mustard.mixed(with: Palette.orange, 0.25))
+        ctx.saveGState()
+        ctx.addPath(cut)
+        ctx.clip(using: .evenOdd)
+        var down = CGAffineTransform(translationX: 0, y: -box.height * 0.16)
+        ctx.addPath(cut.copy(using: &down) ?? cut)
+        ctx.setFillColor(Palette.candlelight)
         ctx.fillPath(using: .evenOdd)
-        ctx.addPath(scaled(0.5, dy: box.height * 0.08))
-        ctx.setFillColor(Palette.peach)
-        ctx.fillPath(using: .evenOdd)
+        ctx.restoreGState()
     }
 
     // MARK: The ghost
 
-    static func ghostSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.56).rounded(), height: (h * 0.72).rounded()) }
+    static func ghostSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.82).rounded(), height: (h * 0.56).rounded()) }
 
-    /// A friendly sheet ghost with a wavy hem, rosy cheeks and a little "o" of a mouth.
+    /// A cute ghost seen from the side, flying right: a round head, a body that trails off into a
+    /// wavy, curling tail, dot eyes, a little smile and rosy cheeks.
     static func ghostTexture(unit h: CGFloat, scale: CGFloat) -> SKTexture {
         let size = ghostSize(unit: h)
-        return cached("ghost", size: size, scale: scale) { ctx in
+        return cached("ghost-side", size: size, scale: scale) { ctx in
             let w = size.width, ht = size.height
             func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
-            let sheet = CGMutablePath()
-            sheet.move(to: p(0.08, 0.14))
-            sheet.addLine(to: p(0.08, 0.6))
-            sheet.addArc(center: p(0.5, 0.6), radius: w * 0.42, startAngle: .pi, endAngle: 0, clockwise: true)
-            sheet.addLine(to: p(0.92, 0.14))
-            // A wavy hem of three scallops.
-            for i in 0..<3 {
-                let x0 = 0.92 - CGFloat(i) * 0.28
-                sheet.addQuadCurve(to: p(x0 - 0.14, 0.02), control: p(x0 - 0.03, 0.02))
-                sheet.addQuadCurve(to: p(x0 - 0.28, 0.14), control: p(x0 - 0.25, 0.02))
-            }
-            sheet.closeSubpath()
-            fillShaded(ctx, sheet, Palette.ghost, from: 0.7, amount: 0.12)
-            // Little arms.
-            ctx.setFillColor(Palette.ghost.mixed(with: Palette.stone, 0.15))
-            ctx.fillEllipse(in: CGRect(x: 0, y: ht * 0.36, width: w * 0.16, height: ht * 0.1))
-            ctx.fillEllipse(in: CGRect(x: w * 0.84, y: ht * 0.4, width: w * 0.16, height: ht * 0.1))
-            // Eyes, cheeks and mouth.
-            ctx.setFillColor(Palette.soot)
-            ctx.fillEllipse(in: CGRect(x: w * 0.3, y: ht * 0.6, width: w * 0.12, height: ht * 0.12))
-            ctx.fillEllipse(in: CGRect(x: w * 0.56, y: ht * 0.6, width: w * 0.12, height: ht * 0.12))
+            let r = ht * 0.42
+            let head = p(0.7, 0.52)
+            let body = CGMutablePath()
+            body.move(to: CGPoint(x: head.x, y: head.y + r))
+            body.addArc(center: head, radius: r, startAngle: .pi / 2, endAngle: -.pi / 2.4, clockwise: true)
+            // A wavy underside that sweeps back and up into a curling tail.
+            body.addQuadCurve(to: p(0.48, 0.14), control: p(0.6, 0.04))
+            body.addQuadCurve(to: p(0.3, 0.26), control: p(0.38, 0.12))
+            body.addQuadCurve(to: p(0.13, 0.5), control: p(0.2, 0.3))
+            body.addQuadCurve(to: p(0.04, 0.88), control: p(0.03, 0.62))
+            // The tail tip curls over and the top runs back to the head.
+            body.addQuadCurve(to: p(0.2, 0.72), control: p(0.14, 0.92))
+            body.addCurve(to: CGPoint(x: head.x, y: head.y + r), control1: p(0.3, 0.86), control2: p(0.48, 0.98))
+            body.closeSubpath()
+            ctx.addPath(body)
             ctx.setFillColor(Palette.ghost)
-            ctx.fillEllipse(in: CGRect(x: w * 0.33, y: ht * 0.67, width: w * 0.04, height: ht * 0.035))
-            ctx.fillEllipse(in: CGRect(x: w * 0.59, y: ht * 0.67, width: w * 0.04, height: ht * 0.035))
-            ctx.setFillColor(Palette.orange.withAlpha(0.35))
-            ctx.fillEllipse(in: CGRect(x: w * 0.2, y: ht * 0.53, width: w * 0.12, height: ht * 0.06))
-            ctx.fillEllipse(in: CGRect(x: w * 0.66, y: ht * 0.53, width: w * 0.12, height: ht * 0.06))
+            ctx.fillPath()
+            // A cool blue shade along the underside.
+            ctx.saveGState()
+            ctx.addPath(body)
+            ctx.clip()
+            ctx.setFillColor(Palette.witch.mixed(with: Palette.ghost, 0.75).withAlpha(0.6))
+            ctx.fillEllipse(in: CGRect(x: -w * 0.1, y: -ht * 0.6, width: w * 1.1, height: ht * 0.9))
+            ctx.restoreGState()
+            // A little arm.
+            ctx.setFillColor(Palette.ghost)
+            ctx.fillEllipse(in: CGRect(x: w * 0.52, y: ht * 0.26, width: w * 0.14, height: ht * 0.14))
+            // Face, on the front of the head.
             ctx.setFillColor(Palette.soot)
-            ctx.fillEllipse(in: CGRect(x: w * 0.45, y: ht * 0.46, width: w * 0.09, height: ht * 0.09))
+            ctx.fillEllipse(in: CGRect(x: w * 0.7, y: ht * 0.56, width: w * 0.055, height: ht * 0.1))
+            ctx.fillEllipse(in: CGRect(x: w * 0.84, y: ht * 0.56, width: w * 0.055, height: ht * 0.1))
+            ctx.setStrokeColor(Palette.soot)
+            ctx.setLineWidth(max(1, h * 0.022))
+            ctx.addArc(center: p(0.8, 0.52), radius: w * 0.04, startAngle: -.pi * 0.15, endAngle: -.pi * 0.85, clockwise: true)
+            ctx.strokePath()
+            ctx.setFillColor(Palette.candyPink.withAlpha(0.55))
+            ctx.fillEllipse(in: CGRect(x: w * 0.63, y: ht * 0.46, width: w * 0.07, height: ht * 0.07))
+            ctx.fillEllipse(in: CGRect(x: w * 0.9, y: ht * 0.46, width: w * 0.06, height: ht * 0.07))
         }
     }
 
@@ -560,27 +672,125 @@ enum SpookyArt {
         }
     }
 
-    // MARK: Words
+    // MARK: Zombie hand
 
-    /// Chunky rounded words with a plum edge, for "Boo!", "Meow!" and friends.
-    static func labelTexture(_ text: String, pointSize: CGFloat, color: CGColor, scale: CGFloat) -> (SKTexture, CGSize) {
-        let base = NSFont.systemFont(ofSize: pointSize, weight: .heavy)
-        let font = base.fontDescriptor.withDesign(.rounded).flatMap { NSFont(descriptor: $0, size: pointSize) } ?? base
-        let fill: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor(cgColor: color) ?? .white]
-        let edgeWidth = pointSize * 0.16
-        let textSize = (text as NSString).size(withAttributes: fill)
-        let size = CGSize(width: ceil(textSize.width + edgeWidth * 2 + 4), height: ceil(textSize.height + edgeWidth * 2 + 4))
-        let texture = cached("label-\(text)-\(color.components ?? [])", size: size, scale: scale) { ctx in
-            NSGraphicsContext.saveGraphicsState()
-            NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
-            let origin = NSPoint(x: edgeWidth + 2, y: edgeWidth + 2)
-            let edge: [NSAttributedString.Key: Any] = [.font: font, .strokeColor: NSColor(cgColor: Palette.night) ?? .black,
-                                                       .strokeWidth: edgeWidth / pointSize * 200]
-            (text as NSString).draw(at: origin, withAttributes: edge)
-            (text as NSString).draw(at: origin, withAttributes: fill)
-            NSGraphicsContext.restoreGraphicsState()
+    static func handSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.3).rounded(), height: (h * 0.46).rounded()) }
+
+    /// A zombie hand reaching up out of the ground, with a torn sleeve.
+    static func handTexture(unit h: CGFloat, scale: CGFloat) -> SKTexture {
+        let size = handSize(unit: h)
+        return cached("hand", size: size, scale: scale) { ctx in
+            let w = size.width, ht = size.height
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+            let skin = Palette.slime.mixed(with: Palette.stone, 0.45)
+            fillShaded(ctx, CGPath(roundedRect: CGRect(x: w * 0.32, y: 0, width: w * 0.36, height: ht * 0.55), cornerWidth: w * 0.08, cornerHeight: w * 0.08, transform: nil), skin, from: 0.62)
+            fillShaded(ctx, CGPath(roundedRect: CGRect(x: w * 0.22, y: ht * 0.42, width: w * 0.56, height: ht * 0.26), cornerWidth: w * 0.14, cornerHeight: w * 0.14, transform: nil), skin, from: 0.66)
+            // Fingers, a little crooked, and a thumb.
+            for (i, x) in [0.29, 0.42, 0.56, 0.69].enumerated() {
+                let length = [0.24, 0.3, 0.28, 0.22][i]
+                Brush.stroke(ctx, [p(CGFloat(x), 0.64), p(CGFloat(x) + 0.02, 0.64 + CGFloat(length) * 0.6), p(CGFloat(x) - 0.03, 0.64 + CGFloat(length))],
+                             maxWidth: w * 0.12, color: skin, minF: 0.8, endF: 0.6)
+            }
+            Brush.stroke(ctx, [p(0.24, 0.5), p(0.1, 0.58), p(0.06, 0.7)], maxWidth: w * 0.12, color: skin, minF: 0.8, endF: 0.6)
+            // A torn, purple sleeve at the bottom.
+            let sleeve = CGMutablePath()
+            sleeve.addLines(between: [p(0.24, 0), p(0.24, 0.2), p(0.34, 0.15), p(0.42, 0.24), p(0.52, 0.16), p(0.62, 0.23), p(0.76, 0.17), p(0.76, 0)])
+            sleeve.closeSubpath()
+            fillShaded(ctx, sleeve, Palette.witch.mixed(with: Palette.soot, 0.3), from: 0.62)
         }
-        return (texture, size)
+    }
+
+    // MARK: Skull
+
+    /// A cute skull with big round eye sockets, resting on a crossed bone.
+    private static func drawSkull(_ ctx: CGContext, size: CGSize, h: CGFloat) {
+        let w = size.width, ht = size.height
+        let bone = Palette.ghost.mixed(with: Palette.peach, 0.35)
+        // The bone behind it, lying across.
+        Brush.stroke(ctx, [CGPoint(x: w * 0.1, y: ht * 0.16), CGPoint(x: w * 0.5, y: ht * 0.12), CGPoint(x: w * 0.9, y: ht * 0.2)],
+                     maxWidth: h * 0.06, color: bone, minF: 1)
+        for end in [CGPoint(x: w * 0.08, y: ht * 0.16), CGPoint(x: w * 0.92, y: ht * 0.2)] {
+            for dy in [CGFloat(-1), 1] {
+                ctx.setFillColor(bone)
+                ctx.fillEllipse(in: CGRect(x: end.x - h * 0.04, y: end.y + dy * h * 0.025 - h * 0.035, width: h * 0.07, height: h * 0.07))
+            }
+        }
+        // Cranium and jaw.
+        let skull = CGMutablePath()
+        skull.addEllipse(in: CGRect(x: w * 0.2, y: ht * 0.26, width: w * 0.6, height: ht * 0.72))
+        skull.addRoundedRect(in: CGRect(x: w * 0.32, y: ht * 0.1, width: w * 0.36, height: ht * 0.3), cornerWidth: w * 0.06, cornerHeight: w * 0.06)
+        fillShaded(ctx, skull, bone, from: 0.68, amount: 0.15)
+        // Eye sockets with a twinkle, a little nose and teeth.
+        ctx.setFillColor(Palette.soot)
+        ctx.fillEllipse(in: CGRect(x: w * 0.3, y: ht * 0.46, width: w * 0.16, height: ht * 0.24))
+        ctx.fillEllipse(in: CGRect(x: w * 0.54, y: ht * 0.46, width: w * 0.16, height: ht * 0.24))
+        ctx.setFillColor(Palette.ghost)
+        ctx.fillEllipse(in: CGRect(x: w * 0.36, y: ht * 0.6, width: w * 0.04, height: ht * 0.05))
+        ctx.fillEllipse(in: CGRect(x: w * 0.6, y: ht * 0.6, width: w * 0.04, height: ht * 0.05))
+        let nose = CGMutablePath()
+        nose.addLines(between: [CGPoint(x: w * 0.47, y: ht * 0.36), CGPoint(x: w * 0.53, y: ht * 0.36), CGPoint(x: w * 0.5, y: ht * 0.43)])
+        nose.closeSubpath()
+        ctx.setFillColor(Palette.soot)
+        ctx.addPath(nose)
+        ctx.fillPath()
+        for i in 0..<3 {
+            ctx.fill(CGRect(x: w * (0.4 + CGFloat(i) * 0.08), y: ht * 0.13, width: w * 0.02, height: ht * 0.12))
+        }
+    }
+
+    // MARK: Purple dirt
+
+    /// A band of purple graveyard dirt along the Dock, with a lumpy top, pebbles and tufts of grass.
+    static func dirtTexture(width: CGFloat, height: CGFloat, seed: Int, unit k: CGFloat, scale: CGFloat) -> SKTexture {
+        cached("dirt-\(seed)-\(Int(k * 100))", size: CGSize(width: width, height: height), scale: scale) { ctx in
+            var rng = SeededRandom(seed: UInt64(seed) &* 3571 &+ 11)
+            let soil = Palette.witch.mixed(with: Palette.soot, 0.45)
+            func top(_ x: CGFloat) -> CGFloat {
+                height * 0.42 + (sin(x / (23 * k)) * 2.2 + sin(x / (61 * k)) * 3.4 + sin(x / (9 * k)) * 0.8) * k
+            }
+            // Rounded ends, so it doesn't stop square.
+            let dirt = CGMutablePath()
+            dirt.move(to: CGPoint(x: 0, y: 0))
+            dirt.addQuadCurve(to: CGPoint(x: 8 * k, y: top(8 * k)), control: CGPoint(x: 0, y: top(0)))
+            var x = 8 * k
+            while x < width - 8 * k {
+                dirt.addLine(to: CGPoint(x: x, y: top(x)))
+                x += 3
+            }
+            dirt.addQuadCurve(to: CGPoint(x: width, y: 0), control: CGPoint(x: width, y: top(width)))
+            dirt.closeSubpath()
+            ctx.addPath(dirt)
+            ctx.setFillColor(soil)
+            ctx.fillPath()
+            // A lighter crust along the top.
+            x = 4 * k
+            while x < width - 4 * k {
+                Brush.stroke(ctx, [CGPoint(x: x, y: top(x) - 1.6 * k), CGPoint(x: x + 6 * k, y: top(x + 6 * k) - 1.4 * k),
+                                   CGPoint(x: x + 12 * k, y: top(x + 12 * k) - 1.6 * k)],
+                             maxWidth: 2.4 * k, color: soil.mixed(with: Palette.witch, 0.55), minF: 0.3)
+                x += rng.float(14...26) * k
+            }
+            // Pebbles.
+            for _ in 0..<Int(width / (14 * k)) {
+                let px = rng.float(6 * k...(width - 6 * k))
+                let py = rng.float(1...max(2, top(px) - 3 * k))
+                let r = rng.float(0.8...1.8) * k
+                ctx.setFillColor(rng.float(0...1) < 0.5 ? Palette.soot.withAlpha(0.6) : Palette.stone.withAlpha(0.55))
+                ctx.fillEllipse(in: CGRect(x: px - r, y: py - r * 0.7, width: r * 2, height: r * 1.4))
+            }
+            // Tufts of grass poking out.
+            x = rng.float(10...30) * k
+            while x < width - 10 * k {
+                for blade in 0..<3 {
+                    let bx = x + CGFloat(blade) * 1.6 * k
+                    let lean = rng.float(-2.5...2.5) * k
+                    Brush.stroke(ctx, [CGPoint(x: bx, y: top(bx) - 1), CGPoint(x: bx + lean * 0.4, y: top(bx) + 3 * k),
+                                       CGPoint(x: bx + lean, y: top(bx) + rng.float(5...8) * k)],
+                                 maxWidth: 1.6 * k, color: Palette.green.mixed(with: Palette.slime, 0.3), minF: 0.9, endF: 0.1)
+                }
+                x += rng.float(40...90) * k
+            }
+        }
     }
 
     // MARK: Whole pictures, for the app window's tiles

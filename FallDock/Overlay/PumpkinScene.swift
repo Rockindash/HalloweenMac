@@ -144,7 +144,7 @@ final class PumpkinScene: SKScene {
         // Something in the gaps between pumpkins only if some of those extras are switched on.
         let gapsOn = extras && !Self.gapCycle.isEmpty
         let minSpace = h * Settings.fullness.spacing
-        // Hay bales in fall, coffins at Halloween.
+        // Hay bales in fall, spell books at Halloween.
         let perch = Settings.theme.perch
         let bale = CozyArt.size(of: perch, unit: h)
         slotKinds = []; slotScale = []; slotPerch = []; gapKinds = []
@@ -159,7 +159,7 @@ final class PumpkinScene: SKScene {
                 gapKind = kind
                 gapWidth = CozyArt.size(of: kind, unit: decorUnit).width
             }
-            // A hay bale (or coffin) under every fifth pumpkin.
+            // A hay bale (or stack of spell books) under every fifth pumpkin.
             let onBale = extras && Settings.isEnabled(perch) && slot % 5 == 2
             var rng = SeededRandom(seed: UInt64(slot + 1) &* 7537)
             // Pumpkins vary a little in size, every third one a bit smaller.
@@ -292,7 +292,7 @@ final class PumpkinScene: SKScene {
         dockRect.maxY - 3 - (slotPerch[slot] > 0 ? 0 : (1 - slotScale[slot]) * 5)
     }
 
-    /// A vine running along the top of the Dock, behind the pumpkins.
+    /// A vine running along the top of the Dock, behind the pumpkins (purple dirt at Halloween).
     private func layoutVine() {
         vineLayer.removeAllChildren()
         vine = nil
@@ -303,10 +303,22 @@ final class PumpkinScene: SKScene {
             layoutCobwebs()
             return
         }
+        if Settings.theme == .halloween {
+            // Purple graveyard dirt instead of a vine, with things planted in it.
+            let height = (pumpkinHeight * 0.3).rounded()
+            let dirt = SKSpriteNode(texture: SpookyArt.dirtTexture(width: dockRect.width.rounded(), height: height, seed: Int(harvestSeed % 997),
+                                                                   unit: k, scale: pixelScale),
+                                    size: CGSize(width: dockRect.width.rounded(), height: height))
+            dirt.anchorPoint = .zero
+            dirt.position = CGPoint(x: dockRect.minX, y: dockRect.maxY - 6)
+            vineLayer.addChild(dirt)
+            vine = dirt
+            layoutCobwebs()
+            return
+        }
         let width = (dockRect.width - 8).rounded()
         let height = (pumpkinHeight * 1.25).rounded()
-        let vine = SKSpriteNode(texture: VineArt.texture(width: width, height: height, seed: Int(harvestSeed % 997), unit: k,
-                                                         scale: pixelScale, spooky: Settings.theme == .halloween),
+        let vine = SKSpriteNode(texture: VineArt.texture(width: width, height: height, seed: Int(harvestSeed % 997), unit: k, scale: pixelScale),
                                 size: CGSize(width: width, height: height))
         vine.anchorPoint = .zero
         vine.position = vineOrigin

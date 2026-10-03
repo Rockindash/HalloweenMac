@@ -170,7 +170,7 @@ enum Settings {
         var subtitle: String {
             switch self {
             case .fall: return "Pumpkins, hay and falling leaves"
-            case .halloween: return "Jack-o'-lanterns, bats and a friendly ghost"
+            case .halloween: return "Jack-o'-lanterns, candy and a friendly ghost"
             }
         }
 
@@ -178,12 +178,12 @@ enum Settings {
         var extras: [DecorKind] {
             switch self {
             case .fall: return [.hayBale, .leafPile, .acorns, .mug, .lantern, .apples]
-            case .halloween: return [.coffin, .tombstone, .blackCat, .cauldron, .candyCorn, .candles]
+            case .halloween: return [.books, .tombstone, .blackCat, .cauldron, .candy, .candles, .skull]
             }
         }
 
         /// What some pumpkins sit up high on.
-        var perch: DecorKind { self == .halloween ? .coffin : .hayBale }
+        var perch: DecorKind { self == .halloween ? .books : .hayBale }
 
         /// The order extras fill the gaps between pumpkins; it starts at a random point each time the
         /// pumpkins are regrown.
@@ -192,15 +192,15 @@ enum Settings {
             case .fall:
                 return [.leafPile, .acorns, .mug, .apples, .leafPile, .lantern, .acorns, .apples, .leafPile, .acorns]
             case .halloween:
-                return [.tombstone, .candyCorn, .cauldron, .tombstone, .blackCat, .candles, .candyCorn, .tombstone, .candles, .candyCorn]
+                return [.tombstone, .candy, .cauldron, .skull, .blackCat, .candles, .candy, .tombstone, .skull, .candy]
             }
         }
 
         /// Extras special enough to show up at most once every eight gaps.
         var specials: Set<DecorKind> { self == .halloween ? [.cauldron, .blackCat] : [.mug, .lantern] }
 
-        var vineTitle: String { self == .halloween ? "Creepy vine" : "Vine" }
-        var vineDetail: String { self == .halloween ? "Cobwebs at both ends" : "Curling along the Dock" }
+        var vineTitle: String { self == .halloween ? "Purple dirt" : "Vine" }
+        var vineDetail: String { self == .halloween ? "With cobwebs at both ends" : "Curling along the Dock" }
         var ambientTitle: String { self == .halloween ? "Bats" : "Falling leaves" }
         var ambientDetail: String { self == .halloween ? "Fluttering past" : "Drifting down" }
         var extrasTitle: String { self == .halloween ? "Spooky extras" : "Cozy extras" }

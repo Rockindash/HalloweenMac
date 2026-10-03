@@ -10,7 +10,7 @@ enum DecorKind: String, CaseIterable {
     // Fall.
     case hayBale, leafPile, acorns, mug, lantern, apples
     // Halloween (drawn in SpookyArt).
-    case coffin, tombstone, blackCat, cauldron, candyCorn, candles
+    case books, tombstone, blackCat, cauldron, candy, candles, skull
 
     var title: String {
         switch self {
@@ -20,12 +20,13 @@ enum DecorKind: String, CaseIterable {
         case .mug: return "Pumpkin spice latte"
         case .lantern: return "Lantern"
         case .apples: return "Crate of apples"
-        case .coffin: return "Coffins"
+        case .books: return "Spell books"
         case .tombstone: return "Tombstones"
         case .blackCat: return "Black cat"
         case .cauldron: return "Cauldron"
-        case .candyCorn: return "Candy corn"
+        case .candy: return "Candy"
         case .candles: return "Candles"
+        case .skull: return "Skull"
         }
     }
 
@@ -52,12 +53,13 @@ enum CozyArt {
         case .mug: s = CGSize(width: h * 0.46, height: h * latteHeight)
         case .lantern: s = CGSize(width: h * 0.46, height: h * 0.82)
         case .apples: s = CGSize(width: h * 0.92, height: h * 0.58)
-        case .coffin: s = CGSize(width: h * 1.4, height: h * 0.5)
+        case .books: s = CGSize(width: h * 1.3, height: h * 0.5)
         case .tombstone: s = CGSize(width: h * 0.6, height: h * 0.72)
         case .blackCat: s = CGSize(width: h * 0.7, height: h * 0.82)
         case .cauldron: s = CGSize(width: h * 0.82, height: h * 0.64)
-        case .candyCorn: s = CGSize(width: h * 0.7, height: h * 0.36)
+        case .candy: s = CGSize(width: h * 0.95, height: h * 0.66)
         case .candles: s = CGSize(width: h * 0.58, height: h * 0.66)
+        case .skull: s = CGSize(width: h * 0.66, height: h * 0.5)
         }
         return CGSize(width: s.width.rounded(), height: s.height.rounded())
     }
@@ -76,7 +78,7 @@ enum CozyArt {
             case .mug: drawMug(ctx, size: size, h: h)
             case .lantern: drawLantern(ctx, size: size, h: h)
             case .apples: drawApples(ctx, size: size, h: h, rng: &rng)
-            case .coffin, .tombstone, .blackCat, .cauldron, .candyCorn, .candles:
+            case .books, .tombstone, .blackCat, .cauldron, .candy, .candles, .skull:
                 SpookyArt.draw(kind, ctx, size: size, h: h, rng: &rng)
             }
         }

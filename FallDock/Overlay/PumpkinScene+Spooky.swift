@@ -1,7 +1,7 @@
 import SpriteKit
 
-/// Halloween: jack-o'-lanterns, the spooky extras and what they do when clicked, the ghost,
-/// bats and the cobwebs.
+/// Halloween: jack-o'-lanterns, the spooky extras and what they do when clicked, zombie hands,
+/// the ghost, bats and the cobwebs. Nothing here shows words or speech bubbles.
 extension PumpkinScene {
     // MARK: Jack-o'-lanterns
 
@@ -47,31 +47,6 @@ extension PumpkinScene {
         guard pumpkin.isLantern, let glow = pumpkin.childNode(withName: "candle") else { return }
         glow.run(.sequence([.group([.scale(to: 1.4, duration: 0.12), .fadeAlpha(to: 0.8, duration: 0.12)]),
                             .group([.scale(to: 1, duration: 0.5), .fadeAlpha(to: 0.42, duration: 0.5)])]), withKey: "flare")
-    }
-
-    // MARK: Words
-
-    /// Bouncy words that pop up, float away and fade.
-    func showLabel(_ text: String, at point: CGPoint, color: CGColor = Palette.ghost) {
-        let (texture, labelSize) = SpookyArt.labelTexture(text, pointSize: 18, color: color, scale: pixelScale)
-        let label = SKSpriteNode(texture: texture, size: labelSize)
-        let halfWidth = labelSize.width / 2 + 4
-        label.position = CGPoint(x: point.x.clamped(to: halfWidth...max(halfWidth, size.width - halfWidth)),
-                                 y: min(point.y, size.height - labelSize.height))
-        label.zPosition = 30
-        label.zRotation = CGFloat.random(in: -0.1...0.1)
-        label.setScale(0.3)
-        effectsLayer.addChild(label)
-        let pop = SKAction.scale(to: 1.15, duration: 0.14)
-        pop.timingMode = .easeOut
-        let rise = SKAction.moveBy(x: 0, y: 30, duration: 1.2)
-        rise.timingMode = .easeOut
-        label.run(.sequence([
-            pop,
-            .scale(to: 1, duration: 0.1),
-            .group([rise, .sequence([.wait(forDuration: 0.7), .fadeOut(withDuration: 0.5)])]),
-            .removeFromParent(),
-        ]))
     }
 
     // MARK: The spooky extras
@@ -180,70 +155,89 @@ extension PumpkinScene {
     /// What each spooky extra does when clicked.
     func pokeSpooky(_ decor: DecorNode) {
         let h = pumpkinHeight
-        let top = CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height + 4)
         switch decor.kind {
         case .tombstone:
-            ghostRises(behind: decor)
-            decor.run(DockSprite.hop(height: h * 0.05, duration: 0.2), withKey: "hop")
+            zombieHand(by: decor)
+            decor.run(.sequence([.rotate(toAngle: 0.05, duration: 0.05), .rotate(toAngle: -0.05, duration: 0.08), .rotate(toAngle: 0, duration: 0.06)]),
+                      withKey: "shudder")
         case .blackCat:
-            // An arched back and a meow.
+            // An arched back, and wide eyes.
             decor.run(.sequence([
                 DockSprite.animate(\.popScale, to: 0.88, duration: 0.08),
                 DockSprite.animate(\.popScale, to: 1.12, duration: 0.12, curve: .easeOut),
                 DockSprite.animate(\.popScale, to: 1, duration: 0.2),
             ]), withKey: "arch")
             catNotices(decor)
-            showLabel("Meow!", at: top, color: Palette.slime)
         case .cauldron:
-            for _ in 0..<10 {
-                let s = (h * CGFloat.random(in: 0.08...0.14)).rounded()
-                let bubble = SKSpriteNode(texture: SpookyArt.bubbleTexture(size: s, scale: pixelScale), size: CGSize(width: s, height: s))
-                launch(bubble, from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * SpookyArt.brewLevel), spread: decor.frame.width * 0.2,
-                       velocity: CGVector(dx: CGFloat.random(in: -110...110), dy: CGFloat.random(in: 180...320)), radius: s * 0.3, damping: 1.2, life: 1)
-            }
+            puff(from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * SpookyArt.brewLevel), spread: decor.frame.width * 0.2,
+                 count: 10, tints: [nil])
             decor.childNode(withName: "glow")?.run(.sequence([.group([.scale(to: 1.6, duration: 0.12), .fadeAlpha(to: 0.8, duration: 0.12)]),
                                                              .group([.scale(to: 1, duration: 0.6), .fadeAlpha(to: 0.35, duration: 0.6)])]))
             decor.run(DockSprite.hop(height: h * 0.06, duration: 0.22), withKey: "hop")
-            showLabel("Bubble, bubble!", at: top, color: Palette.slime)
-        case .candyCorn:
+        case .candy:
             candyBurst(count: 6, from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * 0.6))
             decor.run(DockSprite.hop(height: h * 0.1, duration: 0.25), withKey: "hop")
         case .candles:
             blowOut(decor)
-        case .coffin:
-            // The lid jolts, and a bat escapes.
-            decor.run(.sequence([.rotate(toAngle: 0.04, duration: 0.06), .rotate(toAngle: -0.03, duration: 0.08), .rotate(toAngle: 0, duration: 0.08)]))
-            releaseBat(from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * 0.8))
+        case .books:
+            // A puff of purple and green magic from between the pages.
+            puff(from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * 0.8), spread: decor.frame.width * 0.25,
+                 count: 12, tints: [Palette.candyPurple, nil])
+            decor.run(DockSprite.hop(height: h * 0.05, duration: 0.2), withKey: "hop")
+        case .skull:
+            // Its jaw chatters.
+            decor.run(.repeat(.sequence([DockSprite.hop(height: h * 0.04, duration: 0.09), .rotate(toAngle: 0.08, duration: 0.04),
+                                         .rotate(toAngle: -0.08, duration: 0.05), .rotate(toAngle: 0, duration: 0.04)]), count: 3), withKey: "chatter")
         default:
             break
         }
     }
 
-    /// A little ghost rises from behind a tombstone, says boo and drifts off.
-    private func ghostRises(behind stone: DecorNode) {
-        guard stone.childNode(withName: "risen") == nil else { return }
-        let h = pumpkinHeight * 0.75
-        let size = SpookyArt.ghostSize(unit: h)
-        let ghost = SKSpriteNode(texture: SpookyArt.ghostTexture(unit: h, scale: pixelScale), size: size)
-        ghost.name = "risen"
-        ghost.anchorPoint = CGPoint(x: 0.5, y: 0)
-        ghost.position = CGPoint(x: 0, y: stone.size.height * 0.2)
-        ghost.zPosition = -0.2
-        ghost.alpha = 0
-        ghost.setScale(0.6)
-        stone.addChild(ghost)
-        let rise = SKAction.moveBy(x: 0, y: stone.size.height * 0.85, duration: 0.5)
-        rise.timingMode = .easeOut
-        ghost.run(.sequence([
-            .group([rise, .fadeAlpha(to: 0.92, duration: 0.3), .scale(to: 1, duration: 0.5)]),
-            .run { [weak self, weak ghost, weak stone] in
-                guard let self, let ghost, let stone else { return }
-                let top = stone.convert(CGPoint(x: 0, y: ghost.position.y + size.height), to: self)
-                self.showLabel("Boo!", at: top)
-            },
-            .sequence([.rotate(toAngle: 0.15, duration: 0.15), .rotate(toAngle: -0.15, duration: 0.3), .rotate(toAngle: 0, duration: 0.15)]),
+    /// Bubbles bursting out of something, tinted with any of `tints` (nil keeps the potion green).
+    private func puff(from center: CGPoint, spread: CGFloat, count: Int, tints: [CGColor?]) {
+        for i in 0..<count {
+            let s = (pumpkinHeight * CGFloat.random(in: 0.07...0.13)).rounded()
+            let bubble = SKSpriteNode(texture: SpookyArt.bubbleTexture(size: s, scale: pixelScale), size: CGSize(width: s, height: s))
+            if let tint = tints[i % tints.count] {
+                bubble.color = NSColor(cgColor: tint) ?? .purple
+                bubble.colorBlendFactor = 0.7
+            }
+            launch(bubble, from: center, spread: spread,
+                   velocity: CGVector(dx: CGFloat.random(in: -110...110), dy: CGFloat.random(in: 180...320)), radius: s * 0.3, damping: 1.2, life: 1)
+        }
+    }
+
+    /// A zombie hand bursts up out of the dirt in front of a tombstone, waves, and sinks back down.
+    private func zombieHand(by stone: DecorNode) {
+        guard !pumpkinLayer.children.contains(where: { ($0 as? HandNode)?.name == "hand-\(stone.gap)" }) else { return }
+        let h = pumpkinHeight
+        let hand = HandNode(texture: SpookyArt.handTexture(unit: h, scale: pixelScale), color: .clear, size: SpookyArt.handSize(unit: h))
+        hand.name = "hand-\(stone.gap)"
+        hand.anchorPoint = CGPoint(x: 0.5, y: 0)
+        hand.restX = stone.restX + stone.size.width * 0.32
+        hand.restY = dockRect.maxY - 4
+        hand.zPosition = stone.zPosition + 0.05
+        hand.popScale = 0.05
+        pumpkinLayer.addChild(hand)
+        // Clods of purple dirt as it breaks through.
+        for i in 0..<6 {
+            let s = (h * 0.07).rounded()
+            let clod = SKSpriteNode(texture: PumpkinArt.shardTexture(kind: .littleGreen, size: s, variant: i, scale: pixelScale), size: CGSize(width: s, height: s))
+            clod.color = NSColor(cgColor: Palette.witch.mixed(with: Palette.soot, 0.45)) ?? .purple
+            clod.colorBlendFactor = 1
+            launch(clod, from: CGPoint(x: hand.restX, y: dockRect.maxY), spread: 6,
+                   velocity: CGVector(dx: CGFloat.random(in: -90...90), dy: CGFloat.random(in: 90...200)), radius: 1, damping: 0.4, life: 0.7)
+        }
+        let wave = SKAction.sequence([.rotate(toAngle: 0.25, duration: 0.22), .rotate(toAngle: -0.2, duration: 0.28),
+                                      .rotate(toAngle: 0.15, duration: 0.22), .rotate(toAngle: 0, duration: 0.18)])
+        hand.run(.sequence([
+            DockSprite.animate(\.popScale, to: 1.08, duration: 0.28, curve: .easeOut),
+            DockSprite.animate(\.popScale, to: 1, duration: 0.12),
+            wave,
+            .wait(forDuration: 0.6),
+            wave,
             .wait(forDuration: 0.4),
-            .group([.moveBy(x: CGFloat.random(in: -20...20), y: pumpkinHeight * 0.8, duration: 1), .fadeOut(withDuration: 1)]),
+            DockSprite.animate(\.popScale, to: 0.02, duration: 0.25, curve: .easeIn),
             .removeFromParent(),
         ]))
     }
@@ -281,11 +275,12 @@ extension PumpkinScene {
         ]), withKey: "relight")
     }
 
-    /// Candy corn flying out.
+    /// Assorted candy flying out.
     func candyBurst(count: Int, from center: CGPoint) {
         for _ in 0..<count {
             let s = (pumpkinHeight * CGFloat.random(in: 0.14...0.2)).rounded()
-            let candy = SKSpriteNode(texture: SpookyArt.candyCornTexture(size: s, scale: pixelScale), size: CGSize(width: s, height: s))
+            let candy = SKSpriteNode(texture: SpookyArt.candyTexture(variant: Int.random(in: 0..<5), size: s, scale: pixelScale),
+                                     size: CGSize(width: s, height: s))
             launch(candy, from: center, spread: 6,
                    velocity: CGVector(dx: CGFloat.random(in: -140...140), dy: CGFloat.random(in: 200...340)),
                    radius: s * 0.3, damping: 0.4, life: 1.3)
@@ -350,8 +345,7 @@ extension PumpkinScene {
 
     // MARK: The ghost
 
-    /// The ghost floats in from one end. If there are tombstones, it stops above one to say boo,
-    /// then floats on and out the other end. Without tombstones it just drifts across.
+    /// The ghost flies across above the Dock from one end to the other, bobbing gently as it goes.
     func ghostVisit() {
         guard Settings.cozyExtras, Settings.ghost, dockRect.width > 300,
               !pumpkinLayer.children.contains(where: { $0 is GhostNode }) else {
@@ -361,59 +355,45 @@ extension PumpkinScene {
         let h = pumpkinHeight
         let ghost = GhostNode(texture: SpookyArt.ghostTexture(unit: h, scale: pixelScale), color: .clear, size: SpookyArt.ghostSize(unit: h))
         ghost.anchorPoint = CGPoint(x: 0.5, y: 0)
-        ghost.restY = dockRect.maxY + h * 0.3
+        ghost.restY = dockRect.maxY + h * CGFloat.random(in: 1.0...1.4)
         ghost.zPosition = 8
         ghost.alpha = 0
         let fromLeft = Bool.random()
-        let startX = fromLeft ? dockRect.minX + h * 0.3 : dockRect.maxX - h * 0.3
-        let endX = fromLeft ? dockRect.maxX - h * 0.3 : dockRect.minX + h * 0.3
+        let startX = fromLeft ? dockRect.minX - h * 0.2 : dockRect.maxX + h * 0.2
+        let endX = fromLeft ? dockRect.maxX + h * 0.2 : dockRect.minX - h * 0.2
         ghost.restX = startX
         ghost.facing = fromLeft ? 1 : -1
+        // A soft glow around it.
+        let diameter = (ghost.size.width * 1.4).rounded()
+        let glow = SKSpriteNode(texture: CozyArt.glowTexture(color: Palette.ghost, diameter: diameter, scale: pixelScale),
+                                size: CGSize(width: diameter, height: diameter))
+        glow.blendMode = .add
+        glow.alpha = 0.25
+        glow.position = CGPoint(x: ghost.size.width * 0.1, y: ghost.size.height * 0.5)
+        glow.zPosition = -0.1
+        ghost.addChild(glow)
         pumpkinLayer.addChild(ghost)
 
-        // A gentle bob the whole time.
-        let bob = SKAction.sequence([DockSprite.animate(\.bounce, to: h * 0.08, duration: 0.9),
-                                     DockSprite.animate(\.bounce, to: -h * 0.03, duration: 0.9)])
+        let bob = SKAction.sequence([DockSprite.animate(\.bounce, to: h * 0.12, duration: 1.1),
+                                     DockSprite.animate(\.bounce, to: -h * 0.06, duration: 1.1)])
         ghost.run(.repeatForever(bob), withKey: "bob")
-
-        func drift(from x0: CGFloat, to x1: CGFloat) -> SKAction {
-            DockSprite.animate(\.restX, to: x1, duration: Double(abs(x1 - x0) / 70), curve: .easeInEaseOut)
-        }
-        let leave = SKAction.sequence([
-            .fadeOut(withDuration: 0.6),
+        ghost.run(.sequence([
+            .fadeAlpha(to: 0.95, duration: 0.6),
+            DockSprite.animate(\.restX, to: endX, duration: Double(abs(endX - startX) / 85), curve: .linear),
+            .fadeOut(withDuration: 0.4),
             .removeFromParent(),
             .run { [weak self] in self?.scheduleVisitor(first: false) },
-        ])
-        let tombstones = pumpkinLayer.children.compactMap { $0 as? DecorNode }.filter { $0.kind == .tombstone }.map(\.restX)
-        guard let spot = tombstones.randomElement() else {
-            ghost.run(.sequence([.fadeAlpha(to: 0.92, duration: 0.6), drift(from: startX, to: endX), leave]), withKey: "visit")
-            return
-        }
-        ghost.run(.sequence([
-            .fadeAlpha(to: 0.92, duration: 0.6),
-            drift(from: startX, to: spot),
-            .wait(forDuration: 0.3),
-            .run { [weak self, weak ghost] in
-                guard let self, let ghost else { return }
-                self.showLabel("Boo!", at: CGPoint(x: ghost.position.x, y: ghost.position.y + ghost.frame.height + 4))
-            },
-            DockSprite.animate(\.popScale, to: 1.2, duration: 0.15, curve: .easeOut),
-            DockSprite.animate(\.popScale, to: 1, duration: 0.25),
-            .wait(forDuration: 1),
-            drift(from: spot, to: endX),
-            leave,
         ]), withKey: "visit")
     }
 
-    /// Spooked by the pointer: the ghost says eek, zooms up and vanishes.
+    /// Spooked by the pointer: the ghost zooms up and vanishes.
     func ghostFlee(_ ghost: GhostNode) {
         guard !ghost.isFleeing else { return }
         ghost.isFleeing = true
         ghost.removeAction(forKey: "visit")
         ghost.removeAction(forKey: "bob")
-        showLabel("Eek!", at: CGPoint(x: ghost.position.x, y: ghost.position.y + ghost.frame.height + 4))
         ghost.run(.sequence([
-            .group([DockSprite.animate(\.bounce, to: pumpkinHeight * 1.6, duration: 0.6, curve: .easeIn), .fadeOut(withDuration: 0.6)]),
+            .group([DockSprite.animate(\.bounce, to: ghost.bounce + pumpkinHeight * 1.6, duration: 0.6, curve: .easeIn), .fadeOut(withDuration: 0.6)]),
             .removeFromParent(),
             .run { [weak self] in self?.scheduleVisitor(first: false) },
         ]), withKey: "visit")
