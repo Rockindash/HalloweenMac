@@ -1,8 +1,8 @@
 import SpriteKit
 
-/// The cozy extras: decorations between the pumpkins, lights on the vine and the visiting squirrel.
+/// The cozy extras: decorations between the pumpkins and the visiting squirrel.
 extension PumpkinScene {
-    /// Lights glow brighter in the evening.
+    /// The lantern glows brighter in the evening.
     private static var isEvening: Bool {
         let hour = Calendar.current.component(.hour, from: Date())
         return hour >= 18 || hour < 7
@@ -26,20 +26,9 @@ extension PumpkinScene {
         }
 
         // Something cozy in every gap between pumpkins, in front of them.
-        let cycle = DecorKind.gapCycle
-        let start = Int.random(in: 0..<cycle.count)
-        var placed = Set<DecorKind>()
-        for (gap, x) in gapX.enumerated() {
-            var kind = cycle[(start + gap) % cycle.count]
-            // Just one mug and one lantern.
-            if kind == .mug || kind == .lantern {
-                if placed.contains(kind) { kind = .leafPile }
-                placed.insert(kind)
-            }
-            // Shrink to fit narrow gaps.
-            let room = slotX[gap + 1] - slotX[gap] - h * 0.9
-            let fit = (room * 1.15 / CozyArt.size(of: kind, unit: h).width).clamped(to: 0.6...1)
-            let unit = (h * fit).rounded()
+        let unit = (h * decorFit).rounded()
+        for (gap, kind) in gapKinds.enumerated() {
+            let x = gapX[gap]
             let size = CozyArt.size(of: kind, unit: unit)
             let decor = DecorNode(kind: kind, gap: gap,
                                   texture: CozyArt.texture(kind, unit: unit, variant: gap, scale: pixelScale), size: size)
@@ -52,7 +41,6 @@ extension PumpkinScene {
             switch kind {
             case .mug: startSteam(decor, unit: unit)
             case .lantern: addLanternGlow(decor, unit: unit)
-            case .corn: startWobble(decor, amount: 0.012...0.022)
             default: break
             }
         }
@@ -166,46 +154,6 @@ extension PumpkinScene {
             DockSprite.animate(\.popScale, to: 1, duration: 0.15),
             .run { [weak pile] in pile?.isScattered = false },
         ]), withKey: "scatter")
-    }
-
-    // MARK: Lights on the vine
-
-    func addLights() {
-        guard Settings.showVines, dockRect.width > 40 else { return }
-        let h = pumpkinHeight
-        let size = CGSize(width: (h * 0.12).rounded(), height: (h * 0.17).rounded())
-        let spacing = h * 0.62
-        let evening = Self.isEvening
-        let low: CGFloat = evening ? 0.45 : 0.2
-        let high: CGFloat = evening ? 0.95 : 0.55
-        var x = dockRect.minX + spacing * 0.6
-        var i = 0
-        while x < dockRect.maxX - spacing * 0.4 {
-            let color = i % CozyArt.bulbColors.count
-            let bulb = BulbNode(texture: CozyArt.bulbTexture(color: color, unit: h, scale: pixelScale), color: .clear, size: size)
-            bulb.anchorPoint = CGPoint(x: 0.5, y: 0.1)
-            bulb.restX = x
-            bulb.restY = vineY(atSceneX: x) - 1
-            bulb.zRotation = CGFloat.random(in: -0.35...0.35)
-
-            let diameter = (h * 0.5).rounded()
-            let glow = SKSpriteNode(texture: CozyArt.glowTexture(color: CozyArt.bulbColors[color], diameter: diameter, scale: pixelScale),
-                                    size: CGSize(width: diameter, height: diameter))
-            glow.blendMode = .add
-            glow.position = CGPoint(x: 0, y: size.height * 0.5)
-            glow.zPosition = -0.1
-            glow.alpha = low
-            bulb.addChild(glow)
-            let up = SKAction.fadeAlpha(to: high, duration: Double.random(in: 0.9...1.8))
-            let down = SKAction.fadeAlpha(to: low, duration: Double.random(in: 0.9...1.8))
-            up.timingMode = .easeInEaseOut
-            down.timingMode = .easeInEaseOut
-            glow.run(.sequence([.wait(forDuration: Double.random(in: 0...2)), .repeatForever(.sequence([up, down]))]), withKey: "twinkle")
-
-            lightsLayer.addChild(bulb)
-            x += spacing * CGFloat.random(in: 0.85...1.15)
-            i += 1
-        }
     }
 
     // MARK: The squirrel

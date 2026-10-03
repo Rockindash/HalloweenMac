@@ -50,7 +50,7 @@ struct DockMagnifier: Equatable {
     }
 }
 
-/// Something sitting on the Dock: a pumpkin, a decoration, a light or the squirrel.
+/// Something sitting on the Dock: a pumpkin, a decoration or the squirrel.
 /// `PumpkinScene.update` places it every frame from where it rests plus the Dock's magnification,
 /// so animations change the properties below rather than the node's position or scale.
 class DockSprite: SKSpriteNode {
@@ -124,11 +124,6 @@ final class DecorNode: DockSprite {
     }
 
     override var isInteractive: Bool { kind != .hayBale && !isScattered }
-}
-
-/// One of the lights clipped onto the vine.
-final class BulbNode: DockSprite {
-    override var isInteractive: Bool { false }
 }
 
 /// The squirrel that drops by now and then.

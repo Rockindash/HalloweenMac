@@ -1,8 +1,8 @@
 # Fall Dock 🎃
 
 A cozy little Mac app that fills the top of your Dock with a fall harvest: flat, hand-drawn pumpkins on a
-curling vine, hay bales, leaf piles, corn, acorns, a crate of apples, a steaming mug of cider, a glowing lantern
-and little lights on the vine. A squirrel stops by now and then.
+curling vine, evenly spaced, with hay bales, leaf piles, acorns, a crate of apples, a steaming mug of cider
+and a glowing lantern in between. A squirrel stops by now and then.
 
 If your Dock magnifies, everything grows, rises and spreads apart with the icons under the pointer.
 
@@ -39,7 +39,7 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 
 - **Show Pumpkins**: hides or shows everything.
 - **Vines**: a single pumpkin vine with curls and buds along the Dock, behind the pumpkins.
-- **Cozy Extras**: the hay bales, leaf piles, corn, acorns, apples, mug, lantern, lights on the vine and the squirrel. The lights glow brighter in the evening.
+- **Cozy Extras**: the hay bales, leaf piles, acorns, apples, mug, lantern and the squirrel. The lantern glows brighter in the evening.
 - **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
 - **Number of Pumpkins**: A Few (5), Plenty (10) or Overflowing (13).
@@ -67,10 +67,10 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `Overlay/DockLocator.swift` | Works out where the Dock is, which display it's on and whether it's showing |
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
-| `Overlay/PumpkinScene+Cozy.swift` | The cozy extras, the lights on the vine and the squirrel |
+| `Overlay/PumpkinScene+Cozy.swift` | The cozy extras and the squirrel |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
-| `Art/CozyArt.swift` | Draws the hay bales, leaf piles, corn, acorns, apples, mug, lantern, lights and squirrel |
+| `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, mug, lantern and squirrel |
 | `Art/SmashSound.swift` | Makes the smash sound from scratch |
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.

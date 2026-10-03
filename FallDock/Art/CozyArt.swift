@@ -1,19 +1,19 @@
 import AppKit
 import SpriteKit
 
-// The cozy extras that fill the gaps between pumpkins: hay bales, leaf piles, acorns, corn,
-// a mug of cider, a lantern, a crate of apples, lights on the vine and a visiting squirrel.
+// The cozy extras that fill the gaps between pumpkins: hay bales, leaf piles, acorns,
+// a mug of cider, a lantern, a crate of apples and a visiting squirrel.
 // Same flat harvest-wagon style as the pumpkins: wagon colors, flat fills, a darker side,
 // tapered brush strokes and no outlines.
 
 enum DecorKind: CaseIterable {
-    case hayBale, leafPile, acorns, corn, mug, lantern, apples
+    case hayBale, leafPile, acorns, mug, lantern, apples
 
     /// The order decorations fill the gaps between pumpkins; it starts at a random point each time
     /// the pumpkins are regrown, so the mug and lantern turn up in different spots.
     static let gapCycle: [DecorKind] = [
-        .leafPile, .corn, .acorns, .mug, .leafPile, .apples, .lantern,
-        .acorns, .leafPile, .corn, .apples, .acorns, .leafPile, .corn,
+        .leafPile, .acorns, .mug, .apples, .leafPile, .lantern,
+        .acorns, .apples, .leafPile, .acorns,
     ]
 }
 
@@ -33,7 +33,6 @@ enum CozyArt {
         case .hayBale: s = CGSize(width: h * 1.4, height: h * 0.52)
         case .leafPile: s = CGSize(width: h * 0.95, height: h * 0.42)
         case .acorns: s = CGSize(width: h * 0.62, height: h * 0.4)
-        case .corn: s = CGSize(width: h * 0.66, height: h * 0.92)
         case .mug: s = CGSize(width: h * 0.6, height: h * 0.52)
         case .lantern: s = CGSize(width: h * 0.46, height: h * 0.82)
         case .apples: s = CGSize(width: h * 0.92, height: h * 0.58)
@@ -52,7 +51,6 @@ enum CozyArt {
             case .hayBale: drawHayBale(ctx, size: size, h: h, rng: &rng)
             case .leafPile: drawLeafPile(ctx, size: size, h: h, rng: &rng)
             case .acorns: drawAcorns(ctx, size: size, h: h)
-            case .corn: drawCorn(ctx, size: size, h: h, rng: &rng)
             case .mug: drawMug(ctx, size: size, h: h)
             case .lantern: drawLantern(ctx, size: size, h: h)
             case .apples: drawApples(ctx, size: size, h: h, rng: &rng)
@@ -202,80 +200,6 @@ enum CozyArt {
                            CGPoint(x: s * 0.09, y: cap.maxY + s * 0.1)],
                      maxWidth: s * 0.08, color: Palette.plum, minF: 0.7)
         ctx.restoreGState()
-    }
-
-    // MARK: Corn
-
-    private static func drawCorn(_ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
-        let w = size.width, ht = size.height
-        let base = CGPoint(x: w / 2, y: 2)
-        let husk = Palette.peach.mixed(with: Palette.mustard, 0.25)
-        let huskDark = Palette.mustard.mixed(with: Palette.peach, 0.2)
-        let vein = Palette.mustard.mixed(with: Palette.rust, 0.3)
-        // Three ears standing in a fan, tips up, husks peeled back at the bottom.
-        let ears: [(angle: CGFloat, length: CGFloat)] = [(-20, 0.78), (20, 0.76), (0, 0.9)]
-        let kernels = [Palette.mustard, Palette.mustard, Palette.mustard, Palette.orange, Palette.rust, Palette.rust, Palette.plum, Palette.peach]
-        let cw = h * 0.17
-
-        func husks(front: Bool) {
-            for ear in ears {
-                let r = (90 + ear.angle) * .pi / 180
-                let root = CGPoint(x: base.x + cos(r) * ht * 0.16, y: base.y + sin(r) * ht * 0.16)
-                for dir in [CGFloat(-1), 1] where (dir * (ear.angle == 0 ? 1 : ear.angle) > 0) != front {
-                    let out = CGPoint(x: root.x + dir * w * 0.36, y: base.y + ht * 0.04)
-                    let mid = CGPoint(x: root.x + dir * w * 0.2, y: root.y + ht * 0.12)
-                    Brush.stroke(ctx, [CGPoint(x: root.x, y: root.y + ht * 0.08), mid, out], maxWidth: h * 0.13,
-                                 color: front ? husk : huskDark, minF: 0.6, endF: 0.05)
-                    Brush.stroke(ctx, [CGPoint(x: root.x + dir * 2, y: root.y + ht * 0.08), mid, out], maxWidth: h * 0.02,
-                                 color: vein, minF: 0.5, endF: 0.1)
-                }
-            }
-        }
-
-        husks(front: false)
-        for ear in ears {
-            let len = ht * ear.length
-            ctx.saveGState()
-            ctx.translateBy(x: base.x, y: base.y + ht * 0.08)
-            ctx.rotate(by: ear.angle * .pi / 180)
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: -cw / 2, y: 0))
-            path.addLine(to: CGPoint(x: cw / 2, y: 0))
-            path.addCurve(to: CGPoint(x: 0, y: len), control1: CGPoint(x: cw * 0.62, y: len * 0.55), control2: CGPoint(x: cw * 0.4, y: len))
-            path.addCurve(to: CGPoint(x: -cw / 2, y: 0), control1: CGPoint(x: -cw * 0.4, y: len), control2: CGPoint(x: -cw * 0.62, y: len * 0.55))
-            path.closeSubpath()
-            ctx.addPath(path)
-            ctx.setFillColor(Palette.mustard.mixed(with: Palette.rust, 0.5))
-            ctx.fillPath()
-            ctx.saveGState()
-            ctx.addPath(path)
-            ctx.clip()
-            // Kernels in neat rows.
-            let kr = cw * 0.13
-            var y = kr * 1.2
-            var row = 0
-            while y < len {
-                var x = -cw * 0.62 + (row % 2 == 0 ? 0 : kr)
-                while x < cw * 0.62 {
-                    ctx.setFillColor(kernels[Int(rng.float(0...7.99))])
-                    ctx.fillEllipse(in: CGRect(x: x - kr * 0.9, y: y - kr * 0.8, width: kr * 1.8, height: kr * 1.6))
-                    x += kr * 2
-                }
-                y += kr * 1.7
-                row += 1
-            }
-            // Darker right side.
-            ctx.setFillColor(Palette.shadowInk.withAlpha(0.2))
-            ctx.fill(CGRect(x: cw * 0.16, y: 0, width: cw, height: len))
-            ctx.restoreGState()
-            ctx.restoreGState()
-        }
-        husks(front: true)
-
-        // A rust ribbon where the husks meet.
-        let tie = CGPoint(x: base.x, y: base.y + ht * 0.2)
-        Brush.stroke(ctx, [CGPoint(x: tie.x - h * 0.13, y: tie.y + 1), CGPoint(x: tie.x, y: tie.y - 2), CGPoint(x: tie.x + h * 0.13, y: tie.y + 1)],
-                     maxWidth: h * 0.06, color: Palette.rust, minF: 0.8)
     }
 
     // MARK: Mug of cider
@@ -447,35 +371,7 @@ enum CozyArt {
         }
     }
 
-    // MARK: Lights, glow and steam
-
-    static let bulbColors = [Palette.peach, Palette.mustard, Palette.orange, Palette.peach.mixed(with: Palette.mustard, 0.5)]
-
-    /// A small bulb clipped onto the vine, pointing up.
-    static func bulbTexture(color: Int, unit h: CGFloat, scale: CGFloat) -> SKTexture {
-        let size = CGSize(width: (h * 0.12).rounded(), height: (h * 0.17).rounded())
-        let key = "bulb-\(color)-\(Int(h))-\(scale)"
-        if let cached = cache[key] { return cached }
-        let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            let w = size.width, ht = size.height
-            ctx.setFillColor(Palette.green.mixed(with: Palette.plum, 0.3))
-            ctx.fill(CGRect(x: w * 0.3, y: 0, width: w * 0.4, height: ht * 0.28))
-            let fill = bulbColors[color % bulbColors.count]
-            let bulb = CGMutablePath()
-            bulb.move(to: CGPoint(x: w / 2, y: ht))
-            bulb.addCurve(to: CGPoint(x: w * 0.3, y: ht * 0.26), control1: CGPoint(x: w * 0.98, y: ht * 0.7), control2: CGPoint(x: w * 0.75, y: ht * 0.26))
-            bulb.addLine(to: CGPoint(x: w * 0.7, y: ht * 0.26))
-            bulb.addCurve(to: CGPoint(x: w / 2, y: ht), control1: CGPoint(x: w * 0.25, y: ht * 0.26), control2: CGPoint(x: w * 0.02, y: ht * 0.7))
-            bulb.closeSubpath()
-            ctx.addPath(bulb)
-            ctx.setFillColor(fill)
-            ctx.fillPath()
-            ctx.setFillColor(Palette.peach.withAlpha(0.85))
-            ctx.fillEllipse(in: CGRect(x: w * 0.36, y: ht * 0.5, width: w * 0.2, height: ht * 0.26))
-        }
-        cache[key] = texture
-        return texture
-    }
+    // MARK: Glow and steam
 
     /// A soft round glow, meant to be drawn with additive blending.
     static func glowTexture(color: CGColor, diameter: CGFloat, scale: CGFloat) -> SKTexture {

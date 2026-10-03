@@ -38,12 +38,18 @@ final class PumpkinScene: SKScene {
     private var slotScale: [CGFloat] = []
     /// How high each slot's pumpkin sits (on a hay bale, or 0 on the Dock).
     var slotPerch: [CGFloat] = []
+    /// Each slot's kind of pumpkin, picked when the pumpkins are (re)grown; a smashed one grows back the same kind.
+    private var slotKinds: [PumpkinKind] = []
     var gapX: [CGFloat] = []
+    /// The decoration in each gap, how much decorations are shrunk to fit, and where in
+    /// `DecorKind.gapCycle` this harvest starts.
+    var gapKinds: [DecorKind] = []
+    var decorFit: CGFloat = 1
+    private var decorStart = 0
     private var pumpkins: [Int: PumpkinNode] = [:]
     private weak var hovered: DockSprite?
 
     private let vineLayer = SKNode()
-    let lightsLayer = SKNode()
     let pumpkinLayer = SKNode()
     let effectsLayer = SKNode()
     private var vine: SKSpriteNode?
@@ -71,11 +77,9 @@ final class PumpkinScene: SKScene {
         // Points-per-meter in SpriteKit is 150, so this is a gentle ~900 pt/s² fall.
         physicsWorld.gravity = CGVector(dx: 0, dy: -6)
         vineLayer.zPosition = 1
-        lightsLayer.zPosition = 1.5
         pumpkinLayer.zPosition = 2
         effectsLayer.zPosition = 20 // above every pumpkin (each has its own small zPosition)
         addChild(vineLayer)
-        addChild(lightsLayer)
         addChild(pumpkinLayer)
         addChild(effectsLayer)
     }
@@ -97,6 +101,10 @@ final class PumpkinScene: SKScene {
         self.pixelScale = pixelScale
         self.pumpkinHeight = height
         self.pumpkinCount = count
+        if needsRebuild {
+            decorStart = Int.random(in: 0..<DecorKind.gapCycle.count)
+            slotKinds = (0..<count).map { _ in PumpkinKind.allCases.randomElement() ?? .roundOrange }
+        }
         layoutSlots()
 
         if needsRebuild {
@@ -114,40 +122,63 @@ final class PumpkinScene: SKScene {
         }
     }
 
-    /// Where each pumpkin and each decoration between them goes. Pumpkins and gaps share the Dock's
-    /// width by weight, so everything spreads evenly however many pumpkins there are.
+    /// Where each pumpkin and each decoration between them goes. Everything is spaced by its width,
+    /// so the space between neighbors is the same all along the Dock.
     private func layoutSlots() {
         let count = pumpkinCount
         guard count > 0 else {
-            slotX = []; slotScale = []; slotPerch = []; gapX = []
+            slotX = []; slotScale = []; slotPerch = []; slotKinds = []; gapX = []; gapKinds = []
             return
         }
+        let h = pumpkinHeight
         let extras = Settings.cozyExtras
-        // Hay bales under a quarter and three quarters of the way along.
+        // Hay bales a quarter and three quarters of the way along.
         let baleSlots: Set<Int> = extras && count >= 5 ? [count / 4, count - 1 - count / 4] : []
-        // Mix big and small pumpkins so they look like a real harvest pile.
+        // Pumpkins vary a little in size, every third one a bit smaller.
         slotScale = (0..<count).map { i in
             var rng = SeededRandom(seed: UInt64(i + 1) &* 7537)
-            if baleSlots.contains(i) { return rng.float(0.72...0.82) }
-            return i % 3 == 1 ? rng.float(0.66...0.8) : rng.float(0.84...1.08)
+            if baleSlots.contains(i) { return rng.float(0.76...0.82) }
+            return i % 3 == 1 ? rng.float(0.82...0.88) : rng.float(0.92...1.0)
         }
-        slotPerch = (0..<count).map { baleSlots.contains($0) ? CozyArt.size(of: .hayBale, unit: pumpkinHeight).height * 0.86 : 0 }
+        let bale = CozyArt.size(of: .hayBale, unit: h)
+        slotPerch = (0..<count).map { baleSlots.contains($0) ? bale.height * 0.86 : 0 }
+        // Tall butternuts would tower over everything on top of a hay bale.
+        for slot in baleSlots where !slotKinds[slot].isRound || slotKinds[slot] == .littleGreen {
+            slotKinds[slot] = [PumpkinKind.roundOrange, .roundMustard, .squatOrange, .squatMustard][slot % 4]
+        }
 
-        let gapWeight: CGFloat = extras ? 0.62 : 0
-        let margin: CGFloat = 0.3
-        let weights = (0..<count).map { baleSlots.contains($0) ? 1.25 : CGFloat(1) }
-        let total = weights.reduce(0, +) + gapWeight * CGFloat(count - 1) + margin * 2
-        let unitWidth = dockRect.width / total
-        var cursor = margin
+        // One decoration in each gap. Just one mug and one lantern.
+        gapKinds = []
+        if extras {
+            let cycle = DecorKind.gapCycle
+            for gap in 0..<(count - 1) {
+                var kind = cycle[(decorStart + gap) % cycle.count]
+                if (kind == .mug || kind == .lantern) && gapKinds.contains(kind) { kind = .leafPile }
+                gapKinds.append(kind)
+            }
+        }
+
+        // Typical widths, then even spaces between them. Decorations shrink a little on a short Dock.
+        let pumpkinWidths = (0..<count).map { i in
+            max(baleSlots.contains(i) ? bale.width : 0, PumpkinArt.size(of: slotKinds[i], height: (h * slotScale[i]).rounded()).width)
+        }
+        let decorWidths = gapKinds.map { CozyArt.size(of: $0, unit: h).width }
+        let items = CGFloat(count + gapKinds.count + 1)
+        let minSpace = h * 0.12
+        let room = dockRect.width - pumpkinWidths.reduce(0, +) - items * minSpace
+        decorFit = decorWidths.isEmpty ? 1 : (room / decorWidths.reduce(0, +)).clamped(to: 0.7...1)
+        let used = pumpkinWidths.reduce(0, +) + decorWidths.reduce(0, +) * decorFit
+        let space = max(0, (dockRect.width - used) / items)
+        var x = dockRect.minX + space
         slotX = []
         gapX = []
         for i in 0..<count {
-            var rng = SeededRandom(seed: UInt64(i + 1) &* 977)
-            slotX.append(dockRect.minX + (cursor + weights[i] / 2 + rng.float(-0.08...0.08)) * unitWidth)
-            cursor += weights[i]
-            if i < count - 1 {
-                gapX.append(dockRect.minX + (cursor + gapWeight / 2) * unitWidth)
-                cursor += gapWeight
+            slotX.append(x + pumpkinWidths[i] / 2)
+            x += pumpkinWidths[i] + space
+            if i < gapKinds.count {
+                let w = decorWidths[i] * decorFit
+                gapX.append(x + w / 2)
+                x += w + space
             }
         }
     }
@@ -155,7 +186,6 @@ final class PumpkinScene: SKScene {
     private func rebuild() {
         removeAllActions()
         pumpkinLayer.removeAllChildren()
-        lightsLayer.removeAllChildren()
         effectsLayer.removeAllChildren()
         pumpkins.removeAll()
         hovered = nil
@@ -165,7 +195,6 @@ final class PumpkinScene: SKScene {
         }
         if Settings.cozyExtras {
             addDecorations()
-            addLights()
             scheduleSquirrel(first: true)
         }
         startFallingLeaves()
@@ -231,10 +260,8 @@ final class PumpkinScene: SKScene {
         magnifyStrength += ((onDock ? 1 : 0) - magnifyStrength) * (1 - exp(-CGFloat(dt) * 14))
         if magnifyStrength < 0.001 { magnifyStrength = 0 }
 
-        for layer in [lightsLayer, pumpkinLayer] {
-            for case let sprite as DockSprite in layer.children where !sprite.isDetached {
-                place(sprite)
-            }
+        for case let sprite as DockSprite in pumpkinLayer.children where !sprite.isDetached {
+            place(sprite)
         }
         warpVine()
     }
@@ -280,9 +307,7 @@ final class PumpkinScene: SKScene {
     // MARK: Pumpkins
 
     private func addPumpkin(slot: Int, grow: Bool) {
-        // Tall butternuts would tower over everything on top of a hay bale.
-        let kinds = slotPerch[slot] > 0 ? PumpkinKind.allCases.filter { $0.isRound && $0 != .littleGreen } : PumpkinKind.allCases
-        let kind = kinds.randomElement() ?? .roundOrange
+        let kind = slotKinds[slot]
         let variant = Int.random(in: 0..<6)
         let height = (pumpkinHeight * slotScale[slot]).rounded()
         let size = PumpkinArt.size(of: kind, height: height)
