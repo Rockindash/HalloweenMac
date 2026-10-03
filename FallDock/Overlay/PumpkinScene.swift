@@ -35,16 +35,13 @@ final class PumpkinScene: SKScene {
     private var slotX: [CGFloat] = []
     private var slotScale: [CGFloat] = []
     private var pumpkins: [Int: PumpkinNode] = [:]
-    private var frontVines: [Int: SKSpriteNode] = [:]
     private weak var hovered: PumpkinNode?
-    private var vineOrigin: CGPoint = .zero
 
     private let vineLayer = SKNode()
     private let pumpkinLayer = SKNode()
-    private let frontVineLayer = SKNode()
     private let effectsLayer = SKNode()
 
-    /// Size unit for the vine and its leaves: 1 for a typical 60 pt pumpkin.
+    /// Size unit for the vine: 1 for a typical 60 pt pumpkin.
     private var unit: CGFloat { pumpkinHeight / 60 }
     private let sound = SmashSound()
 
@@ -57,11 +54,9 @@ final class PumpkinScene: SKScene {
         physicsWorld.gravity = CGVector(dx: 0, dy: -6)
         vineLayer.zPosition = 1
         pumpkinLayer.zPosition = 2
-        frontVineLayer.zPosition = 15 // loops of vine in front of some pumpkins
         effectsLayer.zPosition = 20 // above every pumpkin (each has its own small zPosition)
         addChild(vineLayer)
         addChild(pumpkinLayer)
-        addChild(frontVineLayer)
         addChild(effectsLayer)
     }
 
@@ -100,17 +95,14 @@ final class PumpkinScene: SKScene {
                 pumpkin.run(.move(to: restingPosition(slot: slot), duration: 0.35), withKey: "move")
             }
             layoutVine()
-            layoutFrontVines()
         }
     }
 
     private func rebuild() {
         removeAllActions()
         pumpkinLayer.removeAllChildren()
-        frontVineLayer.removeAllChildren()
         effectsLayer.removeAllChildren()
         pumpkins.removeAll()
-        frontVines.removeAll()
         hovered = nil
         layoutVine()
         for slot in 0..<pumpkinCount {
@@ -125,59 +117,18 @@ final class PumpkinScene: SKScene {
         CGPoint(x: slotX[slot], y: dockRect.maxY - 3 - (1 - slotScale[slot]) * 5)
     }
 
-    /// A leafy vine running along the top of the Dock, behind the pumpkins.
+    /// A vine running along the top of the Dock, behind the pumpkins.
     private func layoutVine() {
         vineLayer.removeAllChildren()
         let k = unit
-        vineOrigin = CGPoint(x: dockRect.minX + 4, y: dockRect.maxY - 2 - VineArt.baseLevel(unit: k))
         guard Settings.showVines, dockRect.width > 40 else { return }
         let width = (dockRect.width - 8).rounded()
         let height = (pumpkinHeight * 1.25).rounded()
         let vine = SKSpriteNode(texture: VineArt.texture(width: width, height: height, seed: pumpkinCount, unit: k, scale: pixelScale),
                                 size: CGSize(width: width, height: height))
         vine.anchorPoint = .zero
-        vine.position = vineOrigin
+        vine.position = CGPoint(x: dockRect.minX + 4, y: dockRect.maxY - 2 - VineArt.baseLevel(unit: k))
         vineLayer.addChild(vine)
-    }
-
-    /// Height of the main vine's middle at scene x.
-    private func vineY(atSceneX x: CGFloat) -> CGFloat {
-        vineOrigin.y + VineArt.centerY(x: x - vineOrigin.x, unit: unit)
-    }
-
-    /// Bigger pumpkins in every other slot get a loop of vine across their front;
-    /// the vine runs behind all the others.
-    private func wantsFrontVine(slot: Int, kind: PumpkinKind) -> Bool {
-        Settings.showVines && slot % 2 == 0 && slotScale[slot] >= 0.84
-            && kind.look.shape != .butternut && kind != .littleGreen
-    }
-
-    private func addFrontVine(for pumpkin: PumpkinNode, height: CGFloat, variant: Int) {
-        frontVines[pumpkin.slot]?.removeFromParent()
-        frontVines[pumpkin.slot] = nil
-        guard wantsFrontVine(slot: pumpkin.slot, kind: pumpkin.kind) else { return }
-        let k = unit
-        let position = restingPosition(slot: pumpkin.slot)
-        let half = PumpkinArt.bodySize(of: pumpkin.kind, height: height).width * 0.62 * 1.06
-        let leftY = vineY(atSceneX: position.x - half) - position.y
-        let rightY = vineY(atSceneX: position.x + half) - position.y
-        let size = PumpkinArt.frontVineSize(kind: pumpkin.kind, height: height, unit: k)
-        let texture = PumpkinArt.frontVineTexture(kind: pumpkin.kind, height: height, variant: variant,
-                                                  flip: (pumpkin.slot / 2) % 2 == 1, leftY: leftY, rightY: rightY,
-                                                  unit: k, scale: pixelScale)
-        let node = SKSpriteNode(texture: texture, size: size)
-        node.anchorPoint = CGPoint(x: 0.5, y: PumpkinArt.frontVineBottomMargin(unit: k) / size.height)
-        node.position = position
-        frontVineLayer.addChild(node)
-        frontVines[pumpkin.slot] = node
-    }
-
-    private func layoutFrontVines() {
-        frontVineLayer.removeAllChildren()
-        frontVines.removeAll()
-        for (_, pumpkin) in pumpkins where !pumpkin.isSmashing {
-            addFrontVine(for: pumpkin, height: pumpkin.slotHeight, variant: pumpkin.variant)
-        }
     }
 
     // MARK: Pumpkins
@@ -213,11 +164,6 @@ final class PumpkinScene: SKScene {
 
         pumpkinLayer.addChild(pumpkin)
         pumpkins[slot] = pumpkin
-        addFrontVine(for: pumpkin, height: height, variant: variant)
-        if grow, let front = frontVines[slot] {
-            front.alpha = 0
-            front.run(.sequence([.wait(forDuration: 0.4), .fadeIn(withDuration: 0.3)]))
-        }
 
         if grow {
             pumpkin.setScale(0.05)
@@ -275,9 +221,6 @@ final class PumpkinScene: SKScene {
         guard !pumpkin.isSmashing else { return }
         pumpkin.isSmashing = true
         pumpkins[pumpkin.slot] = nil
-        if let front = frontVines.removeValue(forKey: pumpkin.slot) {
-            front.run(.sequence([.fadeOut(withDuration: 0.12), .removeFromParent()]))
-        }
         if hovered === pumpkin { hovered = nil }
         pumpkin.removeAllActions()
 
@@ -350,7 +293,7 @@ final class PumpkinScene: SKScene {
         // A couple of leaves that flutter out and drift down slowly.
         for i in 0..<2 {
             let kind = LeafKind.fallers.randomElement() ?? .oak
-            let s = (h * 0.42).rounded()
+            let s = (h * 0.26).rounded()
             let leaf = SKSpriteNode(texture: LeafArt.texture(kind, size: s, variant: i, scale: pixelScale),
                                     size: CGSize(width: s, height: s))
             launch(leaf, from: center, spread: 4,
@@ -410,7 +353,7 @@ final class PumpkinScene: SKScene {
         guard falling < 5 else { return }
 
         let kind = LeafKind.fallers.randomElement() ?? .oak
-        let s = (pumpkinHeight * CGFloat.random(in: 0.38...0.5)).rounded()
+        let s = (pumpkinHeight * CGFloat.random(in: 0.22...0.3)).rounded()
         let leaf = SKSpriteNode(texture: LeafArt.texture(kind, size: s, variant: Int.random(in: 0..<4), scale: pixelScale),
                                 size: CGSize(width: s, height: s))
         leaf.name = "falling-leaf"

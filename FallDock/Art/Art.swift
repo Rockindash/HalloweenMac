@@ -464,78 +464,6 @@ enum PumpkinArt {
         return texture
     }
 
-    // MARK: Vine wrapping in front of a pumpkin
-
-    /// How far below a pumpkin sprite's bottom the front-vine texture reaches.
-    static func frontVineBottomMargin(unit k: CGFloat) -> CGFloat { (10 * k).rounded() }
-
-    /// Size of the texture holding the piece of vine that loops across the front of a pumpkin.
-    static func frontVineSize(kind: PumpkinKind, height: CGFloat, unit k: CGFloat) -> CGSize {
-        let body = bodySize(of: kind, height: height)
-        let sprite = size(of: kind, height: height)
-        return CGSize(width: (body.width * 1.6 + 60 * k).rounded(), height: (sprite.height + frontVineBottomMargin(unit: k)).rounded())
-    }
-
-    /// The vine arcing up across the lower front of a pumpkin, with its shadow on the pumpkin,
-    /// a leaf and a curl. `leftY` and `rightY` are where the main vine runs, measured from the
-    /// pumpkin's bottom, so the loop joins it at both ends.
-    static func frontVineTexture(kind: PumpkinKind, height: CGFloat, variant: Int, flip: Bool,
-                                 leftY: CGFloat, rightY: CGFloat, unit k: CGFloat, scale: CGFloat) -> SKTexture {
-        let size = frontVineSize(kind: kind, height: height, unit: k)
-        let key = "front-\(kind)-\(Int(height))-\(variant)-\(flip)-\(Int(leftY * 2))-\(Int(rightY * 2))-\(scale)"
-        if let cached = cache[key] { return cached }
-        if cache.count > 300 { cache.removeAll() }
-        let body = bodySize(of: kind, height: height)
-        let margin = frontVineBottomMargin(unit: k)
-        let texture = TextureMaker.make(size: size, scale: scale) { ctx in
-            let cx = size.width / 2, base = margin + pad
-            let w = body.width, h = body.height
-            let half = w * 0.62
-            let x0 = cx - half * 1.06, x1 = cx + half * 1.06
-            func vineY(_ x: CGFloat) -> CGFloat {
-                let t = (x - x0) / (x1 - x0)
-                let level = margin + leftY + (rightY - leftY) * t
-                let u = (x - cx) / half
-                let bump = abs(u) < 1 ? h * 0.24 * pow(cos(u * .pi / 2), 2) : 0
-                return level + bump
-            }
-            let xs = stride(from: x0, through: x1, by: 2).map { $0 }
-            let points = xs.map { CGPoint(x: $0, y: vineY($0)) }
-            func widths(_ maxW: CGFloat) -> (CGFloat) -> CGFloat {
-                { t in
-                    let x = x0 + (x1 - x0) * t
-                    return maxW * (0.55 + 0.3 * sin(x / 31) * sin(x / 13) + 0.25 * sin(.pi * t))
-                }
-            }
-
-            // Shadow of the loop, only where it falls on the pumpkin.
-            ctx.saveGState()
-            ctx.addPath(silhouette(kind: kind, cx: cx, base: base, w: w, h: h))
-            ctx.clip()
-            ctx.translateBy(x: 1.5 * k, y: -4 * k)
-            ctx.addPath(Brush.outline(points, width: widths(7 * k)))
-            ctx.setFillColor(Palette.shadowInk.withAlpha(0.3))
-            ctx.fillPath()
-            ctx.restoreGState()
-
-            // The loop itself.
-            ctx.addPath(Brush.outline(points, width: widths(6 * k)))
-            ctx.setFillColor(Palette.green)
-            ctx.fillPath()
-
-            // A leaf and a curl riding on the loop.
-            let side: CGFloat = flip ? 1 : -1
-            let lx = cx + side * w * 0.18
-            LeafArt.drawWagonLeaf(ctx, kind: .serrated, at: CGPoint(x: lx + side * 14 * k, y: vineY(lx) + 10 * k),
-                                  length: 28 * k, angle: flip ? 35 : 145, flip: flip)
-            let tx = cx - side * w * 0.25
-            Brush.tendril(ctx, from: CGPoint(x: tx, y: vineY(tx)), dir: -side, size: 26 * k, color: Palette.green)
-            _ = variant
-        }
-        cache[key] = texture
-        return texture
-    }
-
     // MARK: Smash bits
 
     static func shardTexture(kind: PumpkinKind, size: CGFloat, variant: Int, scale: CGFloat) -> SKTexture {
@@ -714,9 +642,8 @@ enum LeafArt {
 
 // MARK: - Vines
 
-/// The leafy pumpkin vine that runs along the top of the Dock behind the pumpkins: a wavy main
-/// vine that swells and pinches, with leaves, curls and buds.
-/// The pieces that loop in front of pumpkins are drawn per pumpkin (see `PumpkinArt.frontVineTexture`).
+/// The pumpkin vine that runs along the top of the Dock behind the pumpkins: a wavy main
+/// vine that swells and pinches, with curls and buds and no leaves.
 enum VineArt {
     private static var cache: [String: SKTexture] = [:]
 
@@ -760,28 +687,12 @@ enum VineArt {
         let x0: CGFloat = 4, x1 = size.width - 4
         func vy(_ x: CGFloat) -> CGFloat { centerY(x: x, unit: k) }
 
-        // Leaves growing up from the vine, mostly green with a few autumn ones.
-        var x = x0 + rng.float(20...40) * k
-        var i = 0
-        while x < x1 - 20 * k {
-            let length = rng.float(34...44) * k
-            let up = i % 2 == 0
-            let angle = up ? rng.float(52...64) : rng.float(116...132)
-            let roll = rng.float(0...1)
-            let kind: LeafKind = roll < 0.72 ? .serrated : (roll < 0.86 ? .oak : .ovate)
-            let r = angle * .pi / 180
-            let center = CGPoint(x: x + cos(r) * length * 0.82, y: vy(x) + sin(r) * length * 0.82)
-            LeafArt.drawWagonLeaf(ctx, kind: kind, at: center, length: length, angle: angle, flip: i % 2 == 0)
-            x += rng.float(70...95) * k
-            i += 1
-        }
-
         // The main vine.
         taperedVine(ctx, from: x0, to: x1, maxWidth: 6 * k, color: Palette.green) { vy($0) }
 
         // Curly tendrils of mixed sizes.
-        x = x0 + rng.float(50...90) * k
-        i = 0
+        var x = x0 + rng.float(50...90) * k
+        var i = 0
         while x < x1 - 30 * k {
             Brush.tendril(ctx, from: CGPoint(x: x, y: vy(x)), dir: i % 2 == 0 ? 1 : -1, size: rng.float(24...42) * k,
                           color: Palette.green)

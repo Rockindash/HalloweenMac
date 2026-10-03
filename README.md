@@ -27,7 +27,7 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 ## The 🎃 menu
 
 - **Show Pumpkins**: hides or shows everything.
-- **Vines**: a leafy pumpkin vine with curls and buds along the Dock. It weaves behind most pumpkins and loops in front of a few.
+- **Vines**: a single pumpkin vine with curls and buds along the Dock, behind the pumpkins.
 - **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
 - **Number of Pumpkins**: A Few (5), Plenty (10) or Overflowing (13).
