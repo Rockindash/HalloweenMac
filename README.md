@@ -38,7 +38,7 @@ In Xcode choose **Product → Archive**, then **Distribute App → Custom → Co
 
 ## Halloween
 
-Pick **Halloween** as the season in the app window (or leave it on **Automatic**, which switches to Halloween from October 15th to November 1st):
+Keep **Halloween** all year in the app window, or rotate with **Everything** or **Festivals** (see [Themes](#themes)). Everything shows it from October 15th to November 1st:
 
 - The orange pumpkins become **jack-o'-lanterns** with glowing yellow carved faces: pointy eyes and a toothy grin, happy closed eyes, big round eyes, or a mischievous jagged smile. Their candles flicker, and flare up when you point at one. Smash one and assorted candy flies out, and a bat that was hiding inside flutters away. A few pale ghost pumpkins sit among them.
 - **Purple graveyard dirt** runs along the Dock instead of a vine, lumpy, with pebbles and tufts of grass, and **cobwebs** at both ends with a spider slowly lowering itself on its thread.
@@ -48,16 +48,30 @@ Pick **Halloween** as the season in the app window (or leave it on **Automatic**
 
 ![Halloween on the Dock](docs/halloween-preview.png)
 
+## Themes
+
+There are seasons (**Fall**, September 1st to November 30th) and festivals (**Halloween**, October 15th to November 1st). On the app window's Home page, the season menu at the top right of every page, or **Theme** in the 🎃 menu, choose:
+
+- **Everything**: the season, with festivals taking over while they're on (the default).
+- **Seasons**: just the seasons, following the calendar.
+- **Festivals**: just the festivals: the one that's on, or else the next one coming up.
+- **Keep one theme**: any single season or festival, all year round.
+
+Each theme is a case of `Settings.Theme` with a kind (season or festival) and a window in the calendar, so adding one makes it part of the right rotations.
+
 ## The app window
 
 Open **Fall Dock** from your Applications folder (or choose **Open Fall Dock…** from the 🎃 menu) for the app's own window.
 While it's open, Fall Dock shows in the Dock and the app switcher like any app; close it and it goes back to living in the menu bar.
 When Fall Dock starts by itself at login, the window stays closed.
 
-- **General**: a live little harvest on a pretend Dock (click its pumpkins to smash them), your smash count and what's on your Dock, and big buttons to show or hide the harvest, pause it for an hour, or grow new pumpkins.
-- **Settings**: open at login, show or hide the 🎃 in the menu bar, the smash sound, Reduce Motion, and privacy.
+A sidebar of pages, with the app's status at the top and **Show on Dock** and **Pause** at the bottom:
+
+- **Home**: a live little harvest on a pretend Dock (click things to play), big picture cards to pick the theme, your smash count and what's on your Dock, and quick actions.
+- **Fall** or **Halloween**: the current theme's own page, with a preview, the vine or dirt, falling leaves or bats, and a picture tile for each extra to switch it on or off.
 - **Dock**: what Fall Dock sees of your Dock (position, auto-hide, icon size, magnification, its length and whether that's measured or estimated), the Accessibility permission for an exact fit, and how full the harvest is.
-- **Fall** or **Halloween**: the current season's own tab, with a preview, the vine, falling leaves and cozy extras, and a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. As more seasons arrive, this tab follows the one you pick.
+- **Settings**: open at login, show or hide the 🎃 in the menu bar, the smash sound, Reduce Motion, and privacy.
+- **About**: the version, and the welcome window.
 
 ## The 🎃 menu
 
@@ -94,8 +108,9 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `App/AppModel.swift` | What the menu shows and changes |
 | `App/Settings.swift` | Remembers your menu choices |
 | `App/Welcome.swift` | The welcome window shown on first launch |
-| `App/MainWindow.swift` | The app window and its toolbar tabs |
-| `App/MainTabs.swift` | The General, Settings, Dock and season tabs |
+| `App/MainWindow.swift` | The app window |
+| `App/MainView.swift` | The window's sidebar, Home and About pages, and the theme pickers |
+| `App/MainTabs.swift` | The building blocks, and the theme, Dock and Settings pages |
 | `Overlay/DockLocator.swift` | Works out where the Dock is, which display it's on and whether it's showing |
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |

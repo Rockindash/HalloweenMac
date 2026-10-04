@@ -172,28 +172,74 @@ private struct TopBar: View {
     }
 }
 
-/// A menu showing the current season, to switch it from anywhere in the window.
+/// A menu showing the current theme, to switch it from anywhere in the window.
 struct SeasonSwitcher: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
         Menu {
-            Picker("Season", selection: $model.themeChoice.animation()) {
-                ForEach(Settings.ThemeChoice.allCases, id: \.self) { choice in
-                    Label(choice.title, systemImage: choice.symbol).tag(choice)
-                }
-            }
-            .pickerStyle(.inline)
+            ThemeChoiceItems(model: model)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: model.theme.symbol)
-                Text(model.themeChoice == .automatic ? "\(model.theme.title) · Auto" : model.theme.title)
-                    .fontWeight(.semibold)
+                Text(model.theme.title).fontWeight(.semibold)
+                if case let .rotate(rotation) = model.themeChoice {
+                    Text("· \(rotation.title)").foregroundStyle(.secondary)
+                }
             }
         }
         .menuStyle(.borderedButton)
         .fixedSize()
-        .help("Choose the season on your Dock")
+        .help("Choose what's on your Dock")
+    }
+}
+
+/// The theme choices as checkmarked menu items, grouped into rotations and single themes.
+/// Used by the window's switcher and the 🎃 menu.
+struct ThemeChoiceItems: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        Section("Rotate with the Calendar") {
+            ForEach(Settings.ThemeChoice.Rotation.allCases, id: \.self) { item(.rotate($0)) }
+        }
+        Section("Keep One Theme") {
+            ForEach(Settings.Theme.allCases, id: \.self) { item(.keep($0)) }
+        }
+    }
+
+    private func item(_ choice: Settings.ThemeChoice) -> some View {
+        Toggle(isOn: Binding(get: { model.themeChoice == choice },
+                             set: { if $0 { withAnimation { model.themeChoice = choice } } })) {
+            if case let .rotate(rotation) = choice {
+                Text("\(rotation.title) (now \(rotation.theme(on: Date()).title))")
+            } else {
+                Text(choice.title)
+            }
+        }
+    }
+}
+
+/// Words for when themes change.
+enum ThemeSchedule {
+    static func day(_ date: Date) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    /// "Halloween on Oct 15", or nil when it never changes.
+    static func next(_ choice: Settings.ThemeChoice) -> String? {
+        guard case let .rotate(rotation) = choice, let next = rotation.next(after: Date()) else { return nil }
+        return "\(next.theme.title) on \(day(next.date))"
+    }
+
+    /// When a theme is on in the calendar, like "Oct 15 – Nov 1".
+    static func window(_ theme: Settings.Theme) -> String {
+        let w = theme.window
+        func date(_ md: (Int, Int)) -> String {
+            let d = Calendar.current.date(from: DateComponents(year: 2001, month: md.0, day: md.1)) ?? Date()
+            return day(d)
+        }
+        return "\(date(w.start)) – \(date(w.end))"
     }
 }
 
@@ -241,22 +287,33 @@ struct HomePage: View {
                 }
                 .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
 
-            section("Season", "Choose what grows on your Dock. Automatic follows the calendar.") {
-                HStack(spacing: 12) {
-                    ForEach(Settings.ThemeChoice.allCases, id: \.self) { choice in
-                        SeasonCard(choice: choice, isSelected: model.themeChoice == choice) {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { model.themeChoice = choice }
-                        }
+            section("Theme", "Rotate through the year with the calendar, or keep one theme all year round.") {
+                groupLabel("Rotate with the calendar", symbol: "arrow.triangle.2.circlepath")
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(Settings.ThemeChoice.Rotation.allCases, id: \.self) { card(.rotate($0)) }
+                }
+                groupLabel("Keep one theme", symbol: "pin.fill")
+                    .padding(.top, 6)
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(Settings.Theme.allCases, id: \.self) { card(.keep($0)) }
+                }
+                HStack(spacing: 14) {
+                    Label(ThemeSchedule.next(model.themeChoice).map { "Now \(model.theme.title), then \($0)" }
+                              ?? "\(model.theme.title) all year round",
+                          systemImage: "clock")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        openSeason()
+                    } label: {
+                        Label("Customize \(model.theme.title)", systemImage: "slider.horizontal.3")
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.pumpkin)
+                    .font(.callout.weight(.semibold))
                 }
-                Button {
-                    openSeason()
-                } label: {
-                    Label("Customize \(model.theme.title)", systemImage: "slider.horizontal.3")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.pumpkin)
-                .font(.callout.weight(.semibold))
+                .font(.callout)
+                .padding(.top, 2)
             }
 
             section("At a glance", nil) {
@@ -283,6 +340,21 @@ struct HomePage: View {
         .onReceive(tick) { _ in dock = model.dockStatus }
     }
 
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+
+    private func card(_ choice: Settings.ThemeChoice) -> some View {
+        SeasonCard(choice: choice, isSelected: model.themeChoice == choice) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { model.themeChoice = choice }
+        }
+    }
+
+    private func groupLabel(_ title: String, symbol: String) -> some View {
+        Label(title.uppercased(), systemImage: symbol)
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.6)
+            .foregroundStyle(.secondary)
+    }
+
     private func section<Content: View>(_ title: String, _ subtitle: String?, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
@@ -303,20 +375,29 @@ struct SeasonCard: View {
     var action: () -> Void
     @State private var hovering = false
 
-    /// The season the card shows a picture of (Automatic shows today's).
-    private var theme: Settings.Theme {
-        switch choice {
-        case .automatic: return Settings.Theme.forDate(Date())
-        case .fall: return .fall
-        case .halloween: return .halloween
-        }
-    }
+    /// The theme the card shows a picture of (a rotation shows today's).
+    private var theme: Settings.Theme { choice.theme(on: Date()) }
 
     private var subtitle: String {
         switch choice {
-        case .automatic: return "\(theme.title) now, changing with the calendar"
-        case .fall: return "Pumpkins, hay and falling leaves"
-        case .halloween: return "Jack-o'-lanterns, candy and a ghost"
+        case let .rotate(rotation): return rotation.detail
+        case let .keep(theme): return theme.subtitle
+        }
+    }
+
+    /// What the badge on the picture says.
+    private var badge: (text: String, symbol: String) {
+        switch choice {
+        case .rotate: return ("Now \(theme.title)", "calendar")
+        case let .keep(theme): return theme.kind == .festival ? ("Festival", "sparkles") : ("Season", "leaf")
+        }
+    }
+
+    /// The small print: what comes next, or when the theme is on in the calendar.
+    private var footnote: String {
+        switch choice {
+        case .rotate: return ThemeSchedule.next(choice).map { "Next: \($0)" } ?? "Just \(theme.title) so far, more coming soon"
+        case let .keep(theme): return "All year (usually \(ThemeSchedule.window(theme)))"
         }
     }
 
@@ -333,15 +414,13 @@ struct SeasonCard: View {
                     }
                     .clipped()
                     .overlay(alignment: .topLeading) {
-                        if choice == .automatic {
-                            Label("Auto", systemImage: "calendar")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(.black.opacity(0.35)))
-                                .padding(8)
-                        }
+                        Label(badge.text, systemImage: badge.symbol)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(.black.opacity(0.35)))
+                            .padding(8)
                     }
                     .overlay(alignment: .topTrailing) {
                         if isSelected {
@@ -360,6 +439,11 @@ struct SeasonCard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2, reservesSpace: true)
+                    Text(footnote)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(isSelected ? Color.pumpkin : Color.secondary)
+                        .lineLimit(1)
+                        .padding(.top, 2)
                 }
                 .padding(10)
             }
@@ -374,7 +458,7 @@ struct SeasonCard: View {
         }
         .buttonStyle(PressableStyle())
         .onHover { hovering = $0 }
-        .help(choice == .automatic ? "Fall now, Halloween from October 15th to November 1st" : "Show \(choice.title) on your Dock")
+        .help(choice.isRotating ? "\(choice.title): \(subtitle.lowercased())" : "Keep \(choice.title) on your Dock all year")
     }
 }
 

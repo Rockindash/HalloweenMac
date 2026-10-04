@@ -39,7 +39,7 @@ enum Settings {
             Key.squirrel: true,
             Key.bats: true,
             Key.ghost: true,
-            Key.theme: ThemeChoice.automatic.rawValue,
+            Key.theme: ThemeChoice.rotate(.everything).rawValue,
             Key.showMenuBarIcon: true,
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
@@ -206,47 +206,184 @@ enum Settings {
         var extrasTitle: String { self == .halloween ? "Spooky extras" : "Cozy extras" }
         var visitorTitle: String { self == .halloween ? "Ghost" : "Squirrel" }
 
-        /// The season for a date when the choice is Automatic: Halloween from mid-October to
-        /// November 1st, fall the rest of the time (for now).
-        static func forDate(_ date: Date) -> Theme {
-            let day = Calendar.current.dateComponents([.month, .day], from: date)
-            if (day.month == 10 && (day.day ?? 0) >= 15) || (day.month == 11 && day.day == 1) { return .halloween }
-            return .fall
+        /// Seasons fill the year; festivals are short and take over the Dock while they're on.
+        enum Kind { case season, festival }
+
+        var kind: Kind {
+            switch self {
+            case .fall: return .season
+            case .halloween: return .festival
+            }
         }
+
+        /// When it's on, as (month, day) pairs, both days included.
+        var window: (start: (Int, Int), end: (Int, Int)) {
+            switch self {
+            case .fall: return ((9, 1), (11, 30))
+            case .halloween: return ((10, 15), (11, 1))
+            }
+        }
+
+        private var startDay: Int { Date.dayOfYear(window.start.0, window.start.1) }
+        private var endDay: Int { Date.dayOfYear(window.end.0, window.end.1) }
+
+        func isOn(_ date: Date) -> Bool {
+            let today = date.dayOfYear
+            return startDay <= endDay ? (startDay...endDay).contains(today) : today >= startDay || today <= endDay
+        }
+
+        /// Days from `date` back to the most recent day it was on (0 while it's on).
+        func daysSinceOn(_ date: Date) -> Int {
+            isOn(date) ? 0 : (date.dayOfYear - endDay + 365) % 365
+        }
+
+        /// Days from `date` to the next day it's on (0 while it's on).
+        func daysUntilOn(_ date: Date) -> Int {
+            isOn(date) ? 0 : (startDay - date.dayOfYear + 365) % 365
+        }
+
+        static func all(_ kind: Kind) -> [Theme] { allCases.filter { $0.kind == kind } }
     }
 
-    /// The season picked in the app window: one season, or Automatic to follow the calendar.
-    enum ThemeChoice: String, CaseIterable {
-        case automatic, fall, halloween
+    /// How the Dock picks its theme: rotating through the calendar, or keeping one theme all year.
+    enum ThemeChoice: Hashable {
+        case rotate(Rotation)
+        case keep(Theme)
+
+        /// What rotates.
+        enum Rotation: String, CaseIterable {
+            /// Festivals while they're on, the season the rest of the time. Saved as "automatic", what
+            /// it was called before the other rotations.
+            case everything = "automatic"
+            /// Just the seasons, following the calendar.
+            case seasons
+            /// Just the festivals: the one that's on, or else the next one coming up.
+            case festivals
+
+            var title: String {
+                switch self {
+                case .everything: return "Everything"
+                case .seasons: return "Seasons"
+                case .festivals: return "Festivals"
+                }
+            }
+
+            var symbol: String {
+                switch self {
+                case .everything: return "calendar"
+                case .seasons: return "leaf.arrow.triangle.circlepath"
+                case .festivals: return "party.popper.fill"
+                }
+            }
+
+            var detail: String {
+                switch self {
+                case .everything: return "Seasons, with festivals when they come around"
+                case .seasons: return "Follows the seasons, no festivals"
+                case .festivals: return "Always the next festival, never a plain season"
+                }
+            }
+
+            /// The themes it goes through, in calendar order.
+            var themes: [Theme] {
+                let all: [Theme]
+                switch self {
+                case .everything: all = Theme.allCases
+                case .seasons: all = Theme.all(.season)
+                case .festivals: all = Theme.all(.festival)
+                }
+                return all.sorted { Date.dayOfYear($0.window.start.0, $0.window.start.1) < Date.dayOfYear($1.window.start.0, $1.window.start.1) }
+            }
+
+            func theme(on date: Date) -> Theme {
+                let festival = Theme.all(.festival).first { $0.isOn(date) }
+                // The season that's on, or else the one that ended most recently.
+                let season = Theme.all(.season).min { $0.daysSinceOn(date) < $1.daysSinceOn(date) } ?? .fall
+                switch self {
+                case .everything: return festival ?? season
+                case .seasons: return season
+                case .festivals:
+                    return Theme.all(.festival).min { $0.daysUntilOn(date) < $1.daysUntilOn(date) } ?? season
+                }
+            }
+
+            /// The next time the theme changes, and to what (nil if it never does).
+            func next(after date: Date) -> (theme: Theme, date: Date)? {
+                let now = theme(on: date)
+                for days in 1...366 {
+                    let day = date.addingDays(days)
+                    let theme = theme(on: day)
+                    if theme != now { return (theme, Calendar.current.startOfDay(for: day)) }
+                }
+                return nil
+            }
+        }
+
+        /// The rotations first, then each theme on its own.
+        static var allCases: [ThemeChoice] { Rotation.allCases.map(rotate) + Theme.allCases.map(keep) }
+
+        var rawValue: String {
+            switch self {
+            case let .rotate(rotation): return rotation.rawValue
+            case let .keep(theme): return theme.rawValue
+            }
+        }
+
+        init?(rawValue: String) {
+            if let rotation = Rotation(rawValue: rawValue) { self = .rotate(rotation) }
+            else if let theme = Theme(rawValue: rawValue) { self = .keep(theme) }
+            else { return nil }
+        }
 
         var title: String {
             switch self {
-            case .automatic: return "Automatic"
-            case .fall: return Theme.fall.title
-            case .halloween: return Theme.halloween.title
+            case let .rotate(rotation): return rotation.title
+            case let .keep(theme): return theme.title
             }
         }
 
         var symbol: String {
             switch self {
-            case .automatic: return "calendar"
-            case .fall: return Theme.fall.symbol
-            case .halloween: return Theme.halloween.symbol
+            case let .rotate(rotation): return rotation.symbol
+            case let .keep(theme): return theme.symbol
+            }
+        }
+
+        var isRotating: Bool { if case .rotate = self { return true } else { return false } }
+
+        func theme(on date: Date) -> Theme {
+            switch self {
+            case let .rotate(rotation): return rotation.theme(on: date)
+            case let .keep(theme): return theme
             }
         }
     }
 
     static var themeChoice: ThemeChoice {
-        get { defaults.string(forKey: Key.theme).flatMap(ThemeChoice.init(rawValue:)) ?? .automatic }
+        get { defaults.string(forKey: Key.theme).flatMap(ThemeChoice.init(rawValue:)) ?? .rotate(.everything) }
         set { defaults.set(newValue.rawValue, forKey: Key.theme) }
     }
 
     /// The season on the Dock right now.
     static var theme: Theme {
-        switch themeChoice {
-        case .automatic: return Theme.forDate(Date())
-        case .fall: return .fall
-        case .halloween: return .halloween
-        }
+        themeChoice.theme(on: Date())
+    }
+}
+
+extension Date {
+    /// Day of a 365-day year (February 29th counts as March 1st), so dates compare the same every year.
+    static func dayOfYear(_ month: Int, _ day: Int) -> Int {
+        let starts = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+        let month = min(max(month, 1), 12)
+        return min(starts[month - 1] + day, 365)
+    }
+
+    var dayOfYear: Int {
+        let day = Calendar.current.dateComponents([.month, .day], from: self)
+        return Date.dayOfYear(day.month ?? 1, day.day ?? 1)
+    }
+
+    func addingDays(_ days: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: days, to: self) ?? self
     }
 }

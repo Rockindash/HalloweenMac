@@ -14,10 +14,8 @@ struct MenuContent: View {
 
         Divider()
 
-        Picker("Season", selection: $model.themeChoice) {
-            ForEach(Settings.ThemeChoice.allCases, id: \.self) { choice in
-                Text(choice == .automatic ? "Automatic (\(Settings.Theme.forDate(Date()).title))" : choice.title).tag(choice)
-            }
+        Menu("Theme: \(model.theme.title)") {
+            ThemeChoiceItems(model: model)
         }
 
         Divider()
