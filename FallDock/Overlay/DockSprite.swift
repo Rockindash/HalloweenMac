@@ -125,7 +125,7 @@ final class DecorNode: DockSprite {
         fatalError("init(coder:) is not used")
     }
 
-    override var isInteractive: Bool { kind != .hayBale && !isScattered }
+    override var isInteractive: Bool { !isScattered }
 }
 
 /// The squirrel that drops by now and then.

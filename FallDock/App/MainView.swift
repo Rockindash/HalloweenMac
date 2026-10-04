@@ -1,222 +1,395 @@
 import AppKit
 import SwiftUI
 
-// The app window: a sidebar of pages (like System Settings), a top bar with the season switcher on
-// every page, and the pages themselves. The building blocks (cards, tiles, the live harvest) and the
-// Dock, Settings and season pages are in MainTabs.swift.
+// The app window: three tabs at the top, like the settings of most Mac utilities.
+// Home answers "is it on?" and "which theme?", Customize picks what grows, and Settings holds
+// everything else. The building blocks (cards, tiles, the live harvest) and the Customize page
+// are in MainTabs.swift.
 
 enum Page: String, CaseIterable, Identifiable {
-    case home, season, dock, settings, about
+    case home, customize, settings
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .home: return "Home"
+        case .customize: return "Customize"
+        case .settings: return "Settings"
+        }
+    }
 }
 
 struct MainView: View {
     @ObservedObject var model: AppModel
     @AppStorage("mainWindowPage") private var pageName = Page.home.rawValue
 
-    private var page: Page { Page(rawValue: pageName) ?? .home }
-
-    var body: some View {
-        NavigationSplitView {
-            Sidebar(model: model, selection: Binding(get: { page }, set: { pageName = ($0 ?? .home).rawValue }))
-                .navigationSplitViewColumnWidth(min: 210, ideal: 220, max: 260)
-        } detail: {
-            VStack(spacing: 0) {
-                TopBar(model: model, page: page)
-                Divider()
-                ScrollView {
-                    pageContent
-                        .frame(maxWidth: 640)
-                        .frame(maxWidth: .infinity)
-                }
-                .id(page)
-            }
-            .background(Color(nsColor: .windowBackgroundColor))
-        }
-        .tint(.pumpkin)
-        .frame(minWidth: 820, minHeight: 600)
+    private var page: Binding<Page> {
+        Binding(get: { Page(rawValue: pageName) ?? .home }, set: { pageName = $0.rawValue })
     }
 
-    @ViewBuilder private var pageContent: some View {
-        switch page {
-        case .home: HomePage(model: model) { pageName = Page.season.rawValue }
-        case .season: ThemeTab(model: model)
-        case .dock: DockTab(model: model)
-        case .settings: SettingsTab(model: model)
-        case .about: AboutPage(model: model)
+    var body: some View {
+        VStack(spacing: 0) {
+            // In the title bar, between the window's buttons and the edge.
+            Picker("", selection: page) {
+                ForEach(Page.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            Divider()
+            ScrollView {
+                Group {
+                    switch page.wrappedValue {
+                    case .home: HomePage(model: model) { pageName = Page.customize.rawValue }
+                    case .customize: ThemeTab(model: model)
+                    case .settings: SettingsPage(model: model)
+                    }
+                }
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
+            }
+            .id(page.wrappedValue)
+        }
+        .ignoresSafeArea(.container, edges: .top)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .tint(.pumpkin)
+        .frame(minWidth: 620, minHeight: 560)
+    }
+}
+
+// MARK: - Home
+
+struct HomePage: View {
+    @ObservedObject var model: AppModel
+    var openCustomize: () -> Void
+
+    private var greeting: String {
+        switch Calendar.current.component(.hour, from: Date()) {
+        case 5..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        default: return "Good evening"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            LiveHarvestView(model: model, height: 220)
+                .overlay(alignment: .topLeading) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(greeting)
+                            .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        Text(model.theme == .halloween ? "Something spooky is growing on your Dock. Try clicking things!"
+                                                       : "The harvest is in on your Dock. Try clicking things!")
+                            .font(.callout.weight(.medium))
+                            .opacity(0.85)
+                    }
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
+                    .padding(18)
+                }
+                .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
+
+            OnOffCard(model: model)
+            ThemeCard(model: model, openCustomize: openCustomize)
+        }
+        .padding(24)
+    }
+}
+
+/// Is the harvest on the Dock? The one switch most people need.
+private struct OnOffCard: View {
+    @ObservedObject var model: AppModel
+
+    private var isShowing: Bool { model.showPumpkins && !model.isPaused }
+
+    private var status: String {
+        if !model.showPumpkins { return "Hidden. Switch it on to bring the harvest back." }
+        if model.isPaused { return "Paused for an hour, then it comes back by itself." }
+        return model.smashCount > 0 ? "Growing on your Dock · \(model.smashCount) smashed so far" : "Growing on your Dock"
+    }
+
+    var body: some View {
+        Card(title: nil) {
+            SettingRow(symbol: isShowing ? "eye.fill" : "eye.slash.fill", color: isShowing ? .green : .gray,
+                       title: "Show on Dock", detail: status) {
+                HStack(spacing: 10) {
+                    if model.showPumpkins {
+                        Button(model.isPaused ? "Resume" : "Pause for an Hour") {
+                            withAnimation { model.isPaused ? model.resume() : model.pauseForAnHour() }
+                        }
+                        Button {
+                            model.regrow()
+                        } label: {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                        }
+                        .help("Grow a new harvest")
+                        .disabled(model.isPaused)
+                    }
+                    Toggle("", isOn: $model.showPumpkins.animation()).labelsHidden().toggleStyle(.switch)
+                }
+            }
         }
     }
 }
 
-// MARK: - Sidebar
-
-private struct Sidebar: View {
+/// Which theme is on the Dock: pick one, or let it change with the calendar.
+private struct ThemeCard: View {
     @ObservedObject var model: AppModel
-    @Binding var selection: Page?
+    var openCustomize: () -> Void
+    private let columns = [GridItem(.adaptive(minimum: 190), spacing: 12)]
+
+    private var rotation: Settings.ThemeChoice.Rotation? {
+        if case let .rotate(rotation) = model.themeChoice { return rotation }
+        return nil
+    }
+
+    private var followsCalendar: Binding<Bool> {
+        Binding(get: { rotation != nil }, set: { on in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                model.themeChoice = on ? .rotate(.everything) : .keep(model.theme)
+            }
+        })
+    }
+
+    private var summary: String {
+        guard rotation != nil else { return "\(model.theme.title) stays on your Dock all year." }
+        return ThemeSchedule.next(model.themeChoice).map { "\(model.theme.title) now, then \($0)." }
+            ?? "\(model.theme.title) now. More themes are on the way."
+    }
 
     var body: some View {
-        List(selection: $selection) {
-            Section {
-                row(.home, "Home", "house.fill", .pumpkin)
-                row(.season, model.theme.title, model.theme.symbol, model.theme == .halloween ? .purple : .harvestRust)
+        Card(title: nil) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Theme").font(.headline)
+                    Text(summary).font(.callout).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Toggle("Change with the calendar", isOn: followsCalendar)
+                    .toggleStyle(.switch)
             }
-            Section("Setup") {
-                row(.dock, "Dock", "dock.rectangle", .blue)
-                row(.settings, "Settings", "gearshape.fill", .gray)
+
+            if let rotation {
+                Picker("", selection: Binding(get: { rotation }, set: { new in withAnimation { model.themeChoice = .rotate(new) } })) {
+                    ForEach(Settings.ThemeChoice.Rotation.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
-            Section {
-                row(.about, "About", "info.circle.fill", .harvestGreen)
+
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Settings.Theme.allCases, id: \.self) { theme in
+                    ThemeTile(theme: theme, isOn: model.theme == theme, followsCalendar: rotation != nil,
+                              isIncluded: rotation?.themes.contains(theme) ?? true) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { model.themeChoice = .keep(theme) }
+                    }
+                }
+            }
+
+            HStack {
+                Text(rotation == nil ? "Click a theme to put it on your Dock." : "Click a theme to keep it on all year instead.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    openCustomize()
+                } label: {
+                    Label("Customize \(model.theme.title)", systemImage: "slider.horizontal.3")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.pumpkin)
+                .font(.callout.weight(.semibold))
             }
         }
-        .listStyle(.sidebar)
-        .safeAreaInset(edge: .top, spacing: 0) { header }
-        .safeAreaInset(edge: .bottom, spacing: 0) { footer }
     }
+}
 
-    private func row(_ page: Page, _ title: String, _ symbol: String, _ color: Color) -> some View {
-        Label {
-            Text(title)
-        } icon: {
-            Image(systemName: symbol)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 22, height: 22)
-                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(color.gradient))
-        }
-        .tag(page)
-    }
+/// A theme, as a picture card.
+struct ThemeTile: View {
+    var theme: Settings.Theme
+    /// It's the one on the Dock now.
+    var isOn: Bool
+    var followsCalendar: Bool
+    /// Part of the calendar rotation (always true when keeping one theme).
+    var isIncluded: Bool
+    var action: () -> Void
+    @State private var hovering = false
 
-    private var status: (text: String, color: Color) {
-        if !model.showPumpkins { return ("Hidden", .gray) }
-        if model.isPaused { return ("Paused for an hour", .yellow) }
-        return ("Growing on your Dock", .green)
-    }
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 40, height: 40)
-                .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Fall Dock")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                HStack(spacing: 5) {
-                    Circle().fill(status.color).frame(width: 6, height: 6)
-                    Text(status.text)
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 0) {
+                Color.clear
+                    .frame(height: 96)
+                    .frame(maxWidth: .infinity)
+                    .overlay {
+                        Image(nsImage: ThemePreview.image(for: theme))
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                    .clipped()
+                    .overlay(alignment: .topTrailing) {
+                        if isOn {
+                            HStack(spacing: 4) {
+                                if followsCalendar { Text("NOW").font(.caption2.weight(.heavy)) }
+                                Image(systemName: "checkmark").font(.system(size: 10, weight: .heavy))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(Color.pumpkin))
+                            .padding(8)
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(theme.title, systemImage: theme.symbol)
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("\(theme.kind == .festival ? "Festival" : "Season") · \(ThemeSchedule.window(theme))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .padding(10)
             }
-            Spacer()
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.quaternary.opacity(0.45)))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(isOn ? Color.pumpkin : Color.secondary.opacity(0.2), lineWidth: isOn ? 2.5 : 1))
+            .opacity(isIncluded || isOn ? 1 : 0.5)
+            .shadow(color: .black.opacity(hovering ? 0.18 : 0.05), radius: hovering ? 8 : 3, y: hovering ? 3 : 1)
+            .scaleEffect(hovering ? 1.015 : 1)
+            .animation(.easeOut(duration: 0.15), value: hovering)
+            .contentShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 6)
-        .padding(.bottom, 10)
-    }
-
-    private var footer: some View {
-        VStack(spacing: 10) {
-            Divider()
-            Toggle(isOn: $model.showPumpkins.animation()) {
-                Label("Show on Dock", systemImage: "eye")
-            }
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            Button {
-                withAnimation { model.isPaused ? model.resume() : model.pauseForAnHour() }
-            } label: {
-                Label(model.isPaused ? "Resume" : "Pause for 1 Hour", systemImage: model.isPaused ? "play.fill" : "pause.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .controlSize(.regular)
-            .disabled(!model.showPumpkins)
-        }
-        .padding(.horizontal, 14)
-        .padding(.bottom, 14)
+        .buttonStyle(PressableStyle())
+        .onHover { hovering = $0 }
+        .help(isIncluded ? "Keep \(theme.title) on your Dock all year" : "Not part of this rotation. Click to keep \(theme.title) on instead.")
     }
 }
 
-// MARK: - Top bar
+// MARK: - Settings
 
-/// The page's title, and the season switcher on the right, on every page.
-private struct TopBar: View {
+struct SettingsPage: View {
     @ObservedObject var model: AppModel
-    var page: Page
+    @State private var hasAccessibility = DockLocator.hasAccessibility
+    @State private var dockAtBottom = SettingsPage.isDockAtBottom
+    private let tick = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
-    private var title: (String, String) {
-        switch page {
-        case .home: return ("Home", "Your harvest at a glance")
-        case .season: return (model.theme.title, "What grows on your Dock this season")
-        case .dock: return ("Dock", "How the harvest fits your Dock")
-        case .settings: return ("Settings", "Startup, sound and privacy")
-        case .about: return ("About", "Fall Dock \(AboutPage.version)")
-        }
+    private static var isDockAtBottom: Bool {
+        (UserDefaults(suiteName: "com.apple.dock")?.string(forKey: "orientation") ?? "bottom") == "bottom"
+    }
+
+    static var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
     }
 
     var body: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title.0)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                Text(title.1)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+        VStack(spacing: 16) {
+            Card(title: "General") {
+                SettingRow(symbol: "power", color: .green, title: "Open at login",
+                           detail: "Starts quietly, with the harvest already on your Dock.") {
+                    Toggle("", isOn: $model.openAtLogin).labelsHidden().toggleStyle(.switch)
+                }
+                Divider()
+                SettingRow(symbol: "menubar.rectangle", color: .pumpkin, title: "Show 🎃 in the menu bar",
+                           detail: model.showMenuBarIcon ? "Quick controls, one click away." : "To come back here, open Fall Dock from Applications.") {
+                    Toggle("", isOn: $model.showMenuBarIcon).labelsHidden().toggleStyle(.switch)
+                }
+                Divider()
+                SettingRow(symbol: "speaker.wave.2.fill", color: .pink, title: "Sounds",
+                           detail: "Smashing pumpkins, and the cat's meow.") {
+                    Toggle("", isOn: $model.sound).labelsHidden().toggleStyle(.switch)
+                }
             }
-            Spacer()
-            SeasonSwitcher(model: model)
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 14)
-        .padding(.bottom, 12)
-    }
-}
 
-/// A menu showing the current theme, to switch it from anywhere in the window.
-struct SeasonSwitcher: View {
-    @ObservedObject var model: AppModel
+            Card(title: "Dock") {
+                SettingRow(symbol: "square.grid.3x1.below.line.grid.1x2", color: .harvestGreen, title: "How full",
+                           detail: "Everything stays the same size. A longer Dock fits more.") {
+                    Picker("", selection: $model.fullness) {
+                        ForEach(Settings.Fullness.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                }
+                Divider()
+                if hasAccessibility {
+                    SettingRow(symbol: "ruler.fill", color: .blue, title: "Fits your Dock exactly",
+                               detail: "Fall Dock measures your Dock, so everything lines up.") {
+                        Button("Measure Again") { model.remeasure() }
+                    }
+                } else {
+                    SettingRow(symbol: "ruler.fill", color: .harvestMustard, title: "Fit your Dock exactly",
+                               detail: "The Dock's size is estimated for now. Allow Accessibility to measure it. Fall Dock only reads its size.") {
+                        Button("Allow…") { DockLocator.requestAccessibility() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                if !dockAtBottom {
+                    Divider()
+                    SettingRow(symbol: "exclamationmark.triangle.fill", color: .orange, title: "Your Dock is on the side",
+                               detail: "The harvest only grows on a Dock at the bottom of the screen.") {
+                        Button("Dock Settings…") { openDockSettings() }
+                    }
+                }
+            }
 
-    var body: some View {
-        Menu {
-            ThemeChoiceItems(model: model)
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: model.theme.symbol)
-                Text(model.theme.title).fontWeight(.semibold)
-                if case let .rotate(rotation) = model.themeChoice {
-                    Text("· \(rotation.title)").foregroundStyle(.secondary)
+            Card(title: "About") {
+                HStack(spacing: 12) {
+                    Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 44, height: 44)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Fall Dock \(Self.version)").font(.headline)
+                        Text("Drawn and voiced in code. Nothing leaves your Mac.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                HStack {
+                    Button("Show Welcome") { model.showWelcome() }
+                    Button("Reset Smash Count") { model.resetSmashCount() }
+                        .disabled(model.smashCount == 0)
+                    Spacer()
+                    Button("Quit Fall Dock") { NSApp.terminate(nil) }
                 }
             }
         }
-        .menuStyle(.borderedButton)
-        .fixedSize()
-        .help("Choose what's on your Dock")
+        .padding(24)
+        .onReceive(tick) { _ in refresh() }
+        .onAppear(perform: refresh)
+    }
+
+    private func refresh() {
+        hasAccessibility = DockLocator.hasAccessibility
+        dockAtBottom = Self.isDockAtBottom
+    }
+
+    private func openDockSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") { NSWorkspace.shared.open(url) }
     }
 }
 
-/// The theme choices as checkmarked menu items, grouped into rotations and single themes.
-/// Used by the window's switcher and the 🎃 menu.
+// MARK: - The theme menu
+
+/// The theme choices as checkmarked menu items, for the 🎃 menu.
 struct ThemeChoiceItems: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        Section("Rotate with the Calendar") {
+        Section("Change with the Calendar") {
             ForEach(Settings.ThemeChoice.Rotation.allCases, id: \.self) { item(.rotate($0)) }
         }
-        Section("Keep One Theme") {
+        Section("Always Show") {
             ForEach(Settings.Theme.allCases, id: \.self) { item(.keep($0)) }
         }
     }
 
     private func item(_ choice: Settings.ThemeChoice) -> some View {
-        Toggle(isOn: Binding(get: { model.themeChoice == choice },
-                             set: { if $0 { withAnimation { model.themeChoice = choice } } })) {
-            if case let .rotate(rotation) = choice {
-                Text("\(rotation.title) (now \(rotation.theme(on: Date()).title))")
-            } else {
-                Text(choice.title)
-            }
-        }
+        Toggle(choice.title, isOn: Binding(get: { model.themeChoice == choice },
+                                           set: { if $0 { model.themeChoice = choice } }))
     }
 }
 
@@ -234,278 +407,9 @@ enum ThemeSchedule {
 
     /// When a theme is on in the calendar, like "Oct 15 – Nov 1".
     static func window(_ theme: Settings.Theme) -> String {
-        let w = theme.window
         func date(_ md: (Int, Int)) -> String {
-            let d = Calendar.current.date(from: DateComponents(year: 2001, month: md.0, day: md.1)) ?? Date()
-            return day(d)
+            day(Calendar.current.date(from: DateComponents(year: 2001, month: md.0, day: md.1)) ?? Date())
         }
-        return "\(date(w.start)) – \(date(w.end))"
-    }
-}
-
-// MARK: - Home
-
-struct HomePage: View {
-    @ObservedObject var model: AppModel
-    var openSeason: () -> Void
-    @State private var dock = AppModel.shared.dockStatus
-    private let tick = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
-
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        default: return "Good evening"
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            LiveHarvestView(model: model, height: 230)
-                .overlay(alignment: .topLeading) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(greeting)
-                            .font(.system(size: 24, weight: .heavy, design: .rounded))
-                        Text(model.theme == .halloween ? "Something spooky is growing on your Dock." : "The harvest is in on your Dock.")
-                            .font(.callout.weight(.medium))
-                            .opacity(0.85)
-                    }
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
-                    .padding(18)
-                }
-                .overlay(alignment: .topTrailing) {
-                    Text(model.theme == .halloween ? "Try clicking things!" : "Click a pumpkin!")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.harvestPlum)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.harvestPeach))
-                        .padding(16)
-                        .padding(.trailing, 110)
-                }
-                .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
-
-            section("Theme", "Rotate through the year with the calendar, or keep one theme all year round.") {
-                groupLabel("Rotate with the calendar", symbol: "arrow.triangle.2.circlepath")
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(Settings.ThemeChoice.Rotation.allCases, id: \.self) { card(.rotate($0)) }
-                }
-                groupLabel("Keep one theme", symbol: "pin.fill")
-                    .padding(.top, 6)
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(Settings.Theme.allCases, id: \.self) { card(.keep($0)) }
-                }
-                HStack(spacing: 14) {
-                    Label(ThemeSchedule.next(model.themeChoice).map { "Now \(model.theme.title), then \($0)" }
-                              ?? "\(model.theme.title) all year round",
-                          systemImage: "clock")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button {
-                        openSeason()
-                    } label: {
-                        Label("Customize \(model.theme.title)", systemImage: "slider.horizontal.3")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.pumpkin)
-                    .font(.callout.weight(.semibold))
-                }
-                .font(.callout)
-                .padding(.top, 2)
-            }
-
-            section("At a glance", nil) {
-                HStack(spacing: 10) {
-                    StatTile(value: "\(model.smashCount)", label: "Pumpkins smashed", symbol: "hammer.fill", color: .pumpkin)
-                    StatTile(value: dock.isShowing ? "\(dock.pumpkins)" : "–",
-                             label: dock.isShowing ? "On your Dock now" : "Dock hidden right now", symbol: "leaf.fill", color: .harvestGreen)
-                    StatTile(value: "\(dock.extras)", label: "Extras between them", symbol: "sparkles", color: .harvestMustard)
-                }
-            }
-
-            section("Quick actions", nil) {
-                HStack(spacing: 10) {
-                    ActionTile(symbol: "arrow.triangle.2.circlepath", title: "Grow New", detail: "A fresh harvest") { model.regrow() }
-                    ActionTile(symbol: model.isPaused ? "play.fill" : "pause.fill",
-                               title: model.isPaused ? "Resume" : "Pause",
-                               detail: model.isPaused ? "Paused for an hour" : "Hide for an hour",
-                               isOn: model.isPaused) { model.isPaused ? model.resume() : model.pauseForAnHour() }
-                    ActionTile(symbol: "arrow.counterclockwise", title: "Reset Count", detail: "Start smashing afresh") { model.resetSmashCount() }
-                }
-            }
-        }
-        .padding(24)
-        .onReceive(tick) { _ in dock = model.dockStatus }
-    }
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
-
-    private func card(_ choice: Settings.ThemeChoice) -> some View {
-        SeasonCard(choice: choice, isSelected: model.themeChoice == choice) {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { model.themeChoice = choice }
-        }
-    }
-
-    private func groupLabel(_ title: String, symbol: String) -> some View {
-        Label(title.uppercased(), systemImage: symbol)
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(0.6)
-            .foregroundStyle(.secondary)
-    }
-
-    private func section<Content: View>(_ title: String, _ subtitle: String?, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 15, weight: .bold, design: .rounded))
-                if let subtitle {
-                    Text(subtitle).font(.callout).foregroundStyle(.secondary)
-                }
-            }
-            content()
-        }
-    }
-}
-
-/// One of the season choices, as a big picture card.
-struct SeasonCard: View {
-    var choice: Settings.ThemeChoice
-    var isSelected: Bool
-    var action: () -> Void
-    @State private var hovering = false
-
-    /// The theme the card shows a picture of (a rotation shows today's).
-    private var theme: Settings.Theme { choice.theme(on: Date()) }
-
-    private var subtitle: String {
-        switch choice {
-        case let .rotate(rotation): return rotation.detail
-        case let .keep(theme): return theme.subtitle
-        }
-    }
-
-    /// What the badge on the picture says.
-    private var badge: (text: String, symbol: String) {
-        switch choice {
-        case .rotate: return ("Now \(theme.title)", "calendar")
-        case let .keep(theme): return theme.kind == .festival ? ("Festival", "sparkles") : ("Season", "leaf")
-        }
-    }
-
-    /// The small print: what comes next, or when the theme is on in the calendar.
-    private var footnote: String {
-        switch choice {
-        case .rotate: return ThemeSchedule.next(choice).map { "Next: \($0)" } ?? "Just \(theme.title) so far, more coming soon"
-        case let .keep(theme): return "All year (usually \(ThemeSchedule.window(theme)))"
-        }
-    }
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 0) {
-                Color.clear
-                    .frame(height: 92)
-                    .frame(maxWidth: .infinity)
-                    .overlay {
-                        Image(nsImage: ThemePreview.image(for: theme))
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    }
-                    .clipped()
-                    .overlay(alignment: .topLeading) {
-                        Label(badge.text, systemImage: badge.symbol)
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(.black.opacity(0.35)))
-                            .padding(8)
-                    }
-                    .overlay(alignment: .topTrailing) {
-                        if isSelected {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20, weight: .bold))
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, Color.pumpkin)
-                                .padding(8)
-                                .transition(.scale.combined(with: .opacity))
-                        }
-                    }
-                VStack(alignment: .leading, spacing: 3) {
-                    Label(choice.title, systemImage: choice.symbol)
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2, reservesSpace: true)
-                    Text(footnote)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(isSelected ? Color.pumpkin : Color.secondary)
-                        .lineLimit(1)
-                        .padding(.top, 2)
-                }
-                .padding(10)
-            }
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.quaternary.opacity(0.45)))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(isSelected ? Color.pumpkin : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2.5 : 1))
-            .shadow(color: .black.opacity(hovering ? 0.2 : 0.06), radius: hovering ? 10 : 4, y: hovering ? 4 : 2)
-            .scaleEffect(hovering ? 1.02 : 1)
-            .animation(.easeOut(duration: 0.15), value: hovering)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(PressableStyle())
-        .onHover { hovering = $0 }
-        .help(choice.isRotating ? "\(choice.title): \(subtitle.lowercased())" : "Keep \(choice.title) on your Dock all year")
-    }
-}
-
-// MARK: - About
-
-struct AboutPage: View {
-    @ObservedObject var model: AppModel
-
-    static var version: String {
-        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
-        return build.isEmpty ? short : "\(short) (\(build))"
-    }
-
-    var body: some View {
-        VStack(spacing: 18) {
-            Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 110, height: 110)
-                .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
-            VStack(spacing: 4) {
-                Text("Fall Dock")
-                    .font(.system(size: 28, weight: .heavy, design: .rounded))
-                Text("Version \(Self.version)")
-                    .foregroundStyle(.secondary)
-                Text("A cozy harvest on top of your Dock, for every season.")
-                    .padding(.top, 4)
-            }
-            Card(title: nil) {
-                SettingRow(symbol: "paintbrush.pointed.fill", color: .pumpkin, title: "Drawn in code",
-                           detail: "Every pumpkin, leaf, ghost and bat is drawn by the app itself, in a flat harvest-wagon style.") { EmptyView() }
-                Divider()
-                SettingRow(symbol: "waveform", color: .pink, title: "Sounds made from scratch",
-                           detail: "The smash and the cat's meow are synthesized, with no audio files.") { EmptyView() }
-                Divider()
-                SettingRow(symbol: "hand.raised.fill", color: .gray, title: "Private by design",
-                           detail: "Nothing leaves your Mac.") { EmptyView() }
-            }
-            HStack {
-                Button("Show Welcome") { model.showWelcome() }
-                Button("Quit Fall Dock") { NSApp.terminate(nil) }
-            }
-            Text("Made with 🧡 for cozy autumn days")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(28)
-        .frame(maxWidth: .infinity)
+        return "\(date(theme.window.start)) – \(date(theme.window.end))"
     }
 }

@@ -262,9 +262,9 @@ enum Settings {
 
             var title: String {
                 switch self {
-                case .everything: return "Everything"
-                case .seasons: return "Seasons"
-                case .festivals: return "Festivals"
+                case .everything: return "Seasons & Festivals"
+                case .seasons: return "Seasons Only"
+                case .festivals: return "Festivals Only"
                 }
             }
 
