@@ -178,12 +178,12 @@ enum Settings {
         var extras: [DecorKind] {
             switch self {
             case .fall: return [.hayBale, .leafPile, .acorns, .mug, .lantern, .apples]
-            case .halloween: return [.books, .tombstone, .blackCat, .cauldron, .candy, .candles, .skull]
+            case .halloween: return [.stump, .tombstone, .blackCat, .cauldron, .candy, .candles, .skull]
             }
         }
 
         /// What some pumpkins sit up high on.
-        var perch: DecorKind { self == .halloween ? .books : .hayBale }
+        var perch: DecorKind { self == .halloween ? .stump : .hayBale }
 
         /// The order extras fill the gaps between pumpkins; it starts at a random point each time the
         /// pumpkins are regrown.

@@ -1,7 +1,7 @@
 import AppKit
 import SpriteKit
 
-// Halloween's art: jack-o'-lantern faces, spell books, tombstones, a black cat, a bubbling cauldron,
+// Halloween's art: jack-o'-lantern faces, tree stumps, tombstones, a black cat, a bubbling cauldron,
 // assorted candy, dripping candles, a skull, a zombie hand, a friendly ghost, bats, a dangling spider,
 // cobwebs and purple graveyard dirt.
 // Same flat harvest-wagon style as everything else: flat fills, a darker right side,
@@ -43,7 +43,7 @@ enum SpookyArt {
 
     static func draw(_ kind: DecorKind, _ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
         switch kind {
-        case .books: drawBooks(ctx, size: size, h: h)
+        case .stump: drawStump(ctx, size: size, h: h)
         case .tombstone: drawTombstone(ctx, size: size, h: h, rng: &rng)
         case .blackCat: drawCat(ctx, size: size, h: h)
         case .cauldron: drawCauldron(ctx, size: size, h: h)
@@ -54,36 +54,60 @@ enum SpookyArt {
         }
     }
 
-    /// A stack of three old spell books, with gold bands on their spines and cream page edges.
-    private static func drawBooks(_ ctx: CGContext, size: CGSize, h: CGFloat) {
+    /// A gnarled old tree stump: roots spreading at its foot, bark grooves, a cut top with rings,
+    /// a broken-off branch and a few little purple mushrooms.
+    private static func drawStump(_ ctx: CGContext, size: CGSize, h: CGFloat) {
         let w = size.width, ht = size.height
-        let books: [(x: CGFloat, width: CGFloat, height: CGFloat, color: CGColor)] = [
-            (0.03, 0.94, 0.36, Palette.witch.mixed(with: Palette.soot, 0.2)),
-            (0.1, 0.8, 0.3, Palette.green.mixed(with: Palette.slime, 0.15)),
-            (0.05, 0.7, 0.28, Palette.rust.mixed(with: Palette.plum, 0.2)),
-        ]
-        var y: CGFloat = 0
-        for book in books {
-            let rect = CGRect(x: w * book.x, y: y, width: w * book.width, height: ht * book.height)
-            let cover = CGPath(roundedRect: rect, cornerWidth: ht * 0.04, cornerHeight: ht * 0.04, transform: nil)
-            fillShaded(ctx, cover, book.color, from: 0.8, amount: 0.2)
-            // Page edges showing at the right end.
-            let pages = CGRect(x: rect.maxX - rect.width * 0.12, y: rect.minY + rect.height * 0.14, width: rect.width * 0.09, height: rect.height * 0.72)
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+        let bark = Palette.rust.mixed(with: Palette.soot, 0.45)
+        let groove = bark.mixed(with: Palette.soot, 0.45)
+        // Roots spreading out along the ground.
+        for (from, to, ctrl) in [(p(0.3, 0.3), p(0.04, 0.02), p(0.16, 0.06)), (p(0.7, 0.3), p(0.97, 0.02), p(0.86, 0.06)),
+                                 (p(0.46, 0.2), p(0.34, 0.0), p(0.38, 0.08))] {
+            Brush.stroke(ctx, [from, ctrl, to], maxWidth: h * 0.12, color: bark, minF: 0.9, endF: 0.2)
+        }
+        // The trunk, a little wider at the foot.
+        let trunk = CGMutablePath()
+        trunk.move(to: p(0.16, 0.02))
+        trunk.addCurve(to: p(0.22, 0.86), control1: p(0.22, 0.3), control2: p(0.2, 0.6))
+        trunk.addLine(to: p(0.78, 0.86))
+        trunk.addCurve(to: p(0.84, 0.02), control1: p(0.8, 0.6), control2: p(0.78, 0.3))
+        trunk.closeSubpath()
+        fillShaded(ctx, trunk, bark, from: 0.66, amount: 0.25)
+        // Bark grooves.
+        ctx.saveGState()
+        ctx.addPath(trunk)
+        ctx.clip()
+        for x in [0.3, 0.42, 0.55, 0.66] as [CGFloat] {
+            Brush.stroke(ctx, [p(x, 0.06), p(x + 0.02, 0.45), p(x - 0.01, 0.82)], maxWidth: max(1, h * 0.025), color: groove, minF: 0.4, endF: 0.4)
+        }
+        ctx.restoreGState()
+        // A broken-off branch.
+        Brush.stroke(ctx, [p(0.76, 0.56), p(0.88, 0.64), p(0.95, 0.74)], maxWidth: h * 0.07, color: bark, minF: 1, endF: 0.6)
+        // The cut top, with rings.
+        let top = CGRect(x: w * 0.2, y: ht * 0.78, width: w * 0.6, height: ht * 0.18)
+        ctx.setFillColor(Palette.mustard.mixed(with: Palette.peach, 0.45).mixed(with: Palette.rust, 0.15))
+        ctx.fillEllipse(in: top)
+        ctx.setStrokeColor(Palette.rust.mixed(with: Palette.peach, 0.25))
+        ctx.setLineWidth(max(0.8, h * 0.012))
+        for inset in [0.18, 0.34] as [CGFloat] {
+            ctx.strokeEllipse(in: top.insetBy(dx: top.width * inset / 2, dy: top.height * inset / 2))
+        }
+        ctx.setFillColor(Palette.rust.mixed(with: Palette.peach, 0.25))
+        ctx.fillEllipse(in: CGRect(x: top.midX - 2, y: top.midY - 1, width: 4, height: 2))
+        // Little purple mushrooms at the foot.
+        for (x, s) in [(0.12, 0.13), (0.2, 0.09), (0.86, 0.11)] as [(CGFloat, CGFloat)] {
+            let size = h * s
+            let base = p(x, 0.02)
             ctx.setFillColor(Palette.ghost.mixed(with: Palette.peach, 0.3))
-            ctx.fill(pages)
-            ctx.setFillColor(Palette.stone.withAlpha(0.5))
-            for i in 1...3 {
-                ctx.fill(CGRect(x: pages.minX, y: pages.minY + pages.height * CGFloat(i) / 4, width: pages.width, height: max(0.5, h * 0.006)))
-            }
-            // Gold bands on the spine and a little title plate.
-            ctx.setFillColor(Palette.mustard)
-            for fx in [CGFloat(0.12), 0.2] {
-                ctx.fill(CGRect(x: rect.minX + rect.width * fx, y: rect.minY, width: rect.width * 0.03, height: rect.height))
-            }
-            ctx.addPath(CGPath(roundedRect: CGRect(x: rect.minX + rect.width * 0.4, y: rect.midY - rect.height * 0.14, width: rect.width * 0.26, height: rect.height * 0.28),
-                               cornerWidth: 2, cornerHeight: 2, transform: nil))
+            ctx.fill(CGRect(x: base.x - size * 0.12, y: base.y, width: size * 0.24, height: size * 0.6))
+            let cap = CGRect(x: base.x - size * 0.5, y: base.y + size * 0.45, width: size, height: size * 0.55)
+            ctx.setFillColor(Palette.candyPurple)
+            ctx.addPath(CGPath(ellipseIn: cap, transform: nil))
             ctx.fillPath()
-            y += rect.height
+            ctx.setFillColor(Palette.ghost)
+            ctx.fillEllipse(in: CGRect(x: cap.minX + cap.width * 0.25, y: cap.midY, width: size * 0.14, height: size * 0.12))
+            ctx.fillEllipse(in: CGRect(x: cap.minX + cap.width * 0.6, y: cap.midY + size * 0.05, width: size * 0.1, height: size * 0.09))
         }
     }
 

@@ -42,9 +42,9 @@ Pick **Halloween** as the season in the app window (or leave it on **Automatic**
 
 - The orange pumpkins become **jack-o'-lanterns** with glowing yellow carved faces: pointy eyes and a toothy grin, happy closed eyes, big round eyes, or a mischievous jagged smile. Their candles flicker, and flare up when you point at one. Smash one and assorted candy flies out, and a bat that was hiding inside flutters away. A few pale ghost pumpkins sit among them.
 - **Purple graveyard dirt** runs along the Dock instead of a vine, lumpy, with pebbles and tufts of grass, and **cobwebs** at both ends with a spider slowly lowering itself on its thread.
-- Spooky extras, each with a click (and no speech bubbles): **tombstones** (a zombie hand reaches up out of the dirt and waves), a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it), a **bubbling cauldron**, a pile of **assorted candy** (lollipop, candy cane, wrapped sweets, an eyeball) that flies when clicked, **dripping candles** that blow out and relight, a **skull and crossbone** whose jaw chatters, and **stacks of spell books** with a jack-o'-lantern on top (a puff of magic).
+- Spooky extras, each with a click (and no speech bubbles): **tombstones** (a zombie hand reaches up out of the dirt and waves), a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it, and it meows when clicked), a **bubbling cauldron**, a pile of **assorted candy** (lollipop, candy cane, wrapped sweets, an eyeball) that flies when clicked, **dripping candles** that blow out and relight, a **skull and crossbone** whose jaw chatters, and gnarled **tree stumps** with little purple mushrooms and a jack-o'-lantern on top (the mushrooms puff out spores).
 - **Bats** flutter past now and then instead of falling leaves.
-- A cute **ghost**, seen from the side with a curling tail, flies across above the Dock. Point at it and it zooms off.
+- A cute **ghost**, seen from the side with a curling tail, flies across above the Dock. Click it and it dashes off the side of the screen.
 
 ![Halloween on the Dock](docs/halloween-preview.png)
 
@@ -103,9 +103,9 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `Overlay/PumpkinScene+Spooky.swift` | Halloween: jack-o'-lanterns, the spooky extras, zombie hands, the ghost, bats and cobwebs |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
-| `Art/SpookyArt.swift` | Draws Halloween: jack-o'-lantern faces, spell books, tombstones, the black cat, the cauldron, candy, candles, the skull, the zombie hand, the ghost, bats, the spider, cobwebs and purple dirt |
+| `Art/SpookyArt.swift` | Draws Halloween: jack-o'-lantern faces, tree stumps, tombstones, the black cat, the cauldron, candy, candles, the skull, the zombie hand, the ghost, bats, the spider, cobwebs and purple dirt |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
-| `Art/SmashSound.swift` | Makes the smash sound from scratch |
+| `Art/SmashSound.swift` | Makes the smash sound and the cat's meow from scratch |
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.
 

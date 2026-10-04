@@ -623,7 +623,7 @@ struct ThemeTab: View {
                 .disabled(!model.cozyExtras)
                 .opacity(model.cozyExtras ? 1 : 0.45)
                 Text(halloween
-                     ? "Tap to switch each one on or off. On the Dock, click a tombstone and a zombie hand reaches out of the dirt. Click the cat, the cauldron, the candy, the candles, the spell books and the skull too, and smash a jack-o'-lantern to free its bat. Point at the ghost to spook it."
+                     ? "Tap to switch each one on or off. On the Dock, click a tombstone and a zombie hand reaches out of the dirt. Click the cat, the cauldron, the candy, the candles, the tree stumps and the skull too, and smash a jack-o'-lantern to free its bat. Point at the ghost to spook it."
                      : "Tap to switch each one on or off. On the Dock, click the leaf piles, the latte and the lantern.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -830,16 +830,16 @@ enum ThemePreview {
             let web = CGSize(width: h * 0.7, height: h * 0.7)
             ctx.draw(SpookyArt.cobwebTexture(size: web, scale: scale).cgImage(), in: CGRect(origin: CGPoint(x: 2, y: shelf - 3), size: web))
 
-            enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), books(PumpkinKind) }
+            enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), stump(PumpkinKind) }
             let items: [Item] = [.lantern(.roundOrange, 1, 0), .decor(.tombstone), .pumpkin(.ghostWhite, 0.8), .decor(.cauldron),
-                                 .books(.squatOrange), .decor(.skull), .lantern(.tallOrange, 0.95, 3), .decor(.candles),
+                                 .stump(.squatOrange), .decor(.skull), .lantern(.tallOrange, 0.95, 3), .decor(.candles),
                                  .lantern(.roundOrange, 0.86, 1), .decor(.candy)]
             let decorUnit = (h * 0.75).rounded()
             func width(_ item: Item) -> CGFloat {
                 switch item {
                 case let .lantern(kind, s, _), let .pumpkin(kind, s): return PumpkinArt.size(of: kind, height: (h * s).rounded()).width
                 case let .decor(kind): return CozyArt.size(of: kind, unit: decorUnit).width
-                case .books: return CozyArt.size(of: .books, unit: h).width
+                case .stump: return CozyArt.size(of: .stump, unit: h).width
                 }
             }
             func drawPumpkin(_ kind: PumpkinKind, height: CGFloat, centerX: CGFloat, y: CGFloat, face: Int?) {
@@ -871,9 +871,9 @@ enum ThemePreview {
                     let s = CozyArt.size(of: kind, unit: decorUnit)
                     ctx.draw(SpookyArt.tile(kind, unit: decorUnit, scale: scale).cgImage(),
                              in: CGRect(x: center - s.width / 2, y: shelf - 2, width: s.width, height: s.height))
-                case let .books(kind):
-                    let s = CozyArt.size(of: .books, unit: h)
-                    ctx.draw(CozyArt.texture(.books, unit: h, variant: 2, scale: scale).cgImage(),
+                case let .stump(kind):
+                    let s = CozyArt.size(of: .stump, unit: h)
+                    ctx.draw(CozyArt.texture(.stump, unit: h, variant: 2, scale: scale).cgImage(),
                              in: CGRect(x: center - s.width / 2, y: shelf - 3, width: s.width, height: s.height))
                     drawPumpkin(kind, height: (h * 0.78).rounded(), centerX: center, y: shelf - 3 + s.height * 0.86, face: 3)
                 }

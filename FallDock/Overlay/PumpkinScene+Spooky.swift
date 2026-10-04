@@ -161,7 +161,8 @@ extension PumpkinScene {
             decor.run(.sequence([.rotate(toAngle: 0.05, duration: 0.05), .rotate(toAngle: -0.05, duration: 0.08), .rotate(toAngle: 0, duration: 0.06)]),
                       withKey: "shudder")
         case .blackCat:
-            // An arched back, and wide eyes.
+            // A meow, an arched back, and wide eyes.
+            if Settings.sound { meow.play() }
             decor.run(.sequence([
                 DockSprite.animate(\.popScale, to: 0.88, duration: 0.08),
                 DockSprite.animate(\.popScale, to: 1.12, duration: 0.12, curve: .easeOut),
@@ -179,11 +180,11 @@ extension PumpkinScene {
             decor.run(DockSprite.hop(height: h * 0.1, duration: 0.25), withKey: "hop")
         case .candles:
             blowOut(decor)
-        case .books:
-            // A puff of purple and green magic from between the pages.
-            puff(from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * 0.8), spread: decor.frame.width * 0.25,
-                 count: 12, tints: [Palette.candyPurple, nil])
-            decor.run(DockSprite.hop(height: h * 0.05, duration: 0.2), withKey: "hop")
+        case .stump:
+            // The mushrooms puff out purple spores.
+            puff(from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * 0.2), spread: decor.frame.width * 0.35,
+                 count: 10, tints: [Palette.candyPurple])
+            decor.run(DockSprite.hop(height: h * 0.04, duration: 0.2), withKey: "hop")
         case .skull:
             // Its jaw chatters.
             decor.run(.repeat(.sequence([DockSprite.hop(height: h * 0.04, duration: 0.09), .rotate(toAngle: 0.08, duration: 0.04),
@@ -386,14 +387,15 @@ extension PumpkinScene {
         ]), withKey: "visit")
     }
 
-    /// Spooked by the pointer: the ghost zooms up and vanishes.
+    /// Clicked: the ghost dashes off the side of the screen, the way it was flying.
     func ghostFlee(_ ghost: GhostNode) {
         guard !ghost.isFleeing else { return }
         ghost.isFleeing = true
         ghost.removeAction(forKey: "visit")
-        ghost.removeAction(forKey: "bob")
+        let exitX = ghost.facing > 0 ? size.width + ghost.size.width : -ghost.size.width
+        let speed: CGFloat = 900
         ghost.run(.sequence([
-            .group([DockSprite.animate(\.bounce, to: ghost.bounce + pumpkinHeight * 1.6, duration: 0.6, curve: .easeIn), .fadeOut(withDuration: 0.6)]),
+            DockSprite.animate(\.restX, to: exitX, duration: Double(abs(exitX - ghost.restX) / speed), curve: .easeIn),
             .removeFromParent(),
             .run { [weak self] in self?.scheduleVisitor(first: false) },
         ]), withKey: "visit")
