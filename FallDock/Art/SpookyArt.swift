@@ -1,7 +1,7 @@
 import AppKit
 import SpriteKit
 
-// Halloween's art: jack-o'-lantern faces, tree stumps, tombstones, a black cat, a bubbling cauldron,
+// Halloween's art: jack-o'-lantern faces, crypt pedestals, tombstones, a black cat, a bubbling cauldron,
 // assorted candy, dripping candles, a skull, a zombie hand, a friendly ghost, bats, a dangling spider,
 // cobwebs and purple graveyard dirt.
 // Same flat harvest-wagon style as everything else: flat fills, a darker right side,
@@ -43,7 +43,7 @@ enum SpookyArt {
 
     static func draw(_ kind: DecorKind, _ ctx: CGContext, size: CGSize, h: CGFloat, rng: inout SeededRandom) {
         switch kind {
-        case .stump: drawStump(ctx, size: size, h: h)
+        case .crypt: drawCrypt(ctx, size: size, h: h)
         case .tombstone: drawTombstone(ctx, size: size, h: h, rng: &rng)
         case .blackCat: drawCat(ctx, size: size, h: h)
         case .cauldron: drawCauldron(ctx, size: size, h: h)
@@ -54,61 +54,64 @@ enum SpookyArt {
         }
     }
 
-    /// A gnarled old tree stump: roots spreading at its foot, bark grooves, a cut top with rings,
-    /// a broken-off branch and a few little purple mushrooms.
-    private static func drawStump(_ ctx: CGContext, size: CGSize, h: CGFloat) {
+    /// A crumbling stone crypt pedestal: a plinth, a block of stone courses with a carved bat, an
+    /// overhanging top slab, cracks, moss and a cobweb in the corner.
+    private static func drawCrypt(_ ctx: CGContext, size: CGSize, h: CGFloat) {
         let w = size.width, ht = size.height
         func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
-        let bark = Palette.rust.mixed(with: Palette.soot, 0.45)
-        let groove = bark.mixed(with: Palette.soot, 0.45)
-        // Roots spreading out along the ground.
-        for (from, to, ctrl) in [(p(0.3, 0.3), p(0.04, 0.02), p(0.16, 0.06)), (p(0.7, 0.3), p(0.97, 0.02), p(0.86, 0.06)),
-                                 (p(0.46, 0.2), p(0.34, 0.0), p(0.38, 0.08))] {
-            Brush.stroke(ctx, [from, ctrl, to], maxWidth: h * 0.12, color: bark, minF: 0.9, endF: 0.2)
-        }
-        // The trunk, a little wider at the foot.
-        let trunk = CGMutablePath()
-        trunk.move(to: p(0.16, 0.02))
-        trunk.addCurve(to: p(0.22, 0.86), control1: p(0.22, 0.3), control2: p(0.2, 0.6))
-        trunk.addLine(to: p(0.78, 0.86))
-        trunk.addCurve(to: p(0.84, 0.02), control1: p(0.8, 0.6), control2: p(0.78, 0.3))
-        trunk.closeSubpath()
-        fillShaded(ctx, trunk, bark, from: 0.66, amount: 0.25)
-        // Bark grooves.
+        let stone = Palette.stone.mixed(with: Palette.witch, 0.25)
+        let mortar = shade(stone, 0.35)
+        // Plinth, body and top slab.
+        fillShaded(ctx, CGPath(rect: CGRect(x: w * 0.04, y: 0, width: w * 0.92, height: ht * 0.14), transform: nil), shade(stone, 0.1), from: 0.78)
+        let body = CGRect(x: w * 0.12, y: ht * 0.14, width: w * 0.76, height: ht * 0.62)
+        fillShaded(ctx, CGPath(rect: body, transform: nil), stone, from: 0.74, amount: 0.22)
+        let slab = CGRect(x: w * 0.04, y: ht * 0.76, width: w * 0.92, height: ht * 0.2)
+        fillShaded(ctx, CGPath(roundedRect: slab, cornerWidth: ht * 0.03, cornerHeight: ht * 0.03, transform: nil),
+                   stone.mixed(with: Palette.ghost, 0.15), from: 0.8, amount: 0.2)
+        // Stone courses.
         ctx.saveGState()
-        ctx.addPath(trunk)
-        ctx.clip()
-        for x in [0.3, 0.42, 0.55, 0.66] as [CGFloat] {
-            Brush.stroke(ctx, [p(x, 0.06), p(x + 0.02, 0.45), p(x - 0.01, 0.82)], maxWidth: max(1, h * 0.025), color: groove, minF: 0.4, endF: 0.4)
+        ctx.clip(to: body)
+        ctx.setFillColor(mortar)
+        let rows = 3
+        for row in 0..<rows {
+            let y = body.minY + body.height * CGFloat(row) / CGFloat(rows)
+            ctx.fill(CGRect(x: body.minX, y: y, width: body.width, height: max(0.8, h * 0.012)))
+            let offset: CGFloat = row % 2 == 0 ? 0.33 : 0.16
+            var x = body.minX + body.width * offset
+            while x < body.maxX {
+                ctx.fill(CGRect(x: x, y: y, width: max(0.8, h * 0.012), height: body.height / CGFloat(rows)))
+                x += body.width * 0.34
+            }
         }
         ctx.restoreGState()
-        // A broken-off branch.
-        Brush.stroke(ctx, [p(0.76, 0.56), p(0.88, 0.64), p(0.95, 0.74)], maxWidth: h * 0.07, color: bark, minF: 1, endF: 0.6)
-        // The cut top, with rings.
-        let top = CGRect(x: w * 0.2, y: ht * 0.78, width: w * 0.6, height: ht * 0.18)
-        ctx.setFillColor(Palette.mustard.mixed(with: Palette.peach, 0.45).mixed(with: Palette.rust, 0.15))
-        ctx.fillEllipse(in: top)
-        ctx.setStrokeColor(Palette.rust.mixed(with: Palette.peach, 0.25))
-        ctx.setLineWidth(max(0.8, h * 0.012))
-        for inset in [0.18, 0.34] as [CGFloat] {
-            ctx.strokeEllipse(in: top.insetBy(dx: top.width * inset / 2, dy: top.height * inset / 2))
+        // A bat carved into the middle (on a smooth plaque).
+        let plaque = CGRect(x: w * 0.36, y: ht * 0.3, width: w * 0.28, height: ht * 0.32)
+        ctx.setFillColor(stone.mixed(with: Palette.ghost, 0.1))
+        ctx.addPath(CGPath(roundedRect: plaque, cornerWidth: ht * 0.04, cornerHeight: ht * 0.04, transform: nil))
+        ctx.fillPath()
+        let bat = batSize(unit: h * 0.6)
+        ctx.draw(batTexture(frame: 0, unit: h * 0.6, scale: 2).cgImage(),
+                 in: CGRect(x: plaque.midX - bat.width / 2, y: plaque.midY - bat.height / 2, width: bat.width, height: bat.height))
+        // Cracks, a chip off the slab, moss.
+        Brush.stroke(ctx, [p(0.22, 0.7), p(0.27, 0.5), p(0.22, 0.34)], maxWidth: max(1, h * 0.02), color: mortar, minF: 0.5, endF: 0.1)
+        Brush.stroke(ctx, [p(0.8, 0.62), p(0.74, 0.46), p(0.79, 0.3)], maxWidth: max(1, h * 0.018), color: mortar, minF: 0.5, endF: 0.1)
+        ctx.setFillColor(Palette.green.withAlpha(0.8))
+        for (x, y, r) in [(0.1, 0.94, 0.05), (0.16, 0.92, 0.04), (0.84, 0.13, 0.04), (0.9, 0.12, 0.05)] as [(CGFloat, CGFloat, CGFloat)] {
+            ctx.fillEllipse(in: CGRect(x: w * x - h * r, y: ht * y - h * r * 0.6, width: h * r * 2, height: h * r * 1.2))
         }
-        ctx.setFillColor(Palette.rust.mixed(with: Palette.peach, 0.25))
-        ctx.fillEllipse(in: CGRect(x: top.midX - 2, y: top.midY - 1, width: 4, height: 2))
-        // Little purple mushrooms at the foot.
-        for (x, s) in [(0.12, 0.13), (0.2, 0.09), (0.86, 0.11)] as [(CGFloat, CGFloat)] {
-            let size = h * s
-            let base = p(x, 0.02)
-            ctx.setFillColor(Palette.ghost.mixed(with: Palette.peach, 0.3))
-            ctx.fill(CGRect(x: base.x - size * 0.12, y: base.y, width: size * 0.24, height: size * 0.6))
-            let cap = CGRect(x: base.x - size * 0.5, y: base.y + size * 0.45, width: size, height: size * 0.55)
-            ctx.setFillColor(Palette.candyPurple)
-            ctx.addPath(CGPath(ellipseIn: cap, transform: nil))
-            ctx.fillPath()
-            ctx.setFillColor(Palette.ghost)
-            ctx.fillEllipse(in: CGRect(x: cap.minX + cap.width * 0.25, y: cap.midY, width: size * 0.14, height: size * 0.12))
-            ctx.fillEllipse(in: CGRect(x: cap.minX + cap.width * 0.6, y: cap.midY + size * 0.05, width: size * 0.1, height: size * 0.09))
+        // A cobweb tucked under the slab's left corner.
+        ctx.setStrokeColor(webColor)
+        ctx.setLineWidth(max(0.6, h * 0.008))
+        let corner = CGPoint(x: body.minX, y: slab.minY)
+        for a in stride(from: CGFloat(0), through: .pi / 2, by: .pi / 8) {
+            ctx.move(to: corner)
+            ctx.addLine(to: CGPoint(x: corner.x + cos(a) * h * 0.2, y: corner.y - sin(a) * h * 0.2))
         }
+        for r in [0.1, 0.17] as [CGFloat] {
+            ctx.move(to: CGPoint(x: corner.x + h * r, y: corner.y))
+            ctx.addQuadCurve(to: CGPoint(x: corner.x, y: corner.y - h * r), control: CGPoint(x: corner.x + h * r * 0.5, y: corner.y - h * r * 0.5))
+        }
+        ctx.strokePath()
     }
 
     /// A rounded gravestone with "RIP", a crack and tufts of grass.

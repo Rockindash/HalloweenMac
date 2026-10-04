@@ -180,10 +180,9 @@ extension PumpkinScene {
             decor.run(DockSprite.hop(height: h * 0.1, duration: 0.25), withKey: "hop")
         case .candles:
             blowOut(decor)
-        case .stump:
-            // The mushrooms puff out purple spores.
-            puff(from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * 0.2), spread: decor.frame.width * 0.35,
-                 count: 10, tints: [Palette.candyPurple])
+        case .crypt:
+            // A bat that was roosting behind it flits out.
+            releaseBat(from: CGPoint(x: decor.position.x, y: decor.position.y + decor.frame.height * 0.6))
             decor.run(DockSprite.hop(height: h * 0.04, duration: 0.2), withKey: "hop")
         case .skull:
             // Its jaw chatters.

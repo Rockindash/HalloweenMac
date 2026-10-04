@@ -145,7 +145,7 @@ final class PumpkinScene: SKScene {
         // Something in the gaps between pumpkins only if some of those extras are switched on.
         let gapsOn = extras && !Self.gapCycle.isEmpty
         let minSpace = h * Settings.fullness.spacing
-        // Hay bales in fall, tree stumps at Halloween.
+        // Hay bales in fall, crypt pedestals at Halloween.
         let perch = Settings.theme.perch
         let bale = CozyArt.size(of: perch, unit: h)
         slotKinds = []; slotScale = []; slotPerch = []; gapKinds = []
@@ -160,7 +160,7 @@ final class PumpkinScene: SKScene {
                 gapKind = kind
                 gapWidth = CozyArt.size(of: kind, unit: decorUnit).width
             }
-            // A hay bale (or tree stump) under every fifth pumpkin.
+            // A hay bale (or crypt pedestal) under every fifth pumpkin.
             let onBale = extras && Settings.isEnabled(perch) && slot % 5 == 2
             var rng = SeededRandom(seed: UInt64(slot + 1) &* 7537)
             // Pumpkins vary a little in size, every third one a bit smaller.

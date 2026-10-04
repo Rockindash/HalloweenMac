@@ -62,8 +62,9 @@ final class SmashSound {
     }
 }
 
-/// A cat's "mi-aow", made from scratch: the pitch rises then falls, and the vowel goes from a
-/// bright "ee" to a round "ow". Played when the Halloween black cat is clicked.
+/// A cat's "mi-aow", made from scratch the way voices are synthesized: a soft, buzzy voice whose
+/// pitch rises then falls, shaped by three mouth resonances (formants) that glide from a closed,
+/// nasal "m" through "ee" and "a" to a round "ow". Played when the Halloween black cat is clicked.
 @MainActor
 final class MeowSound {
     private let engine = AVAudioEngine()
@@ -75,8 +76,9 @@ final class MeowSound {
     init() {
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
-        engine.mainMixerNode.outputVolume = 0.4
-        buffers = [1.0, 1.12, 0.9].compactMap { makeMeow(pitch: $0) }
+        engine.mainMixerNode.outputVolume = 0.45
+        // A few slightly different cats.
+        buffers = [(1.0, 0.75), (1.1, 0.68), (0.92, 0.82)].compactMap { makeMeow(pitch: $0.0, duration: $0.1) }
     }
 
     func play() {
@@ -97,37 +99,103 @@ final class MeowSound {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
     }
 
-    private func makeMeow(pitch: Float) -> AVAudioPCMBuffer? {
+    /// One mouth shape: three formant frequencies.
+    private struct Vowel { var f1: Float, f2: Float, f3: Float }
+
+    /// A band-pass filter whose center frequency can move while it runs.
+    private struct Resonator {
+        var b0: Float = 0, b2: Float = 0, a1: Float = 0, a2: Float = 0
+        var x1: Float = 0, x2: Float = 0, y1: Float = 0, y2: Float = 0
+
+        mutating func tune(frequency: Float, bandwidth: Float, sampleRate: Float) {
+            let w0 = 2 * Float.pi * frequency / sampleRate
+            let alpha = sin(w0) / (2 * (frequency / bandwidth))
+            let a0 = 1 + alpha
+            b0 = alpha / a0
+            b2 = -alpha / a0
+            a1 = -2 * cos(w0) / a0
+            a2 = (1 - alpha) / a0
+        }
+
+        mutating func process(_ x: Float) -> Float {
+            let y = b0 * x + b2 * x2 - a1 * y1 - a2 * y2
+            x2 = x1; x1 = x
+            y2 = y1; y1 = y
+            return y
+        }
+    }
+
+    private func makeMeow(pitch: Float, duration: Float) -> AVAudioPCMBuffer? {
         let sampleRate = Float(format.sampleRate)
-        let duration: Float = 0.6
         let length = AVAudioFrameCount(sampleRate * duration)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: length),
               let samples = buffer.floatChannelData?[0] else { return nil }
         buffer.frameLength = length
 
+        func smooth(_ t: Float) -> Float { let c = min(1, max(0, t)); return c * c * (3 - 2 * c) }
+        // Mouth shapes through the meow, at fractions of its length.
+        let keys: [(at: Float, vowel: Vowel)] = [
+            (0.0, Vowel(f1: 320, f2: 1300, f3: 2600)),   // m
+            (0.14, Vowel(f1: 420, f2: 2300, f3: 3100)),  // ee
+            (0.45, Vowel(f1: 950, f2: 1550, f3: 2800)),  // a
+            (1.0, Vowel(f1: 520, f2: 950, f3: 2500)),    // ow
+        ]
+        func vowel(at u: Float) -> Vowel {
+            for i in 1..<keys.count where u <= keys[i].at {
+                let a = keys[i - 1], b = keys[i]
+                let t = smooth((u - a.at) / (b.at - a.at))
+                return Vowel(f1: a.vowel.f1 + (b.vowel.f1 - a.vowel.f1) * t,
+                             f2: a.vowel.f2 + (b.vowel.f2 - a.vowel.f2) * t,
+                             f3: a.vowel.f3 + (b.vowel.f3 - a.vowel.f3) * t)
+            }
+            return keys[keys.count - 1].vowel
+        }
+        // The pitch: a little rise on "mi", then a long fall on "aow".
+        func pitchAt(_ u: Float) -> Float {
+            if u < 0.35 { return 470 + 290 * smooth(u / 0.35) }
+            return 760 - 330 * smooth((u - 0.35) / 0.65)
+        }
+
+        var r1 = Resonator(), r2 = Resonator(), r3 = Resonator()
         var phase: Float = 0
+        var drift: Float = 0
+        var noise: UInt32 = 12345
         var peak: Float = 0
         for i in 0..<Int(length) {
             let t = Float(i) / sampleRate
             let u = t / duration
-            // "mi-" rises, "-aow" falls away.
-            let glide: Float = u < 0.3 ? 560 + 300 * sin(u / 0.3 * .pi / 2) : 860 - 400 * sin((u - 0.3) / 0.7 * .pi / 2)
-            let vibrato = 1 + 0.02 * sin(2 * .pi * 6 * t)
-            phase += 2 * .pi * glide * pitch * vibrato / sampleRate
-            // Bright at the start, rounder at the end: higher harmonics fade as it goes.
-            let brightness = 1 - 0.7 * u
-            var sample: Float = 0
-            for k in 1...8 {
-                let weight = exp(-Float(k - 1) * (1.2 - brightness)) / Float(k)
-                sample += weight * sin(Float(k) * phase)
+            if i % 32 == 0 {
+                let v = vowel(at: u)
+                r1.tune(frequency: v.f1, bandwidth: 110, sampleRate: sampleRate)
+                r2.tune(frequency: v.f2, bandwidth: 160, sampleRate: sampleRate)
+                r3.tune(frequency: v.f3, bandwidth: 250, sampleRate: sampleRate)
             }
-            let attack = min(1, t / 0.05)
-            let release = min(1, (duration - t) / 0.18)
-            samples[i] = sample * attack * release
+            // A slow, random wander and a gentle vibrato keep it from sounding like a machine.
+            noise = noise &* 1_664_525 &+ 1_013_904_223
+            let white = Float(noise >> 8) / Float(1 << 24) * 2 - 1
+            drift += (white * 0.002 - drift) * 0.001
+            let vibrato = 1 + 0.015 * sin(2 * .pi * 5.5 * t) * smooth((u - 0.2) / 0.3)
+            let f0 = pitchAt(u) * pitch * vibrato * (1 + drift)
+            phase += f0 / sampleRate
+            phase -= floor(phase)
+            // A soft, band-limited buzz.
+            var source: Float = 0
+            var k: Float = 1
+            while k * f0 < 7000 {
+                source += sin(2 * .pi * k * phase) / pow(k, 1.1)
+                k += 1
+            }
+            source += white * 0.08 // a little breath
+            let voiced = r1.process(source) * 1.0 + r2.process(source) * 0.6 + r3.process(source) * 0.25
+            // Quiet while the mouth is closed on the "m", opening up, then fading away.
+            let open = 0.35 + 0.65 * smooth((u - 0.04) / 0.14)
+            let attack = smooth(t / 0.03)
+            let release = smooth((duration - t) / 0.22)
+            samples[i] = voiced * open * attack * release
             peak = max(peak, abs(samples[i]))
         }
         if peak > 0 {
-            for i in 0..<Int(length) { samples[i] *= 0.6 / peak }
+            for i in 0..<Int(length) { samples[i] *= 0.7 / peak }
         }
         return buffer
     }
