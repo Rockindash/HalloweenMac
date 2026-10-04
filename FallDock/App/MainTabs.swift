@@ -3,7 +3,7 @@ import Combine
 import SpriteKit
 import SwiftUI
 
-// The tabs of the app window (see MainWindow.swift), in the harvest-wagon colors:
+// The pages of the app window (see MainView.swift), in the harvest-wagon colors:
 // a live little harvest to play with, stat tiles, cards with colored badges, and picture tiles.
 
 /// The window's own colors: the dark wagon colors, whatever the Dock art is using.
@@ -246,105 +246,11 @@ struct LiveHarvestView: View {
     }
 }
 
-// MARK: - General
-
-struct GeneralTab: View {
-    @ObservedObject var model: AppModel
-    @State private var dock = AppModel.shared.dockStatus
-    private let tick = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
-
-    private var status: (text: String, color: Color) {
-        if !model.showPumpkins { return ("Hidden", .gray) }
-        if model.isPaused { return ("Paused for an hour", .yellow) }
-        return ("Growing on your Dock", .green)
-    }
-
-    var body: some View {
-        VStack(spacing: 14) {
-            LiveHarvestView(model: model)
-                .overlay(alignment: .topLeading) {
-                    HStack(spacing: 12) {
-                        Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
-                            .resizable()
-                            .frame(width: 46, height: 46)
-                            .shadow(radius: 4, y: 2)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Fall Dock")
-                                .font(.system(size: 22, weight: .heavy, design: .rounded))
-                                .foregroundStyle(.white)
-                            HStack(spacing: 6) {
-                                Circle().fill(status.color).frame(width: 7, height: 7)
-                                Text(status.text).font(.caption.weight(.medium))
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(.black.opacity(0.25)))
-                        }
-                    }
-                    .padding(14)
-                }
-                .overlay(alignment: .topTrailing) {
-                    Text("Click a pumpkin!")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.harvestPlum)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.harvestPeach))
-                        .padding(14)
-                        .padding(.trailing, 64)
-                }
-
-            HStack(spacing: 10) {
-                StatTile(value: "\(model.smashCount)", label: "Pumpkins smashed", symbol: "hammer.fill", color: .pumpkin)
-                StatTile(value: dock.isShowing ? "\(dock.pumpkins)" : "–",
-                         label: dock.isShowing ? "On your Dock now" : "Dock hidden right now", symbol: "leaf.fill", color: .harvestGreen)
-                StatTile(value: model.theme.title, label: "Season", symbol: model.theme.symbol, color: .harvestMustard)
-            }
-
-            HStack(spacing: 10) {
-                ActionTile(symbol: model.showPumpkins ? "eye.fill" : "eye.slash.fill",
-                           title: model.showPumpkins ? "On the Dock" : "Hidden",
-                           detail: model.showPumpkins ? "Click to hide" : "Click to show",
-                           isOn: model.showPumpkins) { model.showPumpkins.toggle() }
-                ActionTile(symbol: model.isPaused ? "play.fill" : "pause.fill",
-                           title: model.isPaused ? "Resume" : "Pause",
-                           detail: model.isPaused ? "Paused for an hour" : "Hide for an hour",
-                           isOn: model.isPaused) { model.isPaused ? model.resume() : model.pauseForAnHour() }
-                ActionTile(symbol: "sparkles", title: "Grow New", detail: "A fresh harvest") { model.regrow() }
-            }
-
-            HStack {
-                Picker("Season", selection: $model.themeChoice) {
-                    ForEach(Settings.ThemeChoice.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
-                }
-                .fixedSize()
-                Text(model.themeChoice == .automatic ? "Now: \(model.theme.title)" : "More seasons coming soon")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Reset Count") { model.resetSmashCount() }
-                    .disabled(model.smashCount == 0)
-                Button("Welcome") { model.showWelcome() }
-                Button("Quit") { NSApp.terminate(nil) }
-            }
-            .controlSize(.small)
-        }
-        .padding(20)
-        .tint(.pumpkin)
-        .onReceive(tick) { _ in dock = model.dockStatus }
-    }
-}
-
 // MARK: - Settings
 
 struct SettingsTab: View {
     @ObservedObject var model: AppModel
     @State private var reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-
-    private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-    }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -377,11 +283,8 @@ struct SettingsTab: View {
                     EmptyView()
                 }
             }
-            Text("Fall Dock \(version) · Made with 🧡 for cozy autumn days")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
-        .padding(20)
+        .padding(24)
         .tint(.pumpkin)
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)) { _ in
             reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -472,7 +375,7 @@ struct DockTab: View {
             Button("Open Desktop & Dock Settings…") { open("x-apple.systempreferences:com.apple.Desktop-Settings.extension") }
                 .buttonStyle(.link)
         }
-        .padding(20)
+        .padding(24)
         .tint(.pumpkin)
         .onReceive(tick) { _ in refresh() }
         .onAppear(perform: refresh)
@@ -630,7 +533,7 @@ struct ThemeTab: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(20)
+        .padding(24)
         .tint(.pumpkin)
     }
 }

@@ -14,6 +14,14 @@ struct MenuContent: View {
 
         Divider()
 
+        Picker("Season", selection: $model.themeChoice) {
+            ForEach(Settings.ThemeChoice.allCases, id: \.self) { choice in
+                Text(choice == .automatic ? "Automatic (\(Settings.Theme.forDate(Date()).title))" : choice.title).tag(choice)
+            }
+        }
+
+        Divider()
+
         Toggle("Show Pumpkins", isOn: $model.showPumpkins)
         Toggle("Vines", isOn: $model.showVines)
         Toggle("Cozy Extras", isOn: $model.cozyExtras)
