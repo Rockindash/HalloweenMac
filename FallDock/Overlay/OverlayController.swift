@@ -48,6 +48,8 @@ final class OverlayController {
     private var lastDockState: DockLocator.DockState = .unknown
     private var lastDockCheck: TimeInterval = 0
     private var isHiding = false
+    /// A setting changed and the harvest hasn't regrown with it yet.
+    private var needsRegrow = false
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -165,13 +167,17 @@ final class OverlayController {
 
     /// Re-measures the Dock and moves, shows or hides the overlay.
     func refresh(force: Bool = false) {
+        // A change made while the harvest is hidden (the Dock slid away, paused, switched off) is
+        // remembered, so the harvest regrows with it as soon as it shows again.
+        if force { needsRegrow = true }
         lastDockState = DockLocator.dockScreen()
         guard Settings.showPumpkins, !isPaused, let dock = DockLocator.locate() else {
             hide()
             return
         }
-        if force || dock != currentDock || panel?.isVisible != true || isHiding {
-            show(on: dock, force: force)
+        if needsRegrow || dock != currentDock || panel?.isVisible != true || isHiding {
+            show(on: dock, force: needsRegrow)
+            needsRegrow = false
         }
     }
 

@@ -187,12 +187,15 @@ struct HomePage: View {
 /// Is the harvest on the Dock? The one switch most people need.
 private struct OnOffCard: View {
     @ObservedObject var model: AppModel
+    @State private var dockShowing = AppModel.shared.dockStatus.isShowing
+    private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var isShowing: Bool { model.showPumpkins && !model.isPaused }
 
     private var status: String {
         if !model.showPumpkins { return "Hidden. Switch it on to bring the harvest back." }
         if model.isPaused { return "Paused for an hour, then it comes back by itself." }
+        if !dockShowing { return "Your Dock is hidden right now (a full-screen app?). Changes show up when it's back." }
         return model.smashCount > 0 ? "Growing on your Dock · \(model.smashCount) smashed so far" : "Growing on your Dock"
     }
 
@@ -217,6 +220,7 @@ private struct OnOffCard: View {
                 }
             }
         }
+        .onReceive(tick) { _ in dockShowing = model.dockStatus.isShowing }
     }
 }
 
