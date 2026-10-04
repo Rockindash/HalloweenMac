@@ -255,14 +255,14 @@ enum Settings {
             /// Festivals while they're on, the season the rest of the time. Saved as "automatic", what
             /// it was called before the other rotations.
             case everything = "automatic"
-            /// Just the seasons, following the calendar.
-            case seasons
             /// Just the festivals: the one that's on, or else the next one coming up.
             case festivals
+            /// Just the seasons, following the calendar.
+            case seasons
 
             var title: String {
                 switch self {
-                case .everything: return "Seasons & Festivals"
+                case .everything: return "Everything"
                 case .seasons: return "Seasons Only"
                 case .festivals: return "Festivals Only"
                 }
@@ -278,9 +278,9 @@ enum Settings {
 
             var detail: String {
                 switch self {
-                case .everything: return "Seasons, with festivals when they come around"
-                case .seasons: return "Follows the seasons, no festivals"
-                case .festivals: return "Always the next festival, never a plain season"
+                case .everything: return "The season, and each festival while it's on"
+                case .seasons: return "Just the seasons, no festivals"
+                case .festivals: return "The festival that's on, or the next one coming"
                 }
             }
 

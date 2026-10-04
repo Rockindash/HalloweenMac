@@ -1,10 +1,10 @@
 import AppKit
 import SwiftUI
 
-// The app window: three tabs at the top, like the settings of most Mac utilities.
-// Home answers "is it on?" and "which theme?", Customize picks what grows, and Settings holds
-// everything else. The building blocks (cards, tiles, the live harvest) and the Customize page
-// are in MainTabs.swift.
+// The app window: a sidebar with Home, Customize and Settings, like System Settings and most
+// pro Mac apps. Home answers "is it on?" and "which theme?", Customize picks what grows, and
+// Settings holds everything else. The building blocks (cards, tiles, the live harvest) and the
+// Customize page are in MainTabs.swift.
 
 enum Page: String, CaseIterable, Identifiable {
     case home, customize, settings
@@ -17,45 +17,131 @@ enum Page: String, CaseIterable, Identifiable {
         case .settings: return "Settings"
         }
     }
+
+    var symbol: String {
+        switch self {
+        case .home: return "house.fill"
+        case .customize: return "paintbrush.fill"
+        case .settings: return "gearshape.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .home: return .pumpkin
+        case .customize: return .purple
+        case .settings: return .gray
+        }
+    }
 }
 
 struct MainView: View {
+    /// The smallest the window can be and still show every page properly.
+    static let minSize = NSSize(width: 820, height: 600)
+
     @ObservedObject var model: AppModel
     @AppStorage("mainWindowPage") private var pageName = Page.home.rawValue
 
-    private var page: Binding<Page> {
-        Binding(get: { Page(rawValue: pageName) ?? .home }, set: { pageName = $0.rawValue })
+    private var page: Page { Page(rawValue: pageName) ?? .home }
+
+    var body: some View {
+        NavigationSplitView {
+            Sidebar(model: model, selection: Binding(get: { page }, set: { pageName = ($0 ?? .home).rawValue }))
+                .navigationSplitViewColumnWidth(min: 200, ideal: 210, max: 240)
+        } detail: {
+            VStack(spacing: 0) {
+                PageHeader(model: model, page: page)
+                Divider()
+                ScrollView {
+                    Group {
+                        switch page {
+                        case .home: HomePage(model: model) { pageName = Page.customize.rawValue }
+                        case .customize: ThemeTab(model: model)
+                        case .settings: SettingsPage(model: model)
+                        }
+                    }
+                    .frame(maxWidth: 680)
+                    .frame(maxWidth: .infinity)
+                }
+                .id(page)
+            }
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
+        .tint(.pumpkin)
+        .frame(minWidth: Self.minSize.width, minHeight: Self.minSize.height)
+    }
+}
+
+private struct Sidebar: View {
+    @ObservedObject var model: AppModel
+    @Binding var selection: Page?
+
+    private var status: (text: String, color: Color) {
+        if !model.showPumpkins { return ("Hidden", .gray) }
+        if model.isPaused { return ("Paused", .yellow) }
+        return ("On your Dock", .green)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // In the title bar, between the window's buttons and the edge.
-            Picker("", selection: page) {
-                ForEach(Page.allCases) { Text($0.title).tag($0) }
+        List(selection: $selection) {
+            ForEach(Page.allCases) { page in
+                Label {
+                    Text(page.title)
+                } icon: {
+                    Image(systemName: page.symbol)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 22, height: 22)
+                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(page.color.gradient))
+                }
+                .tag(page)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            Divider()
-            ScrollView {
-                Group {
-                    switch page.wrappedValue {
-                    case .home: HomePage(model: model) { pageName = Page.customize.rawValue }
-                    case .customize: ThemeTab(model: model)
-                    case .settings: SettingsPage(model: model)
+        }
+        .listStyle(.sidebar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 38, height: 38)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Fall Dock").font(.system(size: 14, weight: .bold, design: .rounded))
+                    HStack(spacing: 5) {
+                        Circle().fill(status.color).frame(width: 6, height: 6)
+                        Text(status.text).font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                .frame(maxWidth: 680)
-                .frame(maxWidth: .infinity)
+                Spacer()
             }
-            .id(page.wrappedValue)
+            .padding(.horizontal, 14)
+            .padding(.top, 6)
+            .padding(.bottom, 10)
         }
-        .ignoresSafeArea(.container, edges: .top)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .tint(.pumpkin)
-        .frame(minWidth: 620, minHeight: 560)
+    }
+}
+
+/// The page's title, under the window's buttons.
+private struct PageHeader: View {
+    @ObservedObject var model: AppModel
+    var page: Page
+
+    private var subtitle: String {
+        switch page {
+        case .home: return "Your harvest, and which theme is on your Dock"
+        case .customize: return "What grows on your Dock for \(model.theme.title)"
+        case .settings: return "Startup, sounds, your Dock, and about Fall Dock"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(page == .customize ? "Customize \(model.theme.title)" : page.title)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+            Text(subtitle).font(.callout).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 14)
+        .padding(.bottom, 12)
     }
 }
 
@@ -134,23 +220,16 @@ private struct OnOffCard: View {
     }
 }
 
-/// Which theme is on the Dock: pick one, or let it change with the calendar.
+/// Which theme is on the Dock. First choice: rotate with the calendar (everything, festivals only or
+/// seasons only). Second choice: keep one theme all year.
 private struct ThemeCard: View {
     @ObservedObject var model: AppModel
     var openCustomize: () -> Void
-    private let columns = [GridItem(.adaptive(minimum: 190), spacing: 12)]
+    private let columns = [GridItem(.adaptive(minimum: 180), spacing: 12)]
 
     private var rotation: Settings.ThemeChoice.Rotation? {
         if case let .rotate(rotation) = model.themeChoice { return rotation }
         return nil
-    }
-
-    private var followsCalendar: Binding<Bool> {
-        Binding(get: { rotation != nil }, set: { on in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                model.themeChoice = on ? .rotate(.everything) : .keep(model.theme)
-            }
-        })
     }
 
     private var summary: String {
@@ -159,39 +238,17 @@ private struct ThemeCard: View {
             ?? "\(model.theme.title) now. More themes are on the way."
     }
 
+    private func choose(_ choice: Settings.ThemeChoice) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { model.themeChoice = choice }
+    }
+
     var body: some View {
         Card(title: nil) {
-            HStack(alignment: .top) {
+            HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Theme").font(.headline)
                     Text(summary).font(.callout).foregroundStyle(.secondary)
                 }
-                Spacer()
-                Toggle("Change with the calendar", isOn: followsCalendar)
-                    .toggleStyle(.switch)
-            }
-
-            if let rotation {
-                Picker("", selection: Binding(get: { rotation }, set: { new in withAnimation { model.themeChoice = .rotate(new) } })) {
-                    ForEach(Settings.ThemeChoice.Rotation.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(Settings.Theme.allCases, id: \.self) { theme in
-                    ThemeTile(theme: theme, isOn: model.theme == theme, followsCalendar: rotation != nil,
-                              isIncluded: rotation?.themes.contains(theme) ?? true) {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { model.themeChoice = .keep(theme) }
-                    }
-                }
-            }
-
-            HStack {
-                Text(rotation == nil ? "Click a theme to put it on your Dock." : "Click a theme to keep it on all year instead.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 Spacer()
                 Button {
                     openCustomize()
@@ -202,18 +259,91 @@ private struct ThemeCard: View {
                 .foregroundStyle(Color.pumpkin)
                 .font(.callout.weight(.semibold))
             }
+
+            groupLabel("Change with the calendar")
+            HStack(spacing: 10) {
+                ForEach(Settings.ThemeChoice.Rotation.allCases, id: \.self) { option in
+                    RotationOption(rotation: option, isSelected: rotation == option) { choose(.rotate(option)) }
+                }
+            }
+
+            groupLabel("Or keep one theme all year")
+                .padding(.top, 4)
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Settings.Theme.allCases, id: \.self) { theme in
+                    ThemeTile(theme: theme, isSelected: model.themeChoice == .keep(theme),
+                              isNow: rotation != nil && model.theme == theme) { choose(.keep(theme)) }
+                }
+            }
         }
+    }
+
+    private func groupLabel(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.6)
+            .foregroundStyle(.secondary)
+    }
+}
+
+/// One of the calendar rotations, as a radio card.
+private struct RotationOption: View {
+    var rotation: Settings.ThemeChoice.Rotation
+    var isSelected: Bool
+    var action: () -> Void
+    @State private var hovering = false
+
+    private var now: String {
+        let theme = rotation.theme(on: Date())
+        return ThemeSchedule.next(.rotate(rotation)).map { "\(theme.title) now · \($0)" } ?? "\(theme.title) now"
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Image(systemName: rotation.symbol)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(isSelected ? .white : Color.pumpkin)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(isSelected ? Color.pumpkin : Color.pumpkin.opacity(0.15)))
+                    Spacer()
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 16))
+                        .foregroundStyle(isSelected ? Color.pumpkin : Color.secondary.opacity(0.5))
+                }
+                Text(rotation.title).font(.system(size: 13, weight: .semibold))
+                Text(rotation.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2, reservesSpace: true)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(now)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(isSelected ? Color.pumpkin : .secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(isSelected ? Color.pumpkin.opacity(0.12) : Color.secondary.opacity(hovering ? 0.12 : 0.07)))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(isSelected ? Color.pumpkin : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1))
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(PressableStyle())
+        .onHover { hovering = $0 }
     }
 }
 
 /// A theme, as a picture card.
 struct ThemeTile: View {
     var theme: Settings.Theme
-    /// It's the one on the Dock now.
-    var isOn: Bool
-    var followsCalendar: Bool
-    /// Part of the calendar rotation (always true when keeping one theme).
-    var isIncluded: Bool
+    /// Kept on the Dock all year.
+    var isSelected: Bool
+    /// On the Dock now, because the calendar rotation picked it.
+    var isNow: Bool
     var action: () -> Void
     @State private var hovering = false
 
@@ -230,15 +360,15 @@ struct ThemeTile: View {
                     }
                     .clipped()
                     .overlay(alignment: .topTrailing) {
-                        if isOn {
+                        if isSelected || isNow {
                             HStack(spacing: 4) {
-                                if followsCalendar { Text("NOW").font(.caption2.weight(.heavy)) }
-                                Image(systemName: "checkmark").font(.system(size: 10, weight: .heavy))
+                                if isNow { Text("ON NOW").font(.caption2.weight(.heavy)) }
+                                if isSelected { Image(systemName: "checkmark").font(.system(size: 10, weight: .heavy)) }
                             }
                             .foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Capsule().fill(Color.pumpkin))
+                            .background(Capsule().fill(isSelected ? Color.pumpkin : Color.black.opacity(0.45)))
                             .padding(8)
                             .transition(.scale.combined(with: .opacity))
                         }
@@ -255,8 +385,7 @@ struct ThemeTile: View {
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.quaternary.opacity(0.45)))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(isOn ? Color.pumpkin : Color.secondary.opacity(0.2), lineWidth: isOn ? 2.5 : 1))
-            .opacity(isIncluded || isOn ? 1 : 0.5)
+                .strokeBorder(isSelected ? Color.pumpkin : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2.5 : 1))
             .shadow(color: .black.opacity(hovering ? 0.18 : 0.05), radius: hovering ? 8 : 3, y: hovering ? 3 : 1)
             .scaleEffect(hovering ? 1.015 : 1)
             .animation(.easeOut(duration: 0.15), value: hovering)
@@ -264,7 +393,7 @@ struct ThemeTile: View {
         }
         .buttonStyle(PressableStyle())
         .onHover { hovering = $0 }
-        .help(isIncluded ? "Keep \(theme.title) on your Dock all year" : "Not part of this rotation. Click to keep \(theme.title) on instead.")
+        .help("Keep \(theme.title) on your Dock all year")
     }
 }
 
