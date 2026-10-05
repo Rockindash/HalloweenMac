@@ -219,7 +219,7 @@ struct SettingRow<Trailing: View>: View {
     }
 }
 
-/// A slider from 0 to 1 that settles in the middle when dragged close to it.
+/// A slider from 0 to 1 that snaps to the middle when dragged close to it.
 struct MiddleMarkedSlider: NSViewRepresentable {
     @Binding var value: Double
 
@@ -239,15 +239,26 @@ struct MiddleMarkedSlider: NSViewRepresentable {
 
     final class Coordinator: NSObject {
         var value: Binding<Double>
+        /// How close to the middle, as a fraction of the slider's range, the knob snaps to it.
+        private let snapDistance = 0.08
+        private var isSnapped = false
+
         init(value: Binding<Double>) { self.value = value }
 
+        // Sent continuously while dragging. Setting the slider's value here moves the knob right away,
+        // so it visibly jumps to the middle mid-drag. (The slider doesn't ask its cell while tracking,
+        // so snapping has to happen here.)
         @objc func changed(_ slider: NSSlider) {
-            var newValue = slider.doubleValue
-            if abs(newValue - 0.5) < 0.03 {
-                newValue = 0.5
-                slider.doubleValue = newValue
+            let snaps = abs(slider.doubleValue - 0.5) < snapDistance
+            if snaps {
+                slider.doubleValue = 0.5
+                // A light click on the trackpad as it lands on the middle.
+                if !isSnapped {
+                    NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+                }
             }
-            value.wrappedValue = newValue
+            isSnapped = snaps
+            value.wrappedValue = slider.doubleValue
         }
     }
 }
