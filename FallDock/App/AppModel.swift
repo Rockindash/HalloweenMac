@@ -139,6 +139,26 @@ final class AppModel: ObservableObject {
         smashCount = 0
     }
 
+    /// Every option back to how it started, the smash count back to zero, and a fresh harvest.
+    /// Open at login is left alone: it's a Mac setting the person chose in System Settings too.
+    func resetEverything() {
+        Settings.resetAll()
+        smashCount = Settings.smashCount
+        showPumpkins = Settings.showPumpkins
+        showVines = Settings.showVines
+        cozyExtras = Settings.cozyExtras
+        squirrel = Settings.squirrel
+        enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
+        showMenuBarIcon = Settings.showMenuBarIcon
+        theme = Settings.theme
+        fallingLeaves = Settings.fallingLeaves
+        leafAmount = Settings.leafAmount
+        leavesFillScreen = Settings.leavesFillScreen
+        sound = Settings.sound
+        fullness = Settings.fullness
+        overlay.refresh(force: true)
+    }
+
     func pauseForAnHour() {
         overlay.pause(for: 60 * 60)
         isPaused = true

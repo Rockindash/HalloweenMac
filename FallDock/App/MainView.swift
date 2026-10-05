@@ -269,6 +269,8 @@ struct SettingsPage: View {
     @ObservedObject var model: AppModel
     @State private var hasAccessibility = DockLocator.hasAccessibility
     @State private var dockAtBottom = SettingsPage.isDockAtBottom
+    @State private var confirmingSmashReset = false
+    @State private var confirmingResetAll = false
     private let tick = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     private static var isDockAtBottom: Bool {
@@ -330,6 +332,32 @@ struct SettingsPage: View {
                 }
             }
 
+            Card(title: "Reset") {
+                SettingRow(symbol: "hammer.fill", color: .pumpkin, title: "Smash count",
+                           detail: model.smashCount == 1 ? "1 pumpkin smashed so far." : "\(model.smashCount) pumpkins smashed so far.") {
+                    Button("Reset Smash Count…") { confirmingSmashReset = true }
+                        .disabled(model.smashCount == 0)
+                }
+                Divider()
+                SettingRow(symbol: "arrow.counterclockwise", color: .red, title: "Reset everything",
+                           detail: "Puts every option back how it started, clears the smash count and grows a fresh harvest.") {
+                    Button("Reset Everything…", role: .destructive) { confirmingResetAll = true }
+                        .tint(.red)
+                }
+            }
+            .alert("Reset the smash count?", isPresented: $confirmingSmashReset) {
+                Button("Reset", role: .destructive) { model.resetSmashCount() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The count of \(model.smashCount) smashed pumpkins goes back to zero. This can't be undone.")
+            }
+            .alert("Reset everything?", isPresented: $confirmingResetAll) {
+                Button("Reset Everything", role: .destructive) { model.resetEverything() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("All of Fall Dock's options go back to how they started, the smash count goes back to zero, and a fresh harvest grows. Open at login stays as it is. This can't be undone.")
+            }
+
             Card(title: "About") {
                 HStack(spacing: 12) {
                     Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
@@ -345,8 +373,6 @@ struct SettingsPage: View {
                 }
                 HStack {
                     Button("Show Welcome") { model.showWelcome() }
-                    Button("Reset Smash Count") { model.resetSmashCount() }
-                        .disabled(model.smashCount == 0)
                     Spacer()
                     Button("Quit Fall Dock") { NSApp.terminate(nil) }
                 }

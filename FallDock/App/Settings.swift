@@ -46,6 +46,15 @@ enum Settings {
         ])
     }
 
+    /// Puts every option back the way it was on first launch and clears the smash count.
+    /// The welcome isn't shown again.
+    static func resetAll() {
+        let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
+                    Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
+                    Key.squirrel, Key.showMenuBarIcon, Key.theme]
+        keys.forEach(defaults.removeObject(forKey:))
+    }
+
     static var showPumpkins: Bool {
         get { defaults.bool(forKey: Key.showPumpkins) }
         set { defaults.set(newValue, forKey: Key.showPumpkins) }
