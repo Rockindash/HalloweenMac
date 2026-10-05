@@ -319,7 +319,7 @@ struct SettingsPage: View {
                 } else {
                     SettingRow(symbol: "ruler.fill", color: .harvestMustard, title: "Fit your Dock exactly",
                                detail: "The Dock's size is estimated for now. Allow Accessibility to measure it. Fall Dock only reads its size.") {
-                        Button("Allow…") { DockLocator.requestAccessibility() }
+                        Button("Allow") { DockLocator.requestAccessibility() }
                             .buttonStyle(.borderedProminent)
                     }
                 }
@@ -327,7 +327,7 @@ struct SettingsPage: View {
                     Divider()
                     SettingRow(symbol: "exclamationmark.triangle.fill", color: .orange, title: "Your Dock is on the side",
                                detail: "The harvest only grows on a Dock at the bottom of the screen.") {
-                        Button("Dock Settings…") { openDockSettings() }
+                        Button("Dock Settings") { openDockSettings() }
                     }
                 }
             }

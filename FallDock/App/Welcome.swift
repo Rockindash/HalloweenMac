@@ -51,17 +51,18 @@ struct WelcomeView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if !hasAccessibility {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(spacing: 8) {
                     Text("Fit the pumpkins to your Dock exactly")
                         .font(.headline)
                     Text("Without this, Fall Dock guesses how long your Dock is. It only reads the Dock's size, never your screen or what you type.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Allow in System Settings…") { DockLocator.requestAccessibility() }
+                    Button("Allow in System Settings") { DockLocator.requestAccessibility() }
                 }
                 .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity)
                 .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
             } else {
                 Label("Fall Dock can measure your Dock exactly.", systemImage: "checkmark.circle.fill")
