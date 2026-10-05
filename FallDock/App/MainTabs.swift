@@ -3,8 +3,8 @@ import Combine
 import SpriteKit
 import SwiftUI
 
-// The building blocks of the app window (see MainView.swift) and its Customize tab, in the harvest-wagon colors:
-// a live little harvest to play with, cards with colored badges, and picture tiles.
+// The building blocks of the app window (see MainView.swift) and its Customize page, laid out like
+// the Mac App Store: big titles, a hero card with artwork, and plain rounded cards with no borders.
 
 /// The window's own colors: the dark wagon colors, whatever the Dock art is using.
 extension Color {
@@ -14,29 +14,166 @@ extension Color {
     static let harvestMustard = Color(cgColor: .hex(0xDB9D24))
     static let harvestPeach = Color(cgColor: .hex(0xFCDCBE))
     static let harvestGreen = Color(cgColor: .hex(0x627329))
+
+    /// The page behind the cards: white in Light mode, near black in Dark.
+    static let pageBackground = Color(nsColor: .textBackgroundColor)
+
+    /// A card's fill, a step off the page in either mode.
+    static let cardFill = Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            ? NSColor(white: 1, alpha: 0.075) : NSColor(white: 0, alpha: 0.045)
+    })
 }
 
 // MARK: - Building blocks
 
-/// A rounded panel that groups related things.
+/// A page: its big title, then its sections.
+struct PageLayout<Content: View>: View {
+    var title: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                Text(title)
+                    .font(.system(size: 34, weight: .bold))
+                    .padding(.bottom, -6)
+                content
+            }
+            .padding(.horizontal, 40)
+            .padding(.top, 34)
+            .padding(.bottom, 40)
+            .frame(maxWidth: 960, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Color.pageBackground)
+    }
+}
+
+/// A rounded panel that groups related things, with an optional heading above it.
 struct Card<Content: View>: View {
     var title: String?
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if let title {
-                Text(title.uppercased())
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(0.6)
-                    .foregroundStyle(.secondary)
+                Text(title).font(.title3.weight(.bold))
             }
-            content
+            VStack(alignment: .leading, spacing: 14) {
+                content
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardFill))
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.quaternary.opacity(0.45)))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.separator.opacity(0.6), lineWidth: 0.5))
+    }
+}
+
+/// The small grey capitals over a card's title.
+struct Eyebrow: View {
+    var text: String
+
+    var body: some View {
+        Text(text.uppercased())
+            .font(.system(size: 12, weight: .semibold))
+            .tracking(0.4)
+            .foregroundStyle(.secondary)
+    }
+}
+
+/// The wide card at the top of a page: words on the left, artwork on the right.
+struct HeroCard<Art: View, Footer: View>: View {
+    var eyebrow: String
+    var title: String
+    var subtitle: String
+    var height: CGFloat = 300
+    @ViewBuilder var art: Art
+    @ViewBuilder var footer: Footer
+
+    var body: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Eyebrow(text: eyebrow)
+                Text(title)
+                    .font(.system(size: 28, weight: .bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 12)
+                Text(subtitle)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                footer
+            }
+            .padding(24)
+            .frame(width: 250, alignment: .leading)
+            .frame(maxHeight: .infinity, alignment: .topLeading)
+            .background(LinearGradient(colors: [Color(cgColor: .hex(0x3A1620)), Color(cgColor: .hex(0x2A1218))],
+                                       startPoint: .top, endPoint: .bottom))
+            // Always light words on the dark harvest panel, in either mode.
+            .environment(\.colorScheme, .dark)
+            // The artwork fills what's left without asking for more room.
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay { art }
+                .clipped()
+        }
+        .frame(height: height)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+extension HeroCard where Footer == EmptyView {
+    init(eyebrow: String, title: String, subtitle: String, height: CGFloat = 300, @ViewBuilder art: () -> Art) {
+        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle, height: height, art: art, footer: { EmptyView() })
+    }
+}
+
+/// A card in the grid under the hero: words on the left, a round picture on the right.
+struct FeatureCard<Footer: View>: View {
+    var eyebrow: String
+    var title: String
+    var subtitle: String
+    var image: NSImage
+    var imageBackground: Color
+    @ViewBuilder var footer: Footer
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Eyebrow(text: eyebrow)
+                Text(title)
+                    .font(.system(size: 22, weight: .bold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                Text(subtitle)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                footer
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Circle()
+                .fill(imageBackground)
+                .overlay {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .padding(18)
+                }
+                .frame(width: 96, height: 96)
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, minHeight: 190, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardFill))
+    }
+}
+
+extension FeatureCard where Footer == EmptyView {
+    init(eyebrow: String, title: String, subtitle: String, image: NSImage, imageBackground: Color) {
+        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle, image: image, imageBackground: imageBackground) { EmptyView() }
     }
 }
 
@@ -80,49 +217,11 @@ struct SettingRow<Trailing: View>: View {
     }
 }
 
-/// A chunky button with a symbol and two lines of text. Lit up in orange while `isOn`.
-struct ActionTile: View {
-    var symbol: String
-    var title: String
-    var detail: String
-    var isOn = false
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: symbol)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(isOn ? .white : Color.pumpkin)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(isOn ? Color.white.opacity(0.22) : Color.pumpkin.opacity(0.15)))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(.system(size: 13, weight: .semibold))
-                    Text(detail).font(.caption).opacity(0.75)
-                }
-            }
-            .foregroundStyle(isOn ? .white : .primary)
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isOn ? AnyShapeStyle(LinearGradient(colors: [.pumpkin, .harvestRust], startPoint: .topLeading,
-                                                               endPoint: .bottomTrailing))
-                               : AnyShapeStyle(.quaternary.opacity(0.45)))
-            )
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(isOn ? Color.clear : Color.secondary.opacity(0.2), lineWidth: 1))
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(PressableStyle())
-    }
-}
-
 /// Buttons that dip a little when pressed.
 struct PressableStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
@@ -154,6 +253,7 @@ struct LiveHarvestView: View {
     @ObservedObject var model: AppModel
     @StateObject private var harvest = LiveHarvest()
     var height: CGFloat = 210
+    var cornerRadius: CGFloat = 16
 
     /// The settings that change what grows; the little harvest regrows when any of them change.
     private var look: [AnyHashable] {
@@ -178,7 +278,8 @@ struct LiveHarvestView: View {
                     .position(x: geometry.size.width - 70, y: 44)
                 // A pretend Dock.
                 HStack(spacing: 10) {
-                    ForEach(0..<icons.count, id: \.self) { i in
+                    // As many icons as fit, like a real Dock.
+                    ForEach(0..<min(icons.count, max(1, Int((geometry.size.width - 62) / 44))), id: \.self) { i in
                         Image(systemName: icons[i].0)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.white)
@@ -197,45 +298,46 @@ struct LiveHarvestView: View {
             .onChange(of: look) { _ in harvest.layout(size: geometry.size, regrow: true) }
         }
         .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
 
-// MARK: - The season's tab
 
-struct ThemeTab: View {
+// MARK: - Customize
+
+struct CustomizePage: View {
     @ObservedObject var model: AppModel
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
+    private let columns = [GridItem(.adaptive(minimum: 132), spacing: 14)]
 
     var body: some View {
-        VStack(spacing: 14) {
-            Image(nsImage: ThemePreview.image(for: model.theme))
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .overlay(alignment: .topLeading) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(model.theme.title)
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
-                        Text("Pumpkins, hay and falling leaves")
-                            .font(.callout.weight(.medium))
-                            .opacity(0.85)
-                    }
-                    .foregroundStyle(Color.harvestPeach)
-                    .padding(16)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-            HStack(spacing: 10) {
-                ActionTile(symbol: "laurel.leading", title: "Vine", detail: model.showVines ? "Curling along the Dock" : "Off",
-                           isOn: model.showVines) { model.showVines.toggle() }
-                ActionTile(symbol: "leaf.fill", title: "Falling leaves", detail: model.fallingLeaves ? "Drifting down" : "Off",
-                           isOn: model.fallingLeaves) { model.fallingLeaves.toggle() }
-                ActionTile(symbol: "basket.fill", title: "Cozy extras", detail: model.cozyExtras ? "Between the pumpkins" : "Off",
-                           isOn: model.cozyExtras) { model.cozyExtras.toggle() }
+        PageLayout(title: "Customize") {
+            HeroCard(eyebrow: model.theme.title, title: "Pumpkins, Hay and Falling Leaves",
+                     subtitle: "Pick what grows on your Dock. Changes show up right away.", height: 240) {
+                Image(nsImage: ThemePreview.image(for: model.theme))
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
             }
 
-            Card(title: "Pick your extras") {
-                LazyVGrid(columns: columns, spacing: 10) {
+            Card(title: "On Your Dock") {
+                SettingRow(symbol: "laurel.leading", color: .harvestGreen, title: "Vine",
+                           detail: "Curling along the top of the Dock, behind the pumpkins.") {
+                    Toggle("", isOn: $model.showVines).labelsHidden().toggleStyle(.switch)
+                }
+                Divider()
+                SettingRow(symbol: "leaf.fill", color: .harvestRust, title: "Falling leaves",
+                           detail: "A leaf drifting down now and then.") {
+                    Toggle("", isOn: $model.fallingLeaves).labelsHidden().toggleStyle(.switch)
+                }
+                Divider()
+                SettingRow(symbol: "basket.fill", color: .harvestMustard, title: "Cozy extras",
+                           detail: "Hay bales, leaf piles and more between the pumpkins.") {
+                    Toggle("", isOn: $model.cozyExtras).labelsHidden().toggleStyle(.switch)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Extras").font(.title3.weight(.bold))
+                LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(DecorKind.allCases, id: \.self) { kind in
                         ExtraTile(image: ExtraArt.image(for: kind), title: kind.title, isOn: model.enabledExtras.contains(kind)) {
                             model.setExtra(kind, enabled: !model.enabledExtras.contains(kind))
@@ -245,58 +347,64 @@ struct ThemeTab: View {
                 }
                 .disabled(!model.cozyExtras)
                 .opacity(model.cozyExtras ? 1 : 0.45)
-                Text("Tap to switch each one on or off. On the Dock, click the leaf piles, the latte and the lantern.")
+                Text(model.cozyExtras
+                     ? "Click to switch each one on or off. On the Dock, click the hay bales, leaf piles, the latte and the lantern."
+                     : "Switch on Cozy extras to pick them.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(24)
-        .tint(.pumpkin)
     }
 }
 
-/// A picture tile for one of the extras that switches it on or off.
+/// A picture card for one of the extras that switches it on or off.
 struct ExtraTile: View {
     var image: NSImage
     var title: String
     var isOn: Bool
     var action: () -> Void
-    @Environment(\.colorScheme) private var colorScheme
+    @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 10) {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(height: 48)
+                    .frame(height: 54)
                     .saturation(isOn ? 1 : 0)
-                    .opacity(isOn ? 1 : 0.4)
+                    .opacity(isOn ? 1 : 0.45)
                 Text(title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(isOn ? .primary : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 6)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 8)
             .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isOn ? (colorScheme == .dark ? Color.harvestPlum.opacity(0.35) : Color.pumpkin.opacity(0.1)) : Color.clear))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(isOn ? Color.pumpkin.opacity(0.7) : Color.secondary.opacity(0.25), lineWidth: isOn ? 1.5 : 1))
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.cardFill)
+                .brightness(hovering ? 0.03 : 0))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.pumpkin, lineWidth: isOn ? 2 : 0))
             .overlay(alignment: .topTrailing) {
-                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isOn ? Color.pumpkin : Color.secondary)
-                    .padding(6)
+                if isOn {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white, Color.pumpkin)
+                        .padding(8)
+                }
             }
-            .contentShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(PressableStyle())
+        .onHover { hovering = $0 }
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
 
-/// Pictures of the extras for their tiles, drawn with the same art as the Dock.
 enum ExtraArt {
     private static var cache: [String: NSImage] = [:]
 
@@ -307,6 +415,16 @@ enum ExtraArt {
         let size = CozyArt.size(of: kind, unit: unit)
         let texture = CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
         let image = NSImage(cgImage: texture.cgImage(), size: size)
+        cache[key] = image
+        return image
+    }
+
+    static func pumpkin() -> NSImage {
+        let key = "pumpkin-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let height: CGFloat = 80
+        let texture = PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: 2)
+        let image = NSImage(cgImage: texture.cgImage(), size: PumpkinArt.size(of: .roundOrange, height: height))
         cache[key] = image
         return image
     }

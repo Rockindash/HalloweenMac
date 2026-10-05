@@ -26,14 +26,14 @@ final class MainWindow: NSObject, NSWindowDelegate {
         window.title = "Fall Dock"
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.setContentSize(NSSize(width: 900, height: 720))
+        window.setContentSize(NSSize(width: 1040, height: 780))
         window.contentMinSize = MainView.minSize
         window.center()
         window.setFrameAutosaveName("FallDockMainWindow")
         // A size saved by an older version may be smaller than the pages now need.
         let size = window.contentRect(forFrameRect: window.frame).size
         if size.width < MainView.minSize.width || size.height < MainView.minSize.height {
-            window.setContentSize(NSSize(width: max(size.width, 900), height: max(size.height, 720)))
+            window.setContentSize(NSSize(width: max(size.width, 1040), height: max(size.height, 780)))
             window.center()
         }
         self.window = window

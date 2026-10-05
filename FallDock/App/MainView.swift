@@ -1,10 +1,10 @@
 import AppKit
 import SwiftUI
 
-// The app window: a sidebar with Home, Customize and Settings, like System Settings and most
-// pro Mac apps. Home answers "is it on?", Customize picks what grows, and
-// Settings holds everything else. The building blocks (cards, tiles, the live harvest) and the
-// Customize page are in MainTabs.swift.
+// The app window, laid out like the Mac App Store: a floating sidebar with Home, Customize and
+// Settings, and pages with a big title, a hero card and plain rounded cards. Home answers "is it
+// on?", Customize picks what grows, and Settings holds everything else. The building blocks (cards,
+// tiles, the live harvest) and the Customize page are in MainTabs.swift.
 
 enum Page: String, CaseIterable, Identifiable {
     case home, customize, settings
@@ -20,128 +20,143 @@ enum Page: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .home: return "house.fill"
-        case .customize: return "paintbrush.fill"
-        case .settings: return "gearshape.fill"
+        case .home: return "house"
+        case .customize: return "paintbrush"
+        case .settings: return "gearshape"
+        }
+    }
+}
+
+/// Where the harvest is: on the Dock, paused, switched off, or waiting for a hidden Dock.
+enum HarvestState {
+    case showing, dockHidden, paused, hidden
+
+    var title: String {
+        switch self {
+        case .showing: return "On your Dock"
+        case .dockHidden: return "Dock hidden"
+        case .paused: return "Paused"
+        case .hidden: return "Hidden"
         }
     }
 
     var color: Color {
         switch self {
-        case .home: return .pumpkin
-        case .customize: return .purple
-        case .settings: return .gray
+        case .showing: return .green
+        case .dockHidden, .paused: return .yellow
+        case .hidden: return .gray
         }
+    }
+
+    @MainActor
+    static func of(_ model: AppModel, dockShowing: Bool) -> HarvestState {
+        if !model.showPumpkins { return .hidden }
+        if model.isPaused { return .paused }
+        return dockShowing ? .showing : .dockHidden
     }
 }
 
 struct MainView: View {
     /// The smallest the window can be and still show every page properly.
-    static let minSize = NSSize(width: 820, height: 600)
+    static let minSize = NSSize(width: 940, height: 660)
 
     @ObservedObject var model: AppModel
     @AppStorage("mainWindowPage") private var pageName = Page.home.rawValue
+    /// Whether the Dock itself is showing (it hides for full-screen apps); checked every second.
+    @State private var dockShowing = AppModel.shared.dockStatus.isShowing
+    private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var page: Page { Page(rawValue: pageName) ?? .home }
+    private var state: HarvestState { .of(model, dockShowing: dockShowing) }
 
     var body: some View {
         NavigationSplitView {
-            Sidebar(model: model, selection: Binding(get: { page }, set: { pageName = ($0 ?? .home).rawValue }))
-                .navigationSplitViewColumnWidth(min: 200, ideal: 210, max: 240)
+            Sidebar(state: state, selection: Binding(get: { page }, set: { pageName = ($0 ?? .home).rawValue }))
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
-            VStack(spacing: 0) {
-                PageHeader(model: model, page: page)
-                Divider()
-                ScrollView {
-                    Group {
-                        switch page {
-                        case .home: HomePage(model: model)
-                        case .customize: ThemeTab(model: model)
-                        case .settings: SettingsPage(model: model)
-                        }
-                    }
-                    .frame(maxWidth: 680)
-                    .frame(maxWidth: .infinity)
+            Group {
+                switch page {
+                case .home: HomePage(model: model, state: state) { pageName = Page.customize.rawValue }
+                case .customize: CustomizePage(model: model)
+                case .settings: SettingsPage(model: model)
                 }
-                .id(page)
             }
-            .background(Color(nsColor: .windowBackgroundColor))
+            .id(page)
         }
+        .modifier(NoSidebarToggle())
         .tint(.pumpkin)
         .frame(minWidth: Self.minSize.width, minHeight: Self.minSize.height)
+        .onReceive(tick) { _ in dockShowing = model.dockStatus.isShowing }
+    }
+}
+
+/// The sidebar always shows, so there's no button to hide it.
+private struct NoSidebarToggle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 14.0, *) {
+            content.toolbar(removing: .sidebarToggle)
+        } else {
+            content
+        }
     }
 }
 
 private struct Sidebar: View {
-    @ObservedObject var model: AppModel
+    var state: HarvestState
     @Binding var selection: Page?
 
-    private var status: (text: String, color: Color) {
-        if !model.showPumpkins { return ("Hidden", .gray) }
-        if model.isPaused { return ("Paused", .yellow) }
-        return ("On your Dock", .green)
-    }
-
     var body: some View {
-        List(selection: $selection) {
+        List {
             ForEach(Page.allCases) { page in
-                Label {
-                    Text(page.title)
-                } icon: {
-                    Image(systemName: page.symbol)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 22, height: 22)
-                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(page.color.gradient))
-                }
-                .tag(page)
+                SidebarRow(page: page, isSelected: selection == page) { selection = page }
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .top, spacing: 0) {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            // Who's here, where the App Store shows your account.
             HStack(spacing: 10) {
                 Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
                     .resizable()
-                    .frame(width: 38, height: 38)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Fall Dock").font(.system(size: 14, weight: .bold, design: .rounded))
+                    .frame(width: 34, height: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Fall Dock").font(.system(size: 13, weight: .semibold))
                     HStack(spacing: 5) {
-                        Circle().fill(status.color).frame(width: 6, height: 6)
-                        Text(status.text).font(.caption).foregroundStyle(.secondary)
+                        Circle().fill(state.color).frame(width: 6, height: 6)
+                        Text(state.title).font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 Spacer()
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 6)
-            .padding(.bottom, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
     }
 }
 
-/// The page's title, under the window's buttons.
-private struct PageHeader: View {
-    @ObservedObject var model: AppModel
+/// A sidebar row: a soft grey highlight and the accent color when selected, as in the App Store.
+private struct SidebarRow: View {
     var page: Page
-
-    private var subtitle: String {
-        switch page {
-        case .home: return "Your harvest, and whether it's on your Dock"
-        case .customize: return "What grows on your Dock for \(model.theme.title)"
-        case .settings: return "Startup, sounds, your Dock, and about Fall Dock"
-        }
-    }
+    var isSelected: Bool
+    var action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(page == .customize ? "Customize \(model.theme.title)" : page.title)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-            Text(subtitle).font(.callout).foregroundStyle(.secondary)
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: page.symbol)
+                    .font(.system(size: 15))
+                    .frame(width: 22)
+                Text(page.title).font(.system(size: 14))
+                Spacer()
+            }
+            .foregroundStyle(isSelected ? Color.pumpkin : Color.primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(isSelected ? Color.primary.opacity(0.08) : Color.clear))
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.top, 14)
-        .padding(.bottom, 12)
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -149,75 +164,71 @@ private struct PageHeader: View {
 
 struct HomePage: View {
     @ObservedObject var model: AppModel
+    var state: HarvestState
+    var openCustomize: () -> Void
 
-    private var greeting: String {
-        switch Calendar.current.component(.hour, from: Date()) {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        default: return "Good evening"
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 18) {
-            LiveHarvestView(model: model, height: 220)
-                .overlay(alignment: .topLeading) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(greeting)
-                            .font(.system(size: 24, weight: .heavy, design: .rounded))
-                        Text("The harvest is in on your Dock. Try clicking things!")
-                            .font(.callout.weight(.medium))
-                            .opacity(0.85)
-                    }
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
-                    .padding(18)
-                }
-                .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
-
-            OnOffCard(model: model)
-        }
-        .padding(24)
-    }
-}
-
-/// Is the harvest on the Dock? The one switch most people need.
-private struct OnOffCard: View {
-    @ObservedObject var model: AppModel
-    @State private var dockShowing = AppModel.shared.dockStatus.isShowing
-    private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    private var isShowing: Bool { model.showPumpkins && !model.isPaused }
+    private let columns = [GridItem(.adaptive(minimum: 280), spacing: 20)]
 
     private var status: String {
-        if !model.showPumpkins { return "Hidden. Switch it on to bring the harvest back." }
-        if model.isPaused { return "Paused for an hour, then it comes back by itself." }
-        if !dockShowing { return "Your Dock is hidden right now (a full-screen app?). Changes show up when it's back." }
-        return model.smashCount > 0 ? "Growing on your Dock · \(model.smashCount) smashed so far" : "Growing on your Dock"
+        switch state {
+        case .showing: return "Click a pumpkin to smash it. Hay bales, leaf piles and the latte do things too."
+        case .dockHidden: return "Your Dock is hidden right now (a full-screen app?). Changes show up when it's back."
+        case .paused: return "Paused for an hour, then it comes back by itself."
+        case .hidden: return "Switched off. Turn it on to bring the harvest back."
+        }
+    }
+
+    private var smashed: String {
+        switch model.smashCount {
+        case 0: return "No Pumpkins Smashed Yet"
+        case 1: return "1 Pumpkin Smashed"
+        default: return "\(model.smashCount) Pumpkins Smashed"
+        }
     }
 
     var body: some View {
-        Card(title: nil) {
-            SettingRow(symbol: isShowing ? "eye.fill" : "eye.slash.fill", color: isShowing ? .green : .gray,
-                       title: "Show on Dock", detail: status) {
-                HStack(spacing: 10) {
-                    if model.showPumpkins {
-                        Button(model.isPaused ? "Resume" : "Pause for an Hour") {
-                            withAnimation { model.isPaused ? model.resume() : model.pauseForAnHour() }
-                        }
-                        Button {
-                            model.regrow()
-                        } label: {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                        }
-                        .help("Grow a new harvest")
-                        .disabled(model.isPaused)
-                    }
-                    Toggle("", isOn: $model.showPumpkins.animation()).labelsHidden().toggleStyle(.switch)
+        PageLayout(title: "Home") {
+            HeroCard(eyebrow: state.title, title: "Fall Harvest", subtitle: status) {
+                LiveHarvestView(model: model, height: 300, cornerRadius: 0)
+            } footer: {
+                controls.padding(.top, 6)
+            }
+
+            LazyVGrid(columns: columns, spacing: 20) {
+                FeatureCard(eyebrow: "Your harvest", title: smashed,
+                            subtitle: "Smash one on your Dock and another grows in its place.",
+                            image: ExtraArt.pumpkin(), imageBackground: Color.harvestMustard.opacity(0.22))
+                Button(action: openCustomize) {
+                    FeatureCard(eyebrow: "Customize", title: "Make It Yours",
+                                subtitle: "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
+                                image: ExtraArt.squirrel(), imageBackground: Color.harvestRust.opacity(0.2))
+                        .contentShape(RoundedRectangle(cornerRadius: 16))
                 }
+                .buttonStyle(PressableStyle())
             }
         }
-        .onReceive(tick) { _ in dockShowing = model.dockStatus.isShowing }
+    }
+
+    /// The switch most people need, plus pause and regrow.
+    private var controls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $model.showPumpkins.animation()) {
+                Text("Show on Dock").font(.callout.weight(.semibold))
+            }
+            .toggleStyle(.switch)
+            if model.showPumpkins {
+                HStack(spacing: 8) {
+                    Button(model.isPaused ? "Resume" : "Pause") {
+                        withAnimation { model.isPaused ? model.resume() : model.pauseForAnHour() }
+                    }
+                    .help(model.isPaused ? "Bring the harvest back now" : "Hide the harvest for an hour")
+                    Button("Grow New") { model.regrow() }
+                        .help("Grow a new harvest")
+                        .disabled(model.isPaused)
+                }
+                .controlSize(.regular)
+            }
+        }
     }
 }
 
@@ -238,7 +249,7 @@ struct SettingsPage: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        PageLayout(title: "Settings") {
             Card(title: "General") {
                 SettingRow(symbol: "power", color: .green, title: "Open at login",
                            detail: "Starts quietly, with the harvest already on your Dock.") {
@@ -310,7 +321,6 @@ struct SettingsPage: View {
                 }
             }
         }
-        .padding(24)
         .onReceive(tick) { _ in refresh() }
         .onAppear(perform: refresh)
     }
