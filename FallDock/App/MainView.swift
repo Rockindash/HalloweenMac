@@ -177,7 +177,7 @@ struct HomePage: View {
     private var status: String {
         switch state {
         case .showing: return "Click a pumpkin to smash it. Hay bales, leaf piles and the latte do things too."
-        case .dockHidden: return "Your Dock is hidden right now (a full-screen app?). Changes show up when it's back."
+        case .dockHidden: return "Your Dock is hidden right now. Changes show up when it's back."
         case .paused: return "Paused for an hour, then it comes back by itself."
         case .hidden: return "Switched off. Turn it on to bring the harvest back."
         }
@@ -335,13 +335,13 @@ struct SettingsPage: View {
             Card(title: "Reset") {
                 SettingRow(symbol: "hammer.fill", color: .pumpkin, title: "Smash count",
                            detail: model.smashCount == 1 ? "1 pumpkin smashed so far." : "\(model.smashCount) pumpkins smashed so far.") {
-                    Button("Reset Smash Count…") { confirmingSmashReset = true }
+                    Button("Reset Smash Count") { confirmingSmashReset = true }
                         .disabled(model.smashCount == 0)
                 }
                 Divider()
                 SettingRow(symbol: "arrow.counterclockwise", color: .red, title: "Reset everything",
                            detail: "Puts every option back how it started, clears the smash count and grows a fresh harvest.") {
-                    Button("Reset Everything…", role: .destructive) { confirmingResetAll = true }
+                    Button("Reset Everything", role: .destructive) { confirmingResetAll = true }
                         .tint(.red)
                 }
             }
