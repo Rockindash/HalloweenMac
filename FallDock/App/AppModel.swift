@@ -51,7 +51,16 @@ final class AppModel: ObservableObject {
     }
 
     @Published var fallingLeaves: Bool {
-        didSet { Settings.fallingLeaves = fallingLeaves }
+        didSet { Settings.fallingLeaves = fallingLeaves; overlay.updateLeaves() }
+    }
+
+    /// How many leaves fall, from a few (0) to lots (1). Applies right away, without regrowing.
+    @Published var leafAmount: Double {
+        didSet { Settings.leafAmount = leafAmount; overlay.updateLeaves() }
+    }
+
+    @Published var leavesFillScreen: Bool {
+        didSet { Settings.leavesFillScreen = leavesFillScreen; overlay.updateLeaves() }
     }
 
     @Published var sound: Bool {
@@ -79,6 +88,8 @@ final class AppModel: ObservableObject {
         showMenuBarIcon = Settings.showMenuBarIcon
         theme = Settings.theme
         fallingLeaves = Settings.fallingLeaves
+        leafAmount = Settings.leafAmount
+        leavesFillScreen = Settings.leavesFillScreen
         sound = Settings.sound
         fullness = Settings.fullness
         openAtLogin = SMAppService.mainApp.status == .enabled

@@ -3,13 +3,17 @@ import SpriteKit
 
 /// A borderless, see-through panel that floats just above the Dock on every desktop.
 final class OverlayPanel: NSPanel {
-    init(frame: CGRect) {
+    /// One level above the Dock, so pumpkins draw on top of it.
+    static let aboveDock = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)) + 1)
+    /// Above every normal window but just below the Dock, so screen-wide leaves settle behind it.
+    static let belowDock = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)) - 1)
+
+    init(frame: CGRect, level: NSWindow.Level = OverlayPanel.aboveDock) {
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
-        // One level above the Dock, so pumpkins draw on top of it.
-        level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)) + 1)
+        self.level = level
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         ignoresMouseEvents = true
         hidesOnDeactivate = false
@@ -41,6 +45,12 @@ final class OverlayController {
     private var skView: ClickThroughSKView?
     private var scene: PumpkinScene?
     private var currentDock: DockInfo?
+
+    // Fill the whole screen: a second, click-through window of falling leaves over the Dock's screen.
+    private var leafPanel: OverlayPanel?
+    private var leafView: SKView?
+    private var leafScene: ScreenLeafScene?
+    private var isHidingLeaves = false
 
     private var timer: Timer?
     private var hoverTimer: Timer?
@@ -213,6 +223,7 @@ final class OverlayController {
             view.ignoresSiblingOrder = true
             view.autoresizingMask = [.width, .height]
             let scene = PumpkinScene(size: frame.size)
+            scene.isOnDock = true
             scene.onSmash = { [weak self] in
                 self?.onSmash?()
                 self?.updateHover()
@@ -243,10 +254,78 @@ final class OverlayController {
                 panel.animator().alphaValue = 1
             }
         }
+        updateScreenLeaves()
+    }
+
+    /// Falling leaves settings changed: the pace applies right away, without regrowing the harvest.
+    func updateLeaves() {
+        scene?.leafAmountChanged()
+        leafScene?.amountChanged()
+        updateScreenLeaves()
+    }
+
+    /// Shows the screen-wide leaves while the harvest is showing and the setting is on, and hides them otherwise.
+    private func updateScreenLeaves() {
+        guard Settings.leavesFillScreen, Settings.fallingLeaves, !PumpkinScene.reduceMotion,
+              let dock = currentDock, panel?.isVisible == true, !isHiding else {
+            hideScreenLeaves()
+            return
+        }
+        let frame = dock.screenFrame
+        if leafPanel == nil {
+            let panel = OverlayPanel(frame: frame, level: OverlayPanel.belowDock)
+            let view = SKView(frame: CGRect(origin: .zero, size: frame.size))
+            view.allowsTransparency = true
+            // Slow, gentle movement looks smooth at a modest frame rate, which keeps the battery happy.
+            view.preferredFramesPerSecond = 30
+            view.ignoresSiblingOrder = true
+            view.autoresizingMask = [.width, .height]
+            let scene = ScreenLeafScene(size: frame.size)
+            view.presentScene(scene)
+            panel.contentView = view
+            leafPanel = panel
+            leafView = view
+            leafScene = scene
+        }
+        guard let leafPanel, let leafScene else { return }
+        if leafPanel.frame != frame {
+            leafPanel.setFrame(frame, display: false)
+            leafScene.size = frame.size
+        }
+        let scale = NSScreen.screens.first(where: { $0.frame == frame })?.backingScaleFactor ?? 2
+        leafScene.start(dockTop: dock.dockFrame.maxY - frame.minY, pixelScale: scale)
+        leafView?.isPaused = false
+        if !leafPanel.isVisible || isHidingLeaves {
+            isHidingLeaves = false
+            if !leafPanel.isVisible { leafPanel.alphaValue = 0 }
+            leafPanel.orderFrontRegardless()
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.25
+                leafPanel.animator().alphaValue = 1
+            }
+        }
+    }
+
+    private func hideScreenLeaves() {
+        guard let leafPanel, leafPanel.isVisible, !isHidingLeaves else { return }
+        isHidingLeaves = true
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.15
+            leafPanel.animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            Task { @MainActor in
+                guard let self, self.isHidingLeaves else { return }
+                self.isHidingLeaves = false
+                self.leafView?.isPaused = true
+                self.leafScene?.stop()
+                self.leafPanel?.orderOut(nil)
+            }
+        })
     }
 
     private func hide() {
         currentDock = nil
+        hideScreenLeaves()
         hoverTimer?.invalidate()
         hoverTimer = nil
         guard let panel, panel.isVisible, !isHiding else { return }

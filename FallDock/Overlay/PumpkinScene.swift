@@ -29,6 +29,8 @@ final class PumpkinNode: DockSprite {
 final class PumpkinScene: SKScene {
     /// Called after every smash (used for the counter in the menu).
     var onSmash: (() -> Void)?
+    /// True for the scene over the real Dock, false for the little harvest in the app window.
+    var isOnDock = false
 
     private(set) var dockRect: CGRect = .zero
     var pixelScale: CGFloat = 2
@@ -635,16 +637,32 @@ final class PumpkinScene: SKScene {
     private func startFallingLeaves() {
         removeAction(forKey: "leaves")
         guard !Self.reduceMotion else { return }
-        run(.repeatForever(.sequence([
-            .wait(forDuration: 5, withRange: 6),
-            .run { [weak self] in self?.dropLeaf() },
-        ])), withKey: "leaves")
+        scheduleNextLeaf()
+    }
+
+    /// Waits a while, drops a leaf, and goes again. The wait follows the Amount setting each time.
+    private func scheduleNextLeaf() {
+        let rate = Settings.leafRate
+        run(.sequence([
+            .wait(forDuration: Double.random(in: 2...8) / rate),
+            .run { [weak self] in
+                self?.dropLeaf()
+                self?.scheduleNextLeaf()
+            },
+        ]), withKey: "leaves")
+    }
+
+    /// The Amount setting changed: start counting toward the next leaf at the new pace.
+    func leafAmountChanged() {
+        guard action(forKey: "leaves") != nil else { return }
+        startFallingLeaves()
     }
 
     private func dropLeaf() {
-        guard Settings.fallingLeaves, dockRect.width > 0 else { return }
+        // With Fill the whole screen on, the Dock's own window leaves the falling to the screen-wide one.
+        guard Settings.fallingLeaves, !(Settings.leavesFillScreen && isOnDock), dockRect.width > 0 else { return }
         let falling = effectsLayer.children.filter { $0.name == "falling-leaf" }.count
-        guard falling < 5 else { return }
+        guard falling < max(2, Int((5 * Settings.leafRate).rounded())) else { return }
 
         let kind = LeafKind.fallers.randomElement() ?? .oak
         let s = (pumpkinHeight * CGFloat.random(in: 0.22...0.3)).rounded()

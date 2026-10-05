@@ -19,6 +19,7 @@
 		A1C0FFEE00000000000000A1 /* CozyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B1 /* CozyArt.swift */; };
 		A1C0FFEE00000000000000A2 /* DockSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B2 /* DockSprite.swift */; };
 		A1C0FFEE00000000000000A3 /* PumpkinScene+Cozy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */; };
+		A1C0FFEE000000000000F1A1 /* ScreenLeafScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */; };
 		A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B6 /* Welcome.swift */; };
 		A1C0FFEE00000000000000A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B7 /* Assets.xcassets */; };
 		A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B8 /* MainWindow.swift */; };
@@ -40,6 +41,7 @@
 		A1C0FFEE00000000000000B1 /* CozyArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CozyArt.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B2 /* DockSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DockSprite.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Cozy.swift"; sourceTree = "<group>"; };
+		A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenLeafScene.swift; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B6 /* Welcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Welcome.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B8 /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainWindow.swift"; sourceTree = "<group>"; };
@@ -56,6 +58,7 @@
 				12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */,
 				A1C0FFEE00000000000000B2 /* DockSprite.swift */,
 				A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */,
+				A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */,
 			);
 			path = Overlay;
 			sourceTree = "<group>";
@@ -194,6 +197,7 @@
 				A1C0FFEE00000000000000A1 /* CozyArt.swift in Sources */,
 				A1C0FFEE00000000000000A2 /* DockSprite.swift in Sources */,
 				A1C0FFEE00000000000000A3 /* PumpkinScene+Cozy.swift in Sources */,
+				A1C0FFEE000000000000F1A1 /* ScreenLeafScene.swift in Sources */,
 				A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */,
 				A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */,
 				A1C0FFEE00000000000000D1 /* MainView.swift in Sources */,

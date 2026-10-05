@@ -8,6 +8,8 @@ enum Settings {
     private enum Key {
         static let showPumpkins = "showPumpkins"
         static let fallingLeaves = "fallingLeaves"
+        static let leafAmount = "leafAmount"
+        static let leavesFillScreen = "leavesFillScreen"
         static let showVines = "showVines"
         static let cozyExtras = "cozyExtras"
         static let sound = "sound"
@@ -32,6 +34,8 @@ enum Settings {
         defaults.register(defaults: [
             Key.showPumpkins: true,
             Key.fallingLeaves: true,
+            Key.leafAmount: 0.5,
+            Key.leavesFillScreen: false,
             Key.showVines: true,
             Key.cozyExtras: true,
             Key.squirrel: true,
@@ -50,6 +54,21 @@ enum Settings {
     static var fallingLeaves: Bool {
         get { defaults.bool(forKey: Key.fallingLeaves) }
         set { defaults.set(newValue, forKey: Key.fallingLeaves) }
+    }
+
+    /// How many leaves fall, from a few (0) to lots (1). The middle is the original amount.
+    static var leafAmount: Double {
+        get { defaults.double(forKey: Key.leafAmount).clamped(to: 0...1) }
+        set { defaults.set(newValue.clamped(to: 0...1), forKey: Key.leafAmount) }
+    }
+
+    /// How many times more often leaves fall than the original amount: ¼× to 4×.
+    static var leafRate: Double { pow(4, leafAmount * 2 - 1) }
+
+    /// Leaves fall across the whole screen the Dock is on, not just above the Dock.
+    static var leavesFillScreen: Bool {
+        get { defaults.bool(forKey: Key.leavesFillScreen) }
+        set { defaults.set(newValue, forKey: Key.leavesFillScreen) }
     }
 
     static var showVines: Bool {

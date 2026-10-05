@@ -330,6 +330,27 @@ struct CustomizePage: View {
                            detail: "A leaf drifting down now and then.") {
                     Toggle("", isOn: $model.fallingLeaves).labelsHidden().toggleStyle(.switch)
                 }
+                Group {
+                    Divider()
+                    SettingRow(symbol: "slider.horizontal.3", color: .harvestRust, title: "Amount",
+                               detail: "How many leaves fall, from a few to lots.") {
+                        HStack(spacing: 8) {
+                            Image(systemName: "leaf").font(.caption).foregroundStyle(.secondary)
+                            Slider(value: $model.leafAmount, in: 0...1)
+                                .accessibilityLabel("Amount of falling leaves")
+                            Image(systemName: "leaf.fill").foregroundStyle(.secondary)
+                        }
+                        .frame(width: 190)
+                    }
+                    Divider()
+                    SettingRow(symbol: "rectangle.inset.filled", color: .harvestRust, title: "Fill the whole screen",
+                               detail: "Leaves drift down across the screen the Dock is on, not just above the Dock.") {
+                        Toggle("", isOn: $model.leavesFillScreen).labelsHidden().toggleStyle(.switch)
+                    }
+                }
+                .padding(.leading, 40)
+                .disabled(!model.fallingLeaves)
+                .opacity(model.fallingLeaves ? 1 : 0.45)
                 Divider()
                 SettingRow(symbol: "basket.fill", color: .harvestMustard, title: "Cozy extras",
                            detail: "Hay bales, leaf piles and more between the pumpkins.") {
