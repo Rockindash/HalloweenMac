@@ -219,6 +219,39 @@ struct SettingRow<Trailing: View>: View {
     }
 }
 
+/// A slider from 0 to 1 that settles in the middle when dragged close to it.
+struct MiddleMarkedSlider: NSViewRepresentable {
+    @Binding var value: Double
+
+    func makeNSView(context: Context) -> NSSlider {
+        let slider = NSSlider(value: value, minValue: 0, maxValue: 1, target: context.coordinator,
+                              action: #selector(Coordinator.changed(_:)))
+        slider.isContinuous = true
+        return slider
+    }
+
+    func updateNSView(_ slider: NSSlider, context: Context) {
+        context.coordinator.value = $value
+        if slider.doubleValue != value { slider.doubleValue = value }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(value: $value) }
+
+    final class Coordinator: NSObject {
+        var value: Binding<Double>
+        init(value: Binding<Double>) { self.value = value }
+
+        @objc func changed(_ slider: NSSlider) {
+            var newValue = slider.doubleValue
+            if abs(newValue - 0.5) < 0.03 {
+                newValue = 0.5
+                slider.doubleValue = newValue
+            }
+            value.wrappedValue = newValue
+        }
+    }
+}
+
 /// Buttons that dip a little when pressed.
 struct PressableStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -328,29 +361,36 @@ struct CustomizePage: View {
                 Divider()
                 SettingRow(symbol: "leaf.fill", color: .harvestRust, title: "Falling leaves",
                            detail: "A leaf drifting down now and then.") {
-                    Toggle("", isOn: $model.fallingLeaves).labelsHidden().toggleStyle(.switch)
+                    Toggle("", isOn: $model.fallingLeaves.animation(.easeInOut(duration: 0.25))).labelsHidden().toggleStyle(.switch)
                 }
-                Group {
-                    Divider()
-                    SettingRow(symbol: "slider.horizontal.3", color: .harvestRust, title: "Amount",
-                               detail: "How many leaves fall, from a few to lots.") {
-                        HStack(spacing: 8) {
-                            Image(systemName: "leaf").font(.caption).foregroundStyle(.secondary)
-                            Slider(value: $model.leafAmount, in: 0...1)
-                                .accessibilityLabel("Amount of falling leaves")
-                            Image(systemName: "leaf.fill").foregroundStyle(.secondary)
+                if model.fallingLeaves {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Divider()
+                        SettingRow(symbol: "slider.horizontal.3", color: .harvestRust, title: "Amount",
+                                   detail: "How many leaves fall, from a few to lots.") {
+                            HStack(spacing: 8) {
+                                Image(systemName: "leaf").font(.caption).foregroundStyle(.secondary)
+                                MiddleMarkedSlider(value: $model.leafAmount)
+                                    .accessibilityLabel("Amount of falling leaves")
+                                    // A small mark under the middle of the track, where the usual amount is.
+                                    .overlay(alignment: .bottom) {
+                                        Capsule()
+                                            .fill(.secondary)
+                                            .frame(width: 2, height: 5)
+                                            .offset(y: 4)
+                                    }
+                                Image(systemName: "leaf.fill").foregroundStyle(.secondary)
+                            }
+                            .frame(width: 190)
                         }
-                        .frame(width: 190)
+                        Divider()
+                        SettingRow(symbol: "rectangle.inset.filled", color: .harvestRust, title: "Fill the whole screen",
+                                   detail: "Leaves drift down across the screen the Dock is on, not just above the Dock.") {
+                            Toggle("", isOn: $model.leavesFillScreen).labelsHidden().toggleStyle(.switch)
+                        }
                     }
-                    Divider()
-                    SettingRow(symbol: "rectangle.inset.filled", color: .harvestRust, title: "Fill the whole screen",
-                               detail: "Leaves drift down across the screen the Dock is on, not just above the Dock.") {
-                        Toggle("", isOn: $model.leavesFillScreen).labelsHidden().toggleStyle(.switch)
-                    }
+                    .padding(.leading, 40)
                 }
-                .padding(.leading, 40)
-                .disabled(!model.fallingLeaves)
-                .opacity(model.fallingLeaves ? 1 : 0.45)
                 Divider()
                 SettingRow(symbol: "basket.fill", color: .harvestMustard, title: "Cozy extras",
                            detail: "Hay bales, leaf piles and more between the pumpkins.") {
