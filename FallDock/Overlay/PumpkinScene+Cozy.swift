@@ -140,6 +140,8 @@ extension PumpkinScene {
         switch decor.kind {
         case .leafPile:
             scatter(decor)
+        case .hayBale:
+            tossHay(decor)
         case .mug:
             for i in 0..<5 {
                 decor.run(.sequence([.wait(forDuration: Double(i) * 0.07), .run { [weak self, weak decor] in
@@ -169,6 +171,29 @@ extension PumpkinScene {
             DockSprite.animate(\.popScale, to: 1, duration: 0.15),
             .run { [weak pile] in pile?.isScattered = false },
         ]), withKey: "scatter")
+    }
+
+    /// Wisps of straw fly out of the hay bale as it squishes, and the pumpkin sitting on it hops.
+    private func tossHay(_ bale: DecorNode) {
+        let h = pumpkinHeight
+        let colors = [CozyArt.straw, CozyArt.strawLight, CozyArt.strawDark]
+        let top = CGPoint(x: bale.position.x, y: bale.position.y + bale.frame.height * 0.8)
+        for i in 0..<12 {
+            let wisp = SKSpriteNode(color: NSColor(cgColor: colors[i % colors.count]) ?? .yellow,
+                                    size: CGSize(width: max(1.5, (h * 0.03).rounded()), height: (h * CGFloat.random(in: 0.12...0.2)).rounded()))
+            launch(wisp, from: top, spread: bale.frame.width * 0.35,
+                   velocity: CGVector(dx: CGFloat.random(in: -130...130), dy: CGFloat.random(in: 160...300)), radius: 1, damping: 2.4, life: 1.3)
+        }
+        bale.run(.sequence([
+            DockSprite.animate(\.popScale, to: 0.9, duration: 0.07),
+            DockSprite.animate(\.popScale, to: 1.06, duration: 0.12, curve: .easeOut),
+            DockSprite.animate(\.popScale, to: 1, duration: 0.15),
+        ]), withKey: "squish")
+        // The bale under slot n has gap -(n + 1).
+        let slot = -bale.gap - 1
+        if let pumpkin = pumpkinLayer.children.first(where: { ($0 as? PumpkinNode)?.slot == slot }) as? PumpkinNode, !pumpkin.isSmashing {
+            pumpkin.run(.sequence([.wait(forDuration: 0.05), DockSprite.hop(height: h * 0.3, duration: 0.4)]), withKey: "hop")
+        }
     }
 
     // MARK: The squirrel

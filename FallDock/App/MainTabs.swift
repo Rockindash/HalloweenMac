@@ -3,8 +3,8 @@ import Combine
 import SpriteKit
 import SwiftUI
 
-// The tabs of the app window (see MainWindow.swift), in the harvest-wagon colors:
-// a live little harvest to play with, stat tiles, cards with colored badges, and picture tiles.
+// The building blocks of the app window (see MainView.swift) and its Customize tab, in the harvest-wagon colors:
+// a live little harvest to play with, cards with colored badges, and picture tiles.
 
 /// The window's own colors: the dark wagon colors, whatever the Dock art is using.
 extension Color {
@@ -80,34 +80,6 @@ struct SettingRow<Trailing: View>: View {
     }
 }
 
-/// A big number with a label.
-struct StatTile: View {
-    var value: String
-    var label: String
-    var symbol: String
-    var color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(color)
-            Text(value)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(label)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.12)))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(color.opacity(0.25), lineWidth: 1))
-    }
-}
-
 /// A chunky button with a symbol and two lines of text. Lit up in orange while `isOn`.
 struct ActionTile: View {
     var symbol: String
@@ -152,20 +124,6 @@ struct PressableStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
-    }
-}
-
-/// A rounded label with a symbol, for facts about the Dock.
-struct Chip: View {
-    var symbol: String
-    var text: String
-
-    var body: some View {
-        Label(text, systemImage: symbol)
-            .font(.callout)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(.quaternary.opacity(0.6)))
     }
 }
 
@@ -243,327 +201,6 @@ struct LiveHarvestView: View {
     }
 }
 
-// MARK: - General
-
-struct GeneralTab: View {
-    @ObservedObject var model: AppModel
-    @State private var dock = AppModel.shared.dockStatus
-    private let tick = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
-
-    private var status: (text: String, color: Color) {
-        if !model.showPumpkins { return ("Hidden", .gray) }
-        if model.isPaused { return ("Paused for an hour", .yellow) }
-        return ("Growing on your Dock", .green)
-    }
-
-    var body: some View {
-        VStack(spacing: 14) {
-            LiveHarvestView(model: model)
-                .overlay(alignment: .topLeading) {
-                    HStack(spacing: 12) {
-                        Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
-                            .resizable()
-                            .frame(width: 46, height: 46)
-                            .shadow(radius: 4, y: 2)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Fall Dock")
-                                .font(.system(size: 22, weight: .heavy, design: .rounded))
-                                .foregroundStyle(.white)
-                            HStack(spacing: 6) {
-                                Circle().fill(status.color).frame(width: 7, height: 7)
-                                Text(status.text).font(.caption.weight(.medium))
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(.black.opacity(0.25)))
-                        }
-                    }
-                    .padding(14)
-                }
-                .overlay(alignment: .topTrailing) {
-                    Text("Click a pumpkin!")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.harvestPlum)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.harvestPeach))
-                        .padding(14)
-                        .padding(.trailing, 64)
-                }
-
-            HStack(spacing: 10) {
-                StatTile(value: "\(model.smashCount)", label: "Pumpkins smashed", symbol: "hammer.fill", color: .pumpkin)
-                StatTile(value: dock.isShowing ? "\(dock.pumpkins)" : "–",
-                         label: dock.isShowing ? "On your Dock now" : "Dock hidden right now", symbol: "leaf.fill", color: .harvestGreen)
-                StatTile(value: model.theme.title, label: "Season", symbol: model.theme.symbol, color: .harvestMustard)
-            }
-
-            HStack(spacing: 10) {
-                ActionTile(symbol: model.showPumpkins ? "eye.fill" : "eye.slash.fill",
-                           title: model.showPumpkins ? "On the Dock" : "Hidden",
-                           detail: model.showPumpkins ? "Click to hide" : "Click to show",
-                           isOn: model.showPumpkins) { model.showPumpkins.toggle() }
-                ActionTile(symbol: model.isPaused ? "play.fill" : "pause.fill",
-                           title: model.isPaused ? "Resume" : "Pause",
-                           detail: model.isPaused ? "Paused for an hour" : "Hide for an hour",
-                           isOn: model.isPaused) { model.isPaused ? model.resume() : model.pauseForAnHour() }
-                ActionTile(symbol: "sparkles", title: "Grow New", detail: "A fresh harvest") { model.regrow() }
-            }
-
-            HStack {
-                Picker("Season", selection: $model.theme) {
-                    ForEach(Settings.Theme.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
-                }
-                .fixedSize()
-                Text("More seasons coming soon")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Reset Count") { model.resetSmashCount() }
-                    .disabled(model.smashCount == 0)
-                Button("Welcome") { model.showWelcome() }
-                Button("Quit") { NSApp.terminate(nil) }
-            }
-            .controlSize(.small)
-        }
-        .padding(20)
-        .tint(.pumpkin)
-        .onReceive(tick) { _ in dock = model.dockStatus }
-    }
-}
-
-// MARK: - Settings
-
-struct SettingsTab: View {
-    @ObservedObject var model: AppModel
-    @State private var reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-
-    private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-    }
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Card(title: "Startup") {
-                SettingRow(symbol: "power", color: .green, title: "Open when I log in",
-                           detail: "Starts quietly, with the harvest already on your Dock.") {
-                    Toggle("", isOn: $model.openAtLogin).labelsHidden().toggleStyle(.switch)
-                }
-                Divider()
-                SettingRow(symbol: "menubar.rectangle", color: .pumpkin, title: "Show 🎃 in the menu bar",
-                           detail: model.showMenuBarIcon ? "Quick settings, one click away."
-                               : "To get back here, open Fall Dock from your Applications folder.") {
-                    Toggle("", isOn: $model.showMenuBarIcon).labelsHidden().toggleStyle(.switch)
-                }
-            }
-            Card(title: "Sound and motion") {
-                SettingRow(symbol: "speaker.wave.2.fill", color: .pink, title: "Smash sound",
-                           detail: "A soft, squishy thump, made right in the app.") {
-                    Toggle("", isOn: $model.sound).labelsHidden().toggleStyle(.switch)
-                }
-                Divider()
-                SettingRow(symbol: "wind", color: .blue, title: "Reduce Motion is \(reduceMotion ? "on" : "off")",
-                           detail: "When it's on in your Mac's settings, nothing moves by itself. Clicks still work.") {
-                    Button("Change…") { open("x-apple.systempreferences:com.apple.preference.universalaccess?Seeing_Display") }
-                }
-            }
-            Card(title: "Privacy") {
-                SettingRow(symbol: "hand.raised.fill", color: .gray, title: "Nothing leaves your Mac",
-                           detail: "Fall Dock doesn't collect or send anything. It only looks at where the Dock and the pointer are, to place the harvest.") {
-                    EmptyView()
-                }
-            }
-            Text("Fall Dock \(version) · Made with 🧡 for cozy autumn days")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(20)
-        .tint(.pumpkin)
-        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)) { _ in
-            reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        }
-    }
-}
-
-// MARK: - Dock
-
-struct DockTab: View {
-    @ObservedObject var model: AppModel
-    @State private var status = AppModel.shared.dockStatus
-    @State private var dock = DockSettings.read()
-    @State private var hasAccessibility = DockLocator.hasAccessibility
-    private let tick = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
-
-    /// The Dock's own settings, as macOS saves them.
-    struct DockSettings {
-        var position = "Bottom"
-        var autohide = false
-        var tile: CGFloat = 0
-        var magnification = false
-        var large: CGFloat = 0
-
-        static func read() -> DockSettings {
-            let dock = UserDefaults(suiteName: "com.apple.dock")
-            let orientation = dock?.string(forKey: "orientation") ?? "bottom"
-            return DockSettings(position: orientation.capitalized, autohide: dock?.bool(forKey: "autohide") ?? false,
-                                tile: CGFloat(dock?.double(forKey: "tilesize") ?? 0),
-                                magnification: dock?.bool(forKey: "magnification") ?? false,
-                                large: CGFloat(dock?.double(forKey: "largesize") ?? 0))
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Card(title: "Your Dock") {
-                DockDiagram(pumpkins: status.pumpkins, extras: status.extras, isShowing: status.isShowing)
-                HStack(spacing: 6) {
-                    Text(status.length.map { "\(Int($0)) pt wide" } ?? "Not showing right now")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                    if status.length != nil {
-                        Text(status.isPrecise ? "measured" : "estimated")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill((status.isPrecise ? Color.green : Color.harvestMustard).opacity(0.2)))
-                    }
-                }
-                FlowChips(chips: [
-                    ("rectangle.bottomthird.inset.filled", dock.position),
-                    ("square.grid.2x2", dock.tile > 0 ? "\(Int(dock.tile)) pt icons" : "Standard icons"),
-                    ("plus.magnifyingglass", dock.magnification ? "Magnifies to \(Int(dock.large)) pt" : "No magnification"),
-                    ("eye", dock.autohide ? "Hides automatically" : "Always showing"),
-                ])
-                if dock.position != "Bottom" {
-                    Label("Move your Dock to the bottom of the screen to see the harvest.", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
-            }
-
-            Card(title: "Fit") {
-                if hasAccessibility {
-                    SettingRow(symbol: "checkmark", color: .green, title: "Measured exactly",
-                               detail: "Fall Dock reads your Dock's size, so the harvest lines up perfectly.") {
-                        Button("Measure Again") { model.remeasure(); refresh() }
-                    }
-                } else {
-                    SettingRow(symbol: "ruler", color: .harvestMustard, title: "Estimated from your settings",
-                               detail: "Allow Fall Dock under Accessibility to measure exactly. It only reads the Dock's size.") {
-                        Button("Allow…") { DockLocator.requestAccessibility() }
-                            .buttonStyle(.borderedProminent)
-                    }
-                }
-            }
-
-            Card(title: "How full") {
-                HStack(spacing: 10) {
-                    ForEach(Settings.Fullness.allCases, id: \.self) { fullness in
-                        FullnessTile(fullness: fullness, isSelected: model.fullness == fullness) { model.fullness = fullness }
-                    }
-                }
-                Text("Pumpkins always stay the same size. A longer Dock simply fits more of them.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button("Open Desktop & Dock Settings…") { open("x-apple.systempreferences:com.apple.Desktop-Settings.extension") }
-                .buttonStyle(.link)
-        }
-        .padding(20)
-        .tint(.pumpkin)
-        .onReceive(tick) { _ in refresh() }
-        .onAppear(perform: refresh)
-    }
-
-    private func refresh() {
-        status = model.dockStatus
-        dock = DockSettings.read()
-        hasAccessibility = DockLocator.hasAccessibility
-    }
-}
-
-/// A little drawing of the Dock with pumpkins and extras along its top.
-struct DockDiagram: View {
-    var pumpkins: Int
-    var extras: Int
-    var isShowing: Bool
-
-    var body: some View {
-        // While the Dock is hidden, show a faded example row.
-        let items = isShowing ? min(max(pumpkins + extras, 1), 21) : 13
-        VStack(spacing: 0) {
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(0..<items, id: \.self) { i in
-                    if i % 2 == 0 || (isShowing && extras == 0) {
-                        Ellipse().fill(Color.pumpkin.gradient).frame(width: 16, height: 13)
-                    } else {
-                        RoundedRectangle(cornerRadius: 2).fill(Color.harvestMustard.opacity(0.8)).frame(width: 9, height: 7)
-                    }
-                }
-            }
-            .opacity(isShowing ? 1 : 0.35)
-            Capsule().fill(Color.harvestGreen).frame(height: 3)
-                .padding(.horizontal, 6)
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(.quaternary)
-                .frame(height: 26)
-                .overlay(
-                    HStack(spacing: 5) {
-                        ForEach(0..<14, id: \.self) { _ in
-                            RoundedRectangle(cornerRadius: 4).fill(.tertiary).frame(width: 16, height: 16)
-                        }
-                    }
-                )
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-/// Chips that wrap onto a second line when they don't fit.
-struct FlowChips: View {
-    var chips: [(String, String)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                ForEach(0..<min(2, chips.count), id: \.self) { Chip(symbol: chips[$0].0, text: chips[$0].1) }
-            }
-            HStack(spacing: 6) {
-                ForEach(min(2, chips.count)..<chips.count, id: \.self) { Chip(symbol: chips[$0].0, text: chips[$0].1) }
-            }
-        }
-    }
-}
-
-/// One of the "How full" choices, with a picture of how close together things sit.
-struct FullnessTile: View {
-    var fullness: Settings.Fullness
-    var isSelected: Bool
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                HStack(spacing: 12 * fullness.spacing + 1) {
-                    ForEach(0..<(fullness == .aFew ? 3 : fullness == .plenty ? 5 : 6), id: \.self) { _ in
-                        Ellipse().fill(Color.pumpkin.gradient).frame(width: 13, height: 11)
-                    }
-                }
-                .frame(height: 16)
-                Text(fullness.title).font(.system(size: 13, weight: .semibold))
-            }
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isSelected ? Color.pumpkin.opacity(0.15) : Color.clear))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(isSelected ? Color.pumpkin : Color.secondary.opacity(0.25), lineWidth: isSelected ? 2 : 1))
-            .contentShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .buttonStyle(PressableStyle())
-    }
-}
-
 // MARK: - The season's tab
 
 struct ThemeTab: View {
@@ -614,7 +251,7 @@ struct ThemeTab: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(20)
+        .padding(24)
         .tint(.pumpkin)
     }
 }
@@ -768,8 +405,4 @@ enum ThemePreview {
         }
         return NSImage(cgImage: texture.cgImage(), size: size)
     }
-}
-
-private func open(_ url: String) {
-    if let url = URL(string: url) { NSWorkspace.shared.open(url) }
 }

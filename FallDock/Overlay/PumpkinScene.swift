@@ -564,8 +564,8 @@ final class PumpkinScene: SKScene {
         }
     }
 
-    private func launch(_ node: SKSpriteNode, from center: CGPoint, spread: CGFloat,
-                        velocity: CGVector, radius: CGFloat, damping: CGFloat, life: TimeInterval) {
+    func launch(_ node: SKSpriteNode, from center: CGPoint, spread: CGFloat,
+                velocity: CGVector, radius: CGFloat, damping: CGFloat, life: TimeInterval) {
         node.position = CGPoint(x: center.x + CGFloat.random(in: -spread...spread), y: center.y + CGFloat.random(in: -spread...spread) * 0.5)
         node.zRotation = CGFloat.random(in: 0...(.pi * 2))
         let body = SKPhysicsBody(circleOfRadius: max(0.5, radius))

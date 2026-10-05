@@ -47,7 +47,7 @@ final class AppModel: ObservableObject {
     }
 
     @Published var theme: Settings.Theme {
-        didSet { Settings.theme = theme; mainWindow.themeChanged(); overlay.refresh(force: true) }
+        didSet { Settings.theme = theme; overlay.refresh(force: true) }
     }
 
     @Published var fallingLeaves: Bool {

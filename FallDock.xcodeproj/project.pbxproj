@@ -22,6 +22,7 @@
 		A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B6 /* Welcome.swift */; };
 		A1C0FFEE00000000000000A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B7 /* Assets.xcassets */; };
 		A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B8 /* MainWindow.swift */; };
+		A1C0FFEE00000000000000D1 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000D2 /* MainView.swift */; };
 		A1C0FFEE00000000000000A9 /* MainTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B9 /* MainTabs.swift */; };
 /* End PBXBuildFile section */
 
@@ -42,6 +43,7 @@
 		A1C0FFEE00000000000000B6 /* Welcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Welcome.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B8 /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainWindow.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000D2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainView.swift"; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000B9 /* MainTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainTabs.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -104,6 +106,7 @@
 				F99464A212618FEB7553190F /* Settings.swift */,
 				A1C0FFEE00000000000000B6 /* Welcome.swift */,
 				A1C0FFEE00000000000000B8 /* MainWindow.swift */,
+				A1C0FFEE00000000000000D2 /* MainView.swift */,
 				A1C0FFEE00000000000000B9 /* MainTabs.swift */,
 			);
 			path = App;
@@ -193,6 +196,7 @@
 				A1C0FFEE00000000000000A3 /* PumpkinScene+Cozy.swift in Sources */,
 				A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */,
 				A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */,
+				A1C0FFEE00000000000000D1 /* MainView.swift in Sources */,
 				A1C0FFEE00000000000000A9 /* MainTabs.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
