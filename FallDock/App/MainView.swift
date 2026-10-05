@@ -237,15 +237,9 @@ struct HomePage: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            // The switch leads so it stays put when the buttons come and go with it.
+            // Buttons on the left, the switch pinned far right so it stays put when they come and go.
             HStack(spacing: 8) {
-                Toggle(isOn: $model.showPumpkins.animation()) {
-                    Text("Show on Dock")
-                }
-                .toggleStyle(.switch)
-                .fixedSize()
                 if model.showPumpkins {
-                    Divider().frame(height: 22).padding(.horizontal, 6)
                     Button(model.isPaused ? "Resume" : "Pause") {
                         withAnimation { model.isPaused ? model.resume() : model.pauseForAnHour() }
                     }
@@ -254,8 +248,14 @@ struct HomePage: View {
                         .help("Grow a new harvest")
                         .disabled(model.isPaused)
                 }
+                Spacer(minLength: 0)
+                Toggle(isOn: $model.showPumpkins.animation()) {
+                    Text("Show on Dock")
+                }
+                .toggleStyle(.switch)
+                .fixedSize()
             }
-            .fixedSize()
+            .frame(maxWidth: .infinity)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
