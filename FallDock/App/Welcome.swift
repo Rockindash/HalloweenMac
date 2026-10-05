@@ -43,7 +43,7 @@ struct WelcomeView: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                tip("menubar.rectangle", "Everything is in the 🎃 menu in your menu bar.")
+                tip("macwindow", "Open Fall Dock from Applications or the 🎃 menu to change things.")
                 tip("hand.tap", "Click a pumpkin to smash it. A new one grows back a few seconds later.")
                 tip("cursorarrow.rays", "Point at the leaves, the latte and the lantern. Click them too.")
                 tip("magnifyingglass", "If your Dock magnifies, the harvest grows along with it.")
@@ -75,6 +75,7 @@ struct WelcomeView: View {
             }
             .controlSize(.large)
             .keyboardShortcut(.defaultAction)
+            .tint(.pumpkin)
         }
         .padding(.horizontal, 32)
         .padding(.top, 28)

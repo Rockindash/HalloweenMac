@@ -10,6 +10,8 @@ final class MainWindow: NSObject, NSWindowDelegate {
 
     func show(model: AppModel) {
         if window == nil { build(model: model) }
+        // Keep the title hidden on every macOS version. (SwiftUI only removes its own title on macOS 15 and later.)
+        window?.titleVisibility = .hidden
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)

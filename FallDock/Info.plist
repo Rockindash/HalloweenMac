@@ -25,6 +25,8 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Made with love for cozy autumn days.</string>
+    <string>© 2026 Amol Kumar</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.entertainment</string>
 </dict>
 </plist>

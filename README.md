@@ -42,17 +42,23 @@ Open **Fall Dock** from your Applications folder (or choose **Open Fall Dock…*
 While it's open, Fall Dock shows in the Dock and the app switcher like any app; close it and it goes back to living in the menu bar.
 When Fall Dock starts by itself at login, the window stays closed.
 
-- **General**: a live little harvest on a pretend Dock (click its pumpkins to smash them), your smash count and what's on your Dock, and big buttons to show or hide the harvest, pause it for an hour, or grow new pumpkins.
-- **Settings**: open at login, show or hide the 🎃 in the menu bar, the smash sound, Reduce Motion, and privacy.
-- **Dock**: what Fall Dock sees of your Dock (position, auto-hide, icon size, magnification, its length and whether that's measured or estimated), the Accessibility permission for an exact fit, and how full the harvest is.
-- **Fall**: the current season's own tab, with a preview, the vine, falling leaves and cozy extras, and a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. As more seasons arrive, this tab follows the one you pick.
+- **Home**: a live little harvest on a pretend Dock (click its pumpkins to smash them), whether the harvest is on your Dock right now, your smash count, and buttons to pause it for an hour, grow new pumpkins, or show or hide it.
+- **Customize**: the vine, falling leaves and cozy extras, with a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. With falling leaves on:
+  - **Amount**: how many leaves fall, from a few to lots. The mark in the middle is the usual amount, and the slider snaps to it.
+  - **Fill the whole screen** (off by default): leaves drift down across the whole screen the Dock is on and settle behind the Dock, instead of only just above it.
+- **Settings**:
+  - **General**: open at login, the 🎃 in the menu bar, and the smash sound.
+  - **Dock**: how full the harvest is, and the Accessibility permission for an exact fit.
+  - **Reset**: reset the smash count, or reset everything (every option back to how it started, the smash count back to zero, and a fresh harvest; open at login stays as it is). Both ask first.
+  - **About**: the version, the welcome window again, and Quit.
 
 ## The 🎃 menu
 
+- **Open Fall Dock…**: the app window.
 - **Show Pumpkins**: hides or shows everything.
 - **Vines**: a single pumpkin vine along the Dock, behind the pumpkins, with fine ridges, two-tone curls and buds.
 - **Cozy Extras**: the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and the squirrel. The lantern glows brighter in the evening.
-- **Falling Leaves**: a leaf drifts down onto the Dock every few seconds.
+- **Falling Leaves**: leaves drift down onto the Dock (how many, and whether they fill the whole screen, is set in Customize).
 - **Smash Sound**: a soft, squishy thump when you smash a pumpkin.
 - **How Full**: A Few, Plenty or Overflowing, which sets how closely pumpkins and extras are packed. They always stay the same size: when the Dock gets longer or shorter (adding apps, or changing its size in System Settings), pumpkins and extras grow in or shrink away at the end instead of everything stretching.
 - **Grow New Pumpkins**: a fresh set of pumpkins.
@@ -61,11 +67,14 @@ When Fall Dock starts by itself at login, the window stays closed.
 - **Open at Login**: starts Fall Dock when you log in (use the copy in Applications).
 - **Welcome to Fall Dock…**: shows the welcome window again. It opens by itself the first time.
 
+If you hide the 🎃 (Settings → General), open Fall Dock from Applications to get back to the window.
+
 ## Good to know
 
 - Pumpkins only show when the Dock is at the **bottom** of the screen. They hide and come back with the Dock (for example in full-screen apps), and follow it to another display.
 - Clicks only stop at a pumpkin or a cozy extra. Everywhere else, the Dock and your windows work normally.
 - With **Reduce Motion** on (System Settings → Accessibility → Display), nothing moves by itself: no wobbling, falling leaves, steam or squirrel. Things still react when you click them.
+- **Fill the whole screen** uses a second see-through, click-through window over the Dock's screen. It hides with the harvest and stops drawing while hidden, but while it shows it uses a few percent of CPU, so it's off by default.
 - Fall Dock checks for the Dock often only while the pointer is near the bottom of the screen, so it uses very little battery while the Dock is hidden.
 - Magnification follows the Dock's own setting (System Settings → Desktop & Dock → Magnification).
 - The harvest follows your Mac's **Light or Dark** setting (System Settings → Appearance): rich, deep colors on a dark Dock, and softer, lighter ones on a light Dock. It switches straight away, keeping the same pumpkins.
@@ -80,14 +89,16 @@ Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transpare
 | `App/FallDockApp.swift` | Starts the app (SwiftUI) and puts the 🎃 menu in the menu bar |
 | `App/MenuContent.swift` | The 🎃 menu (SwiftUI) |
 | `App/AppModel.swift` | What the menu shows and changes |
-| `App/Settings.swift` | Remembers your menu choices |
+| `App/Settings.swift` | Remembers your choices, and resets them |
 | `App/Welcome.swift` | The welcome window shown on first launch |
-| `App/MainWindow.swift` | The app window and its toolbar tabs |
-| `App/MainTabs.swift` | The General, Settings, Dock and season tabs |
+| `App/MainWindow.swift` | The app window |
+| `App/MainView.swift` | The window's sidebar, and the Home and Settings pages |
+| `App/MainTabs.swift` | The Customize page, the cards and rows the pages are built from, and the live little harvest |
 | `Overlay/DockLocator.swift` | Works out where the Dock is, which display it's on and whether it's showing |
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
 | `Overlay/PumpkinScene+Cozy.swift` | The cozy extras and the squirrel |
+| `Overlay/ScreenLeafScene.swift` | Leaves falling across the whole screen, for Fill the whole screen |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
