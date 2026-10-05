@@ -121,6 +121,24 @@ enum DockLocator {
         return .showing(screen)
     }
 
+    /// Whether Mission Control or App Exposé is showing. While it is, the Dock covers each screen
+    /// with an extra screen-sized window just below Dock level (layer 18), which isn't there otherwise.
+    static func isMissionControlShowing() -> Bool {
+        guard let dockPID = dockPID(),
+              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]
+        else { return false }
+        let level = Int(CGWindowLevelForKey(.dockWindow)) - 2
+        let screenSizes = NSScreen.screens.map { $0.frame.size }
+        return windows.contains { window in
+            guard (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) == dockPID,
+                  (window[kCGWindowLayer as String] as? Int) == level,
+                  let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
+            else { return false }
+            return screenSizes.contains { abs($0.width - bounds.width) < 1 && abs($0.height - bounds.height) < 1 }
+        }
+    }
+
     /// The frame (AppKit coordinates) of the stack tile (a folder like Downloads) under `point`, if
     /// the pointer is on one. An open stack is drawn inside the Dock's own screen-sized window, so it
     /// can't be found from the window list; instead we notice the click that opens it.
