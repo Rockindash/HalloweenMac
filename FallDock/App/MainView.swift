@@ -224,21 +224,28 @@ struct HomePage: View {
         }
     }
 
-    /// Under the harvest: where it is, the switch most people need, plus pause and regrow.
+    /// Under the harvest: where it is, what that means, then the switch most people need plus pause and regrow.
     private var controls: some View {
-        HStack(spacing: 14) {
-            Circle().fill(state.color).frame(width: 10, height: 10)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(state.title).font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 10) {
+                    Circle().fill(state.color).frame(width: 10, height: 10)
+                    Text(state.title).font(.headline)
+                }
                 Text(status)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .layoutPriority(1)
-            Spacer(minLength: 16)
-            if model.showPumpkins {
-                HStack(spacing: 8) {
+            // The switch leads so it stays put when the buttons come and go with it.
+            HStack(spacing: 8) {
+                Toggle(isOn: $model.showPumpkins.animation()) {
+                    Text("Show on Dock")
+                }
+                .toggleStyle(.switch)
+                .fixedSize()
+                if model.showPumpkins {
+                    Divider().frame(height: 22).padding(.horizontal, 6)
                     Button(model.isPaused ? "Resume" : "Pause") {
                         withAnimation { model.isPaused ? model.resume() : model.pauseForAnHour() }
                     }
@@ -247,13 +254,7 @@ struct HomePage: View {
                         .help("Grow a new harvest")
                         .disabled(model.isPaused)
                 }
-                .fixedSize()
-                Divider().frame(height: 22).padding(.horizontal, 2)
             }
-            Toggle(isOn: $model.showPumpkins.animation()) {
-                Text("Show on Dock")
-            }
-            .toggleStyle(.switch)
             .fixedSize()
         }
         .padding(18)
