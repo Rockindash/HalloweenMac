@@ -120,7 +120,7 @@ private struct Sidebar: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // Who's here, where the App Store shows your account.
             HStack(spacing: 10) {
-                Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
                     .frame(width: 34, height: 34)
                 VStack(alignment: .leading, spacing: 2) {
@@ -360,7 +360,7 @@ struct SettingsPage: View {
 
             Card(title: "About") {
                 HStack(spacing: 12) {
-                    Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                    Image(nsImage: NSApp.applicationIconImage)
                         .resizable()
                         .frame(width: 44, height: 44)
                     VStack(alignment: .leading, spacing: 2) {

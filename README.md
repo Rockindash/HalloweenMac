@@ -110,11 +110,7 @@ The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteK
 
 ## The app icon
 
-The icon artwork is `docs/icon/dockorate-icon.png`. To rebuild every icon size from it (fitted to Apple's macOS icon grid), run:
-
-```sh
-python3 scripts/make-icon.py
-```
+The icon is `FallDock/Icon.icon`, an Icon Composer file. Open it in Icon Composer (Xcode > Open Developer Tool) to edit it. Xcode builds every icon size from it, including the older-style icon for macOS 13 to 15.
 
 ## Releasing
 
