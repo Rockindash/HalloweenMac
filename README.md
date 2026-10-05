@@ -110,10 +110,10 @@ The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteK
 
 ## The app icon
 
-The icon is drawn by the app's own art code. To redraw it after changing the art, run:
+The icon artwork is `docs/icon/dockorate-icon.png`. To rebuild every icon size from it (fitted to Apple's macOS icon grid), run:
 
 ```sh
-scripts/make-icon.sh
+python3 scripts/make-icon.py
 ```
 
 ## Releasing
