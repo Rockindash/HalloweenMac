@@ -64,8 +64,9 @@ final class OverlayController {
     private var clickedStack: CGRect?
     private var lastClickTime: TimeInterval = 0
     private var lastStackCheck: TimeInterval = 0
-    /// Mission Control (or App Exposé) is showing: it takes every click and pointer move for itself,
-    /// so the harvest can't react or follow the Dock. It tucks away until Mission Control closes.
+    /// Mission Control (or App Exposé) is showing. It adds screen-sized Dock windows of its own, so the
+    /// Dock isn't re-measured until it closes. (It also takes every click, so pumpkins can't be smashed
+    /// meanwhile; the harvest still follows the pointer.)
     private var isMissionControlShowing = false
     private var clickMonitor: Any?
     private var localClickMonitor: Any?
@@ -206,6 +207,12 @@ final class OverlayController {
         // A change made while the harvest is hidden (the Dock slid away, paused, switched off) is
         // remembered, so the harvest regrows with it as soon as it shows again.
         if force { needsRegrow = true }
+        // Mission Control's own screen-sized Dock windows would throw the measurement off;
+        // watchDock re-measures as soon as it closes.
+        if DockLocator.isMissionControlShowing() {
+            isMissionControlShowing = true
+            return
+        }
         lastDockState = DockLocator.dockScreen()
         guard Settings.showPumpkins, !isPaused, let dock = DockLocator.locate() else {
             hide()
@@ -232,9 +239,9 @@ final class OverlayController {
         // closely while the pointer is near the Dock, while one is open and just after a click,
         // and a few times a second otherwise (it only asks about the Dock's folder tiles).
         let watchClosely = nearBottom || isStackOpen || now - lastClickTime < 1.5
-        if panel?.isVisible == true, watchClosely || now - lastStackCheck >= 0.25 {
+        if panel?.isVisible == true || isMissionControlShowing, watchClosely || now - lastStackCheck >= 0.25 {
             lastStackCheck = now
-            if let open = DockLocator.isStackOpen() { setStackOpen(open) }
+            if panel?.isVisible == true, let open = DockLocator.isStackOpen() { setStackOpen(open) }
             setMissionControlShowing(DockLocator.isMissionControlShowing())
         }
         // Mission Control adds screen-sized windows of its own, so don't re-measure the Dock until it's gone.
@@ -269,18 +276,15 @@ final class OverlayController {
         updateStackState()
     }
 
-    /// Tucks the harvest away while Mission Control shows, and re-measures the Dock once it closes
-    /// (its size may have changed meanwhile).
+    /// Re-measures the Dock once Mission Control closes.
     private func setMissionControlShowing(_ showing: Bool) {
         guard showing != isMissionControlShowing else { return }
         isMissionControlShowing = showing
         if !showing { refresh() }
-        updateStackState()
     }
 
     private func updateStackState() {
-        let tucked = isStackOpen || isMissionControlShowing
-        scene?.setTuckedAway(tucked && panel?.isVisible == true && !isHiding)
+        scene?.setTuckedAway(isStackOpen && panel?.isVisible == true && !isHiding)
         updateHover()
     }
 

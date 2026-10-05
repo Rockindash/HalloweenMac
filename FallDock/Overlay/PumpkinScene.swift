@@ -362,6 +362,12 @@ final class PumpkinScene: SKScene {
         let dt = lastUpdate == 0 ? 1.0 / 30 : (currentTime - lastUpdate).clamped(to: 0...0.1)
         lastUpdate = currentTime
 
+        // Pointer-move events don't always arrive (Mission Control keeps them), so read where the
+        // pointer is every frame to follow the Dock's magnification regardless.
+        if isOnDock, let window = view?.window {
+            let mouse = NSEvent.mouseLocation
+            pointer = CGPoint(x: mouse.x - window.frame.minX, y: mouse.y - window.frame.minY)
+        }
         let onDock = isPointerOnDock
         if onDock, let pointer { pointerX = pointer.x }
         // The Dock eases in and out of magnification, but tracks the pointer instantly.
