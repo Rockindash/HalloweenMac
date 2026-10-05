@@ -271,6 +271,40 @@ enum DockLocator {
         return CGRect(x: position.x, y: mainHeight - position.y - size.height, width: size.width, height: size.height)
     }
 
+    /// The Dock's folder tiles (stacks like Downloads), looked up again every few seconds.
+    private static var folderItems: [AXUIElement] = []
+    private static var folderItemsTime: TimeInterval = 0
+
+    /// Whether a Dock stack (like Downloads) is open right now, read through the Accessibility API:
+    /// an open stack's tile reports it in `AXShownStack`. Nil without Accessibility permission.
+    static func isStackOpen() -> Bool? {
+        guard AXIsProcessTrusted(), let dockPID = dockPID() else { return nil }
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - folderItemsTime > 5 {
+            folderItemsTime = now
+            folderItems = []
+            let app = AXUIElementCreateApplication(dockPID)
+            // Never let a busy Dock stall the overlay.
+            AXUIElementSetMessagingTimeout(app, 0.2)
+            var childrenRef: CFTypeRef?
+            var itemsRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(app, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+               let list = (childrenRef as? [AXUIElement])?.first(where: { role(of: $0) == kAXListRole as String }),
+               AXUIElementCopyAttributeValue(list, kAXChildrenAttribute as CFString, &itemsRef) == .success,
+               let items = itemsRef as? [AXUIElement] {
+                folderItems = items.filter { item in
+                    var subrole: CFTypeRef?
+                    AXUIElementCopyAttributeValue(item, kAXSubroleAttribute as CFString, &subrole)
+                    return (subrole as? String) == "AXFolderDockItem"
+                }
+            }
+        }
+        return folderItems.contains { item in
+            var stack: CFTypeRef?
+            return AXUIElementCopyAttributeValue(item, "AXShownStack" as CFString, &stack) == .success && stack != nil
+        }
+    }
+
     private static func role(of element: AXUIElement) -> String? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &value) == .success else { return nil }

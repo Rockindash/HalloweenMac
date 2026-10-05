@@ -51,10 +51,10 @@ final class PumpkinScene: SKScene {
     private var pumpkins: [Int: PumpkinNode] = [:]
     private weak var hovered: DockSprite?
 
-    /// Holds every layer, so parts of the harvest can be cut away (under an open Dock stack).
-    private let cropNode = SKCropNode()
-    private var hiddenRects: [CGRect] = []
-    private var maskSize: CGSize = .zero
+    /// Holds every layer, so the whole harvest can tuck away (under an open Dock stack).
+    private let harvestNode = SKNode()
+    /// True while the harvest is tucked away for an open Dock stack.
+    private(set) var isTuckedAway = false
     private let vineLayer = SKNode()
     let pumpkinLayer = SKNode()
     let effectsLayer = SKNode()
@@ -87,40 +87,39 @@ final class PumpkinScene: SKScene {
         vineLayer.zPosition = 1
         pumpkinLayer.zPosition = 2
         effectsLayer.zPosition = 20 // above every pumpkin (each has its own small zPosition)
-        cropNode.addChild(vineLayer)
-        cropNode.addChild(pumpkinLayer)
-        cropNode.addChild(effectsLayer)
-        addChild(cropNode)
+        harvestNode.addChild(vineLayer)
+        harvestNode.addChild(pumpkinLayer)
+        harvestNode.addChild(effectsLayer)
+        addChild(harvestNode)
     }
 
-    /// Cuts the harvest away inside `rects` (scene coordinates), so an open Dock stack or menu
-    /// shows through; an empty list shows everything again.
-    func hide(in rects: [CGRect]) {
-        let rects = rects.map { $0.insetBy(dx: -6, dy: -6).integral }
-        guard rects != hiddenRects || (!rects.isEmpty && maskSize != size) else { return }
-        hiddenRects = rects
-        maskSize = size
-        guard !rects.isEmpty, size.width >= 1, size.height >= 1 else {
-            cropNode.maskNode = nil
-            return
+    /// Tucks the whole harvest down behind the Dock (so an open Dock stack can be seen and used),
+    /// or springs it back up again.
+    func setTuckedAway(_ tucked: Bool) {
+        guard tucked != isTuckedAway else { return }
+        isTuckedAway = tucked
+        harvestNode.removeAction(forKey: "tuck")
+        let drop = Self.reduceMotion ? 0 : pumpkinHeight * 0.9
+        let animation: SKAction
+        if tucked {
+            let sink = SKAction.moveTo(y: -drop, duration: 0.22)
+            sink.timingMode = .easeIn
+            let fade = SKAction.fadeOut(withDuration: 0.2)
+            fade.timingMode = .easeIn
+            animation = .group([sink, fade])
+        } else {
+            // Rise with a little bounce past the resting spot, then settle.
+            let rise = SKAction.moveTo(y: 0, duration: 0.45)
+            rise.timingFunction = { t in
+                let c: Float = 1.4
+                let u = t - 1
+                return 1 + (c + 1) * u * u * u + c * u * u
+            }
+            let fade = SKAction.fadeIn(withDuration: 0.25)
+            fade.timingMode = .easeOut
+            animation = .group([rise, fade])
         }
-        let width = Int(size.width.rounded(.up)), height = Int(size.height.rounded(.up))
-        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                                      space: CGColorSpaceCreateDeviceRGB(),
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-        else { return }
-        context.setFillColor(CGColor(gray: 1, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        for rect in rects { context.clear(rect) }
-        guard let image = context.makeImage() else { return }
-        let mask = SKSpriteNode(texture: SKTexture(cgImage: image), size: CGSize(width: width, height: height))
-        mask.anchorPoint = .zero
-        cropNode.maskNode = mask
-    }
-
-    /// True when `point` (scene coordinates) is in a part of the harvest that's cut away.
-    func isHidden(_ point: CGPoint) -> Bool {
-        hiddenRects.contains { $0.contains(point) }
+        harvestNode.run(animation, withKey: "tuck")
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -478,7 +477,7 @@ final class PumpkinScene: SKScene {
     /// The thing under `point` (scene coordinates) that reacts to a click, if any.
     func target(at point: CGPoint) -> DockSprite? {
         // Over the Dock's own icons the Dock gets the pointer, so it can magnify.
-        guard !isPointerOnDock, !isHidden(point) else { return nil }
+        guard !isPointerOnDock, !isTuckedAway else { return nil }
         return pumpkinLayer.children
             .compactMap { $0 as? DockSprite }
             .filter { $0.isInteractive && !$0.isDetached && !$0.isLeaving && $0.frame.insetBy(dx: abs($0.frame.width) * 0.08, dy: 0).contains(point) }
