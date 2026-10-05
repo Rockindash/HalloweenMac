@@ -24,6 +24,10 @@ final class MainWindow: NSObject, NSWindowDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.title = "Fall Dock"
+        // An empty unified toolbar lets the floating sidebar run up to the top of the window, with
+        // the close, minimize and zoom buttons inside it, as in the App Store.
+        window.toolbar = NSToolbar(identifier: "FallDockMainWindow")
+        window.toolbarStyle = .unified
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.setContentSize(NSSize(width: 1040, height: 780))

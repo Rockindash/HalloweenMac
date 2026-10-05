@@ -46,6 +46,8 @@ struct PageLayout<Content: View>: View {
             .frame(maxWidth: 960, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
+        // Start near the top of the window, as the App Store does, rather than below the empty toolbar.
+        .ignoresSafeArea(.container, edges: .top)
         .background(Color.pageBackground)
     }
 }

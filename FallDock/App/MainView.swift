@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 // The app window, laid out like the Mac App Store: a floating sidebar with Home, Customize and
-// Settings, and pages with a big title, a hero card and plain rounded cards. Home answers "is it
+// Settings, and pages with a big title, a wide banner and plain rounded cards. Home answers "is it
 // on?", Customize picks what grows, and Settings holds everything else. The building blocks (cards,
 // tiles, the live harvest) and the Customize page are in MainTabs.swift.
 
@@ -90,10 +90,12 @@ struct MainView: View {
     }
 }
 
-/// The sidebar always shows, so there's no button to hide it.
+/// The sidebar always shows, so there's no button to hide it, and the empty toolbar shows no title.
 private struct NoSidebarToggle: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(macOS 14.0, *) {
+        if #available(macOS 15.0, *) {
+            content.toolbar(removing: .sidebarToggle).toolbar(removing: .title)
+        } else if #available(macOS 14.0, *) {
             content.toolbar(removing: .sidebarToggle)
         } else {
             content
@@ -112,6 +114,9 @@ private struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
+        // The first row sits just under the close, minimize and zoom buttons, not a toolbar's height below.
+        .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 40) }
+        .ignoresSafeArea(.container, edges: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // Who's here, where the App Store shows your account.
             HStack(spacing: 10) {
@@ -187,35 +192,51 @@ struct HomePage: View {
     }
 
     var body: some View {
-        PageLayout(title: "Home") {
-            HeroCard(eyebrow: state.title, title: "Fall Harvest", subtitle: status) {
-                LiveHarvestView(model: model, height: 300, cornerRadius: 0)
-            } footer: {
-                controls.padding(.top, 6)
-            }
+        // Checked every minute, so the greeting changes if the window stays open past noon or 5pm.
+        TimelineView(.everyMinute) { context in
+            PageLayout(title: Self.greeting(at: context.date)) {
+                LiveHarvestView(model: model, height: 300)
 
-            LazyVGrid(columns: columns, spacing: 20) {
-                FeatureCard(eyebrow: "Your harvest", title: smashed,
-                            subtitle: "Smash one on your Dock and another grows in its place.",
-                            image: ExtraArt.pumpkin(), imageBackground: Color.harvestMustard.opacity(0.22))
-                Button(action: openCustomize) {
-                    FeatureCard(eyebrow: "Customize", title: "Make It Yours",
-                                subtitle: "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
-                                image: ExtraArt.squirrel(), imageBackground: Color.harvestRust.opacity(0.2))
-                        .contentShape(RoundedRectangle(cornerRadius: 16))
+                controls
+
+                LazyVGrid(columns: columns, spacing: 20) {
+                    FeatureCard(eyebrow: "Your harvest", title: smashed,
+                                subtitle: "Smash one on your Dock and another grows in its place.",
+                                image: ExtraArt.pumpkin(), imageBackground: Color.harvestMustard.opacity(0.22))
+                    Button(action: openCustomize) {
+                        FeatureCard(eyebrow: "Customize", title: "Make It Yours",
+                                    subtitle: "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
+                                    image: ExtraArt.squirrel(), imageBackground: Color.harvestRust.opacity(0.2))
+                            .contentShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(PressableStyle())
                 }
-                .buttonStyle(PressableStyle())
             }
         }
     }
 
-    /// The switch most people need, plus pause and regrow.
+    /// The page's big title: Good Morning from 5am, Good Afternoon from noon, Good Evening from 5pm.
+    static func greeting(at date: Date) -> String {
+        switch Calendar.current.component(.hour, from: date) {
+        case 5..<12: return "Good Morning"
+        case 12..<17: return "Good Afternoon"
+        default: return "Good Evening"
+        }
+    }
+
+    /// Under the harvest: where it is, the switch most people need, plus pause and regrow.
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Toggle(isOn: $model.showPumpkins.animation()) {
-                Text("Show on Dock").font(.callout.weight(.semibold))
+        HStack(spacing: 14) {
+            Circle().fill(state.color).frame(width: 10, height: 10)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(state.title).font(.headline)
+                Text(status)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .toggleStyle(.switch)
+            .layoutPriority(1)
+            Spacer(minLength: 16)
             if model.showPumpkins {
                 HStack(spacing: 8) {
                     Button(model.isPaused ? "Resume" : "Pause") {
@@ -226,9 +247,18 @@ struct HomePage: View {
                         .help("Grow a new harvest")
                         .disabled(model.isPaused)
                 }
-                .controlSize(.regular)
+                .fixedSize()
+                Divider().frame(height: 22).padding(.horizontal, 2)
             }
+            Toggle(isOn: $model.showPumpkins.animation()) {
+                Text("Show on Dock")
+            }
+            .toggleStyle(.switch)
+            .fixedSize()
         }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardFill))
     }
 }
 
