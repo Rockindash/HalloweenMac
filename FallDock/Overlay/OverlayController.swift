@@ -64,6 +64,9 @@ final class OverlayController {
     private var clickedStack: CGRect?
     private var lastClickTime: TimeInterval = 0
     private var lastStackCheck: TimeInterval = 0
+    /// Mission Control (or App Exposé) is showing: it takes every click and pointer move for itself,
+    /// so the harvest can't react or follow the Dock. It tucks away until Mission Control closes.
+    private var isMissionControlShowing = false
     private var clickMonitor: Any?
     private var localClickMonitor: Any?
     private var isHiding = false
@@ -159,7 +162,7 @@ final class OverlayController {
         // Only needed while the pumpkins are showing; watchDock notices the Dock coming back.
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.panel?.isVisible == true, !self.isHiding else { return }
+                guard let self, self.panel?.isVisible == true, !self.isHiding, !self.isMissionControlShowing else { return }
                 self.refresh()
             }
         }
@@ -232,7 +235,10 @@ final class OverlayController {
         if panel?.isVisible == true, watchClosely || now - lastStackCheck >= 0.25 {
             lastStackCheck = now
             if let open = DockLocator.isStackOpen() { setStackOpen(open) }
+            setMissionControlShowing(DockLocator.isMissionControlShowing())
         }
+        // Mission Control adds screen-sized windows of its own, so don't re-measure the Dock until it's gone.
+        guard !isMissionControlShowing else { return }
         guard nearBottom || now - lastDockCheck >= 1 else { return }
         lastDockCheck = now
         if DockLocator.dockScreen() != lastDockState {
@@ -263,8 +269,18 @@ final class OverlayController {
         updateStackState()
     }
 
+    /// Tucks the harvest away while Mission Control shows, and re-measures the Dock once it closes
+    /// (its size may have changed meanwhile).
+    private func setMissionControlShowing(_ showing: Bool) {
+        guard showing != isMissionControlShowing else { return }
+        isMissionControlShowing = showing
+        if !showing { refresh() }
+        updateStackState()
+    }
+
     private func updateStackState() {
-        scene?.setTuckedAway(isStackOpen && panel?.isVisible == true && !isHiding)
+        let tucked = isStackOpen || isMissionControlShowing
+        scene?.setTuckedAway(tucked && panel?.isVisible == true && !isHiding)
         updateHover()
     }
 
