@@ -9,7 +9,7 @@ struct MenuContent: View {
 
         Divider()
 
-        Button("Open Fall Dock…") { model.showMainWindow() }
+        Button("Open Dockorate…") { model.showMainWindow() }
             .keyboardShortcut(",")
 
         Divider()
@@ -38,11 +38,11 @@ struct MenuContent: View {
             Button("Fit Pumpkins to Dock Exactly…") { model.askForAccessibility() }
         }
         Toggle("Open at Login", isOn: $model.openAtLogin)
-        Button("Welcome to Fall Dock…") { model.showWelcome() }
+        Button("Welcome to Dockorate…") { model.showWelcome() }
 
         Divider()
 
-        Button("Quit Fall Dock") { NSApplication.shared.terminate(nil) }
+        Button("Quit Dockorate") { NSApplication.shared.terminate(nil) }
             .keyboardShortcut("q")
     }
 }

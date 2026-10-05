@@ -124,7 +124,7 @@ private struct Sidebar: View {
                     .resizable()
                     .frame(width: 34, height: 34)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Fall Dock").font(.system(size: 13, weight: .semibold))
+                    Text("Dockorate").font(.system(size: 13, weight: .semibold))
                     HStack(spacing: 5) {
                         Circle().fill(state.color).frame(width: 6, height: 6)
                         Text(state.title).font(.caption).foregroundStyle(.secondary)
@@ -290,7 +290,7 @@ struct SettingsPage: View {
                 }
                 Divider()
                 SettingRow(symbol: "menubar.rectangle", color: .pumpkin, title: "Show 🎃 in the menu bar",
-                           detail: model.showMenuBarIcon ? "Quick controls, one click away." : "To come back here, open Fall Dock from Applications.") {
+                           detail: model.showMenuBarIcon ? "Quick controls, one click away." : "To come back here, open Dockorate from Applications.") {
                     Toggle("", isOn: $model.showMenuBarIcon).labelsHidden().toggleStyle(.switch)
                 }
                 Divider()
@@ -313,12 +313,12 @@ struct SettingsPage: View {
                 Divider()
                 if hasAccessibility {
                     SettingRow(symbol: "ruler.fill", color: .blue, title: "Fits your Dock exactly",
-                               detail: "Fall Dock measures your Dock, so everything lines up.") {
+                               detail: "Dockorate measures your Dock, so everything lines up.") {
                         Button("Measure Again") { model.remeasure() }
                     }
                 } else {
                     SettingRow(symbol: "ruler.fill", color: .harvestMustard, title: "Fit your Dock exactly",
-                               detail: "The Dock's size is estimated for now. Allow Accessibility to measure it. Fall Dock only reads its size.") {
+                               detail: "The Dock's size is estimated for now. Allow Accessibility to measure it. Dockorate only reads its size.") {
                         Button("Allow") { DockLocator.requestAccessibility() }
                             .buttonStyle(.borderedProminent)
                     }
@@ -355,7 +355,7 @@ struct SettingsPage: View {
                 Button("Reset Everything", role: .destructive) { model.resetEverything() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("All of Fall Dock's options go back to how they started, the smash count goes back to zero, and a fresh harvest grows. Open at login stays as it is. This can't be undone.")
+                Text("All of Dockorate's options go back to how they started, the smash count goes back to zero, and a fresh harvest grows. Open at login stays as it is. This can't be undone.")
             }
 
             Card(title: "About") {
@@ -364,7 +364,7 @@ struct SettingsPage: View {
                         .resizable()
                         .frame(width: 44, height: 44)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Fall Dock \(Self.version)").font(.headline)
+                        Text("Dockorate \(Self.version)").font(.headline)
                         Text("Drawn and voiced in code. Nothing leaves your Mac.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
@@ -374,7 +374,7 @@ struct SettingsPage: View {
                 HStack {
                     Button("Show Welcome") { model.showWelcome() }
                     Spacer()
-                    Button("Quit Fall Dock") { NSApp.terminate(nil) }
+                    Button("Quit Dockorate") { NSApp.terminate(nil) }
                 }
             }
         }

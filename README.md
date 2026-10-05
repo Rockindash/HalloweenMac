@@ -1,6 +1,8 @@
-# Fall Dock 🎃
+# Dockorate 🎃
 
-A cozy little Mac app that fills the top of your Dock with a fall harvest: flat, hand-drawn pumpkins on a
+*Decorate your Dock for every season.*
+
+A cozy little Mac app that decorates the top of your Dock for the season. Fall is the first: a harvest of flat, hand-drawn pumpkins on a
 curling vine, evenly spaced, with hay bales, leaf piles, acorns, a crate of apples, a steaming pumpkin spice latte
 and a glowing lantern in between. A squirrel stops by now and then: it picks up an acorn and carries it
 back the way it came (with the acorns switched off, it just hops across).
@@ -30,17 +32,17 @@ Sweep the pointer quickly across the pumpkins to rock them, and get close to the
 2. Press **⌘R** (or the ▶︎ Run button at the top left).
 3. A 🎃 appears in your menu bar and pumpkins appear on your Dock. Click one!
 
-To stop it, press **⌘.** in Xcode or choose **Quit Fall Dock** from the 🎃 menu.
+To stop it, press **⌘.** in Xcode or choose **Quit Dockorate** from the 🎃 menu.
 
 ### Keep a copy in Applications
 
-In Xcode choose **Product → Archive**, then **Distribute App → Custom → Copy App**, and drag the exported **Fall Dock.app** into your Applications folder. Then turn on **Open at Login** in the 🎃 menu.
+In Xcode choose **Product → Archive**, then **Distribute App → Custom → Copy App**, and drag the exported **Dockorate.app** into your Applications folder. Then turn on **Open at Login** in the 🎃 menu.
 
 ## The app window
 
-Open **Fall Dock** from your Applications folder (or choose **Open Fall Dock…** from the 🎃 menu) for the app's own window.
-While it's open, Fall Dock shows in the Dock and the app switcher like any app; close it and it goes back to living in the menu bar.
-When Fall Dock starts by itself at login, the window stays closed.
+Open **Dockorate** from your Applications folder (or choose **Open Dockorate…** from the 🎃 menu) for the app's own window.
+While it's open, Dockorate shows in the Dock and the app switcher like any app; close it and it goes back to living in the menu bar.
+When Dockorate starts by itself at login, the window stays closed.
 
 - **Home**: a live little harvest on a pretend Dock (click its pumpkins to smash them), whether the harvest is on your Dock right now, your smash count, and buttons to pause it for an hour, grow new pumpkins, or show or hide it.
 - **Customize**: the vine, falling leaves and cozy extras, with a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. With falling leaves on:
@@ -54,7 +56,7 @@ When Fall Dock starts by itself at login, the window stays closed.
 
 ## The 🎃 menu
 
-- **Open Fall Dock…**: the app window.
+- **Open Dockorate…**: the app window.
 - **Show Pumpkins**: hides or shows everything.
 - **Vines**: a single pumpkin vine along the Dock, behind the pumpkins, with fine ridges, two-tone curls and buds.
 - **Cozy Extras**: the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and the squirrel. The lantern glows brighter in the evening.
@@ -63,11 +65,11 @@ When Fall Dock starts by itself at login, the window stays closed.
 - **How Full**: A Few, Plenty or Overflowing, which sets how closely pumpkins and extras are packed. They always stay the same size: when the Dock gets longer or shorter (adding apps, or changing its size in System Settings), pumpkins and extras grow in or shrink away at the end instead of everything stretching.
 - **Grow New Pumpkins**: a fresh set of pumpkins.
 - **Pause for 1 Hour**: hides everything for an hour, for presentations and screen sharing (or **Resume** early).
-- **Fit Pumpkins to Dock Exactly…**: by default the app estimates how wide your Dock is. If the pumpkins hang past the ends of your Dock, allow Fall Dock under System Settings → Privacy & Security → Accessibility and it will measure the Dock exactly. It only reads the Dock's size.
-- **Open at Login**: starts Fall Dock when you log in (use the copy in Applications).
-- **Welcome to Fall Dock…**: shows the welcome window again. It opens by itself the first time.
+- **Fit Pumpkins to Dock Exactly…**: by default the app estimates how wide your Dock is. If the pumpkins hang past the ends of your Dock, allow Dockorate under System Settings → Privacy & Security → Accessibility and it will measure the Dock exactly. It only reads the Dock's size.
+- **Open at Login**: starts Dockorate when you log in (use the copy in Applications).
+- **Welcome to Dockorate…**: shows the welcome window again. It opens by itself the first time.
 
-If you hide the 🎃 (Settings → General), open Fall Dock from Applications to get back to the window.
+If you hide the 🎃 (Settings → General), open Dockorate from Applications to get back to the window.
 
 ## Good to know
 
@@ -75,14 +77,14 @@ If you hide the 🎃 (Settings → General), open Fall Dock from Applications to
 - Clicks only stop at a pumpkin or a cozy extra. Everywhere else, the Dock and your windows work normally.
 - With **Reduce Motion** on (System Settings → Accessibility → Display), nothing moves by itself: no wobbling, falling leaves, steam or squirrel. Things still react when you click them.
 - **Fill the whole screen** uses a second see-through, click-through window over the Dock's screen. It hides with the harvest and stops drawing while hidden, but while it shows it uses a few percent of CPU, so it's off by default.
-- Fall Dock checks for the Dock often only while the pointer is near the bottom of the screen, so it uses very little battery while the Dock is hidden.
+- Dockorate checks for the Dock often only while the pointer is near the bottom of the screen, so it uses very little battery while the Dock is hidden.
 - Magnification follows the Dock's own setting (System Settings → Desktop & Dock → Magnification).
 - The harvest follows your Mac's **Light or Dark** setting (System Settings → Appearance): rich, deep colors on a dark Dock, and softer, lighter ones on a light Dock. It switches straight away, keeping the same pumpkins.
 - All the art is drawn in code (see `FallDock/Art/Art.swift` and `FallDock/Art/CozyArt.swift`), in the flat style of a hand-drawn harvest wagon, using six colors. You can change them in `Palette` near the top of the file.
 
 ## How it works
 
-Like Festivitas, Fall Dock doesn't change the Dock itself. It floats a transparent, click-through window just above the Dock, on every desktop.
+Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transparent, click-through window just above the Dock, on every desktop.
 
 | File | What it does |
 |---|---|
@@ -116,7 +118,7 @@ scripts/make-icon.sh
 
 ## Releasing
 
-To let other people download Fall Dock, it has to be signed with a Developer ID and notarized by Apple.
+To let other people download Dockorate, it has to be signed with a Developer ID and notarized by Apple.
 
 One-time setup:
 
@@ -125,7 +127,7 @@ One-time setup:
 3. Save your notarization login in the keychain (use an [app-specific password](https://support.apple.com/102654)):
 
    ```sh
-   xcrun notarytool store-credentials FallDock --apple-id you@example.com --team-id ABCDE12345
+   xcrun notarytool store-credentials Dockorate --apple-id you@example.com --team-id ABCDE12345
    ```
 
 Then, for each release, set the version in Xcode (target → General → Version) and run:
@@ -135,6 +137,12 @@ TEAM_ID=ABCDE12345 scripts/release.sh
 ```
 
 It builds, signs, notarizes and staples the app, and leaves a zip in `build/release/` to put on your website.
+
+## The project's name
+
+Dockorate was called Fall Dock while it was being built, so the Xcode project, scheme, target and source
+folder are still named `FallDock`. Only the app people see is called Dockorate. The first time Dockorate
+starts, it brings over the choices and smash count saved by Fall Dock (bundle ID `com.amol.falldock`).
 
 ## Not done yet
 

@@ -1,12 +1,12 @@
 #!/bin/sh
-# Builds Fall Dock for people to download: signed with your Developer ID, notarized by Apple
+# Builds Dockorate for people to download: signed with your Developer ID, notarized by Apple
 # and stapled, then zipped for your website. See README → "Releasing" for the one-time setup.
 #
 #   TEAM_ID=ABCDE12345 scripts/release.sh
 #
 set -eu
 : "${TEAM_ID:?Set TEAM_ID to your Apple Developer Team ID (developer.apple.com → Account → Membership)}"
-PROFILE="${NOTARY_PROFILE:-FallDock}"
+PROFILE="${NOTARY_PROFILE:-Dockorate}"
 cd "$(dirname "$0")/.."
 OUT=build/release
 rm -rf "$OUT"
@@ -20,7 +20,7 @@ xcodebuild -project FallDock.xcodeproj -scheme FallDock -configuration Release \
 sed "s/TEAM_ID/$TEAM_ID/" scripts/ExportOptions.plist > "$OUT/ExportOptions.plist"
 xcodebuild -exportArchive -archivePath "$OUT/FallDock.xcarchive" \
     -exportOptionsPlist "$OUT/ExportOptions.plist" -exportPath "$OUT" -quiet
-APP="$OUT/Fall Dock.app"
+APP="$OUT/Dockorate.app"
 
 echo "Sending to Apple for notarization (this usually takes a few minutes)…"
 ditto -c -k --keepParent "$APP" "$OUT/notarize.zip"
@@ -29,6 +29,6 @@ xcrun stapler staple "$APP"
 rm "$OUT/notarize.zip"
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
-ditto -c -k --keepParent "$APP" "$OUT/FallDock-$VERSION.zip"
+ditto -c -k --keepParent "$APP" "$OUT/Dockorate-$VERSION.zip"
 spctl --assess --type execute --verbose "$APP"
-echo "Ready to upload: $OUT/FallDock-$VERSION.zip"
+echo "Ready to upload: $OUT/Dockorate-$VERSION.zip"

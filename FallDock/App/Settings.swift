@@ -23,7 +23,18 @@ enum Settings {
         static let theme = "theme"
     }
 
+    /// The app was called Fall Dock, with the bundle ID com.amol.falldock, before it shipped. The first
+    /// time Dockorate starts, it brings over that app's choices and smash count.
+    private static func carryOverFromFallDock() {
+        let oldDomain = "com.amol.falldock"
+        guard let newDomain = Bundle.main.bundleIdentifier, newDomain != oldDomain,
+              (defaults.persistentDomain(forName: newDomain) ?? [:]).isEmpty,
+              let old = defaults.persistentDomain(forName: oldDomain), !old.isEmpty else { return }
+        defaults.setPersistentDomain(old, forName: newDomain)
+    }
+
     static func registerDefaults() {
+        carryOverFromFallDock()
         // The menu used to pick a number of pumpkins; now it picks how full the Dock is.
         // (Checked before registering defaults, which would make every key look set.)
         if defaults.object(forKey: Key.fullness) == nil, defaults.object(forKey: Key.pumpkinCount) != nil {

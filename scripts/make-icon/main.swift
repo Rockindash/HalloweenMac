@@ -1,7 +1,7 @@
 import AppKit
 import SpriteKit
 
-// Draws Fall Dock's app icon with the app's own drawing code (FallDock/Art), at every size
+// Draws Dockorate's app icon with the app's own drawing code (FallDock/Art), at every size
 // macOS needs, into FallDock/Assets.xcassets/AppIcon.appiconset. Run scripts/make-icon.sh.
 
 let output = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "AppIcon.appiconset"

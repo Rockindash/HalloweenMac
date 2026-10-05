@@ -177,10 +177,10 @@ final class AppModel: ObservableObject {
         let alert = NSAlert()
         alert.messageText = "Fit pumpkins to your Dock exactly?"
         alert.informativeText = """
-        Fall Dock guesses how wide your Dock is. To measure it exactly, macOS needs you to allow \
-        Fall Dock under System Settings → Privacy & Security → Accessibility.
+        Dockorate guesses how wide your Dock is. To measure it exactly, macOS needs you to allow \
+        Dockorate under System Settings → Privacy & Security → Accessibility.
 
-        Fall Dock only reads the Dock's size. It never reads your screen or what you type.
+        Dockorate only reads the Dock's size. It never reads your screen or what you type.
         """
         alert.addButton(withTitle: "Open Settings")
         alert.addButton(withTitle: "Not Now")

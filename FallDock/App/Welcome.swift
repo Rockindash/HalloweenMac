@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// The window that greets people the first time they open Fall Dock. The app lives only in the
+/// The window that greets people the first time they open Dockorate. The app lives only in the
 /// menu bar, so without it opening the app would seem to do nothing.
 @MainActor
 final class WelcomeWindow {
@@ -36,14 +36,14 @@ struct WelcomeView: View {
                 .resizable()
                 .frame(width: 84, height: 84)
             VStack(spacing: 4) {
-                Text("Welcome to Fall Dock")
+                Text("Welcome to Dockorate")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                Text("A cozy harvest on top of your Dock.")
+                Text("Decorate your Dock for every season.")
                     .foregroundStyle(.secondary)
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                tip("macwindow", "Open Fall Dock from Applications or the 🎃 menu to change things.")
+                tip("macwindow", "Open Dockorate from Applications or the 🎃 menu to change things.")
                 tip("hand.tap", "Click a pumpkin to smash it. A new one grows back a few seconds later.")
                 tip("cursorarrow.rays", "Point at the leaves, the latte and the lantern. Click them too.")
                 tip("magnifyingglass", "If your Dock magnifies, the harvest grows along with it.")
@@ -54,7 +54,7 @@ struct WelcomeView: View {
                 VStack(spacing: 8) {
                     Text("Fit the pumpkins to your Dock exactly")
                         .font(.headline)
-                    Text("Without this, Fall Dock guesses how long your Dock is. It only reads the Dock's size, never your screen or what you type.")
+                    Text("Without this, Dockorate guesses how long your Dock is. It only reads the Dock's size, never your screen or what you type.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -65,11 +65,11 @@ struct WelcomeView: View {
                 .frame(maxWidth: .infinity)
                 .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
             } else {
-                Label("Fall Dock can measure your Dock exactly.", systemImage: "checkmark.circle.fill")
+                Label("Dockorate can measure your Dock exactly.", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             }
 
-            Toggle("Open Fall Dock when I log in", isOn: $model.openAtLogin)
+            Toggle("Open Dockorate when I log in", isOn: $model.openAtLogin)
 
             Button(action: close) {
                 Text("Start the Harvest").frame(maxWidth: .infinity)

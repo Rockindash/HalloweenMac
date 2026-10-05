@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// The app's own window, opened from the Applications folder or the 🎃 menu: Home, Customize and
-/// Settings in a sidebar (see MainView.swift). While it's open Fall Dock shows in the Dock and the
+/// Settings in a sidebar (see MainView.swift). While it's open Dockorate shows in the Dock and the
 /// app switcher like any other app.
 @MainActor
 final class MainWindow: NSObject, NSWindowDelegate {
@@ -25,7 +25,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.title = "Fall Dock"
+        window.title = "Dockorate"
         // An empty unified toolbar lets the floating sidebar run up to the top of the window, with
         // the close, minimize and zoom buttons inside it, as in the App Store.
         window.toolbar = NSToolbar(identifier: "FallDockMainWindow")
