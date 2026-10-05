@@ -57,8 +57,13 @@ final class OverlayController {
     private var dockWatchTimer: Timer?
     private var lastDockState: DockLocator.DockState = .unknown
     private var lastDockCheck: TimeInterval = 0
-    /// An open Dock stack or menu: its part of the harvest is hidden and lets clicks through.
-    private var popupFrames: [CGRect] = []
+    /// The tile of the Dock stack (like Downloads) that's open: the harvest around it is hidden
+    /// and lets clicks through, so the stack's items can be picked.
+    private var openStack: CGRect?
+    /// How far either side of an open stack's tile the harvest is hidden (fans and grids are wide).
+    private let stackReach: CGFloat = 380
+    private var clickMonitor: Any?
+    private var localClickMonitor: Any?
     private var isHiding = false
     /// A setting changed and the harvest hasn't regrown with it yet.
     private var needsRegrow = false
@@ -169,6 +174,20 @@ final class OverlayController {
         globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
             Task { @MainActor in self?.updateHover() }
         }
+        // Clicks elsewhere tell us when a Dock stack opens or closes (no permission needed).
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            let point = NSEvent.mouseLocation
+            let isLeft = event.type == .leftMouseDown
+            Task { @MainActor in self?.handleClick(at: point, isLeft: isLeft) }
+        }
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            Task { @MainActor in
+                guard let self, self.openStack != nil else { return }
+                self.openStack = nil
+                self.updateStackMask()
+            }
+            return event
+        }
         localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .mouseExited]) { [weak self] event in
             Task { @MainActor in self?.updateHover() }
             return event
@@ -204,25 +223,34 @@ final class OverlayController {
         let now = ProcessInfo.processInfo.systemUptime
         let mouse = NSEvent.mouseLocation
         let nearBottom = NSScreen.screens.contains { $0.frame.contains(mouse) && mouse.y - $0.frame.minY < 250 }
-        guard nearBottom || !popupFrames.isEmpty || now - lastDockCheck >= 1 else { return }
+        guard nearBottom || now - lastDockCheck >= 1 else { return }
         lastDockCheck = now
-        updatePopups()
         if DockLocator.dockScreen() != lastDockState {
             refresh()
         }
     }
 
-    /// Finds an open Dock stack (like Downloads) or Dock menu and hides the harvest under it,
-    /// so the pumpkins don't cover it or catch its clicks.
-    private func updatePopups() {
-        guard let panel else { return }
-        var frames: [CGRect] = []
-        if let dock = currentDock, panel.isVisible, !isHiding {
-            frames = DockLocator.dockPopupFrames(dockTop: dock.dockFrame.maxY).filter { $0.intersects(panel.frame) }
+    /// A click anywhere: a click on a stack tile opens it (or closes it, if it's the open one),
+    /// and any other click closes an open stack, picking an item or not.
+    private func handleClick(at point: CGPoint, isLeft: Bool) {
+        let tile = isLeft ? currentDock.flatMap { DockLocator.stackTile(at: point, dock: $0) } : nil
+        if let tile, openStack.map({ !$0.intersects(tile.insetBy(dx: 4, dy: 0)) }) ?? true {
+            openStack = tile
+        } else {
+            openStack = nil
         }
-        scene?.hide(in: frames.map { $0.offsetBy(dx: -panel.frame.minX, dy: -panel.frame.minY) })
-        guard frames != popupFrames else { return }
-        popupFrames = frames
+        updateStackMask()
+    }
+
+    /// Hides the harvest above and around an open stack.
+    private func updateStackMask() {
+        guard let panel, let scene else { return }
+        var rects: [CGRect] = []
+        if let tile = openStack, panel.isVisible, !isHiding {
+            let area = CGRect(x: tile.midX - stackReach, y: panel.frame.minY, width: stackReach * 2, height: panel.frame.height)
+            rects = [area.offsetBy(dx: -panel.frame.minX, dy: -panel.frame.minY)]
+        }
+        scene.hide(in: rects)
         updateHover()
     }
 
@@ -272,7 +300,7 @@ final class OverlayController {
             }
         }
         updateScreenLeaves()
-        updatePopups()
+        updateStackMask()
     }
 
     /// Falling leaves settings changed: the pace applies right away, without regrowing the harvest.
@@ -400,6 +428,8 @@ final class OverlayController {
         dockWatchTimer?.invalidate()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }
         if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor) }
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        if let localClickMonitor { NSEvent.removeMonitor(localClickMonitor) }
         for (center, token) in observers { center.removeObserver(token) }
         observers.removeAll()
         hide()
