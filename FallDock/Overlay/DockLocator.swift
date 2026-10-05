@@ -121,6 +121,29 @@ enum DockLocator {
         return .showing(screen)
     }
 
+    /// Frames (AppKit coordinates) of anything the Dock has popped up above itself: an open stack
+    /// (fan, grid or list, like Downloads) or a Dock menu. These are Dock-owned windows at or above
+    /// Dock level that aren't screen-sized and reach above the Dock's own bar.
+    static func dockPopupFrames(dockTop: CGFloat) -> [CGRect] {
+        guard let dockPID = dockPID(),
+              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]
+        else { return [] }
+        let dockLevel = Int(CGWindowLevelForKey(.dockWindow))
+        let screenSizes = NSScreen.screens.map { $0.frame.size }
+        return windows.compactMap { window in
+            guard (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) == dockPID,
+                  let layer = window[kCGWindowLayer as String] as? Int, layer >= dockLevel,
+                  (window[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+                  let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary),
+                  bounds.width > 20, bounds.height > 20,
+                  !screenSizes.contains(where: { abs($0.width - bounds.width) < 1 && abs($0.height - bounds.height) < 1 })
+            else { return nil }
+            let frame = flipped(bounds)
+            return frame.maxY > dockTop + 4 ? frame : nil
+        }
+    }
+
     /// Window bounds use a top-left origin on the main display; this flips them to AppKit's bottom-left.
     private static func flipped(_ bounds: CGRect) -> CGRect {
         let mainHeight = NSScreen.screens.first?.frame.height ?? 0

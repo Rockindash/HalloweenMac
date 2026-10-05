@@ -57,6 +57,8 @@ final class OverlayController {
     private var dockWatchTimer: Timer?
     private var lastDockState: DockLocator.DockState = .unknown
     private var lastDockCheck: TimeInterval = 0
+    /// An open Dock stack or menu: its part of the harvest is hidden and lets clicks through.
+    private var popupFrames: [CGRect] = []
     private var isHiding = false
     /// A setting changed and the harvest hasn't regrown with it yet.
     private var needsRegrow = false
@@ -202,11 +204,26 @@ final class OverlayController {
         let now = ProcessInfo.processInfo.systemUptime
         let mouse = NSEvent.mouseLocation
         let nearBottom = NSScreen.screens.contains { $0.frame.contains(mouse) && mouse.y - $0.frame.minY < 250 }
-        guard nearBottom || now - lastDockCheck >= 1 else { return }
+        guard nearBottom || !popupFrames.isEmpty || now - lastDockCheck >= 1 else { return }
         lastDockCheck = now
+        updatePopups()
         if DockLocator.dockScreen() != lastDockState {
             refresh()
         }
+    }
+
+    /// Finds an open Dock stack (like Downloads) or Dock menu and hides the harvest under it,
+    /// so the pumpkins don't cover it or catch its clicks.
+    private func updatePopups() {
+        guard let panel else { return }
+        var frames: [CGRect] = []
+        if let dock = currentDock, panel.isVisible, !isHiding {
+            frames = DockLocator.dockPopupFrames(dockTop: dock.dockFrame.maxY).filter { $0.intersects(panel.frame) }
+        }
+        scene?.hide(in: frames.map { $0.offsetBy(dx: -panel.frame.minX, dy: -panel.frame.minY) })
+        guard frames != popupFrames else { return }
+        popupFrames = frames
+        updateHover()
     }
 
     private func show(on dock: DockInfo, force: Bool) {
@@ -255,6 +272,7 @@ final class OverlayController {
             }
         }
         updateScreenLeaves()
+        updatePopups()
     }
 
     /// Falling leaves settings changed: the pace applies right away, without regrowing the harvest.
