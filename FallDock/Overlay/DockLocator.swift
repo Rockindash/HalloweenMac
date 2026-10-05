@@ -121,27 +121,52 @@ enum DockLocator {
         return .showing(screen)
     }
 
-    /// Frames (AppKit coordinates) of anything the Dock has popped up above itself: an open stack
-    /// (fan, grid or list, like Downloads) or a Dock menu. These are Dock-owned windows at or above
-    /// Dock level that aren't screen-sized and reach above the Dock's own bar.
-    static func dockPopupFrames(dockTop: CGFloat) -> [CGRect] {
-        guard let dockPID = dockPID(),
-              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]
-        else { return [] }
-        let dockLevel = Int(CGWindowLevelForKey(.dockWindow))
-        let screenSizes = NSScreen.screens.map { $0.frame.size }
-        return windows.compactMap { window in
-            guard (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) == dockPID,
-                  let layer = window[kCGWindowLayer as String] as? Int, layer >= dockLevel,
-                  (window[kCGWindowAlpha as String] as? Double ?? 1) > 0,
-                  let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
-                  let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary),
-                  bounds.width > 20, bounds.height > 20,
-                  !screenSizes.contains(where: { abs($0.width - bounds.width) < 1 && abs($0.height - bounds.height) < 1 })
-            else { return nil }
-            let frame = flipped(bounds)
-            return frame.maxY > dockTop + 4 ? frame : nil
+    /// The frame (AppKit coordinates) of the stack tile (a folder like Downloads) under `point`, if
+    /// the pointer is on one. An open stack is drawn inside the Dock's own screen-sized window, so it
+    /// can't be found from the window list; instead we notice the click that opens it.
+    static func stackTile(at point: CGPoint, dock: DockInfo) -> CGRect? {
+        guard dock.dockFrame.contains(point) else { return nil }
+        if AXIsProcessTrusted(), let dockPID = dockPID() {
+            // With Accessibility access, ask the Dock exactly what's under the pointer.
+            let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+            var element: AXUIElement?
+            guard AXUIElementCopyElementAtPosition(AXUIElementCreateApplication(dockPID), Float(point.x),
+                                                   Float(mainHeight - point.y), &element) == .success,
+                  let element else { return nil }
+            var subrole: CFTypeRef?
+            AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subrole)
+            guard (subrole as? String) == "AXFolderDockItem" else { return nil }
+            return frame(of: element) ?? CGRect(x: point.x - 30, y: dock.dockFrame.minY, width: 60, height: dock.dockFrame.height)
         }
+        // Without it, stacks are the tiles just left of the Trash at the Dock's right end.
+        let others = (UserDefaults(suiteName: "com.apple.dock")?.array(forKey: "persistent-others")?.count) ?? 0
+        guard others > 0 else { return nil }
+        let tileSize = CGFloat(UserDefaults(suiteName: "com.apple.dock")?.double(forKey: "tilesize") ?? 0)
+        let icon = tileSize > 0 ? tileSize : dock.dockFrame.height * 0.78
+        let pitch = icon + max(4, icon * 0.1)
+        let right = dock.dockFrame.maxX - 10 - pitch // left edge of the Trash
+        let left = right - CGFloat(others) * pitch
+        guard point.x >= left, point.x <= right else { return nil }
+        let index = floor((point.x - left) / pitch)
+        return CGRect(x: left + index * pitch, y: dock.dockFrame.minY, width: pitch, height: dock.dockFrame.height)
+    }
+
+    private static func frame(of element: AXUIElement) -> CGRect? {
+        var positionRef: CFTypeRef?
+        var sizeRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionRef) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
+              let positionValue = positionRef, let sizeValue = sizeRef,
+              CFGetTypeID(positionValue) == AXValueGetTypeID(), CFGetTypeID(sizeValue) == AXValueGetTypeID()
+        else { return nil }
+        var position = CGPoint.zero
+        var size = CGSize.zero
+        // swiftlint:disable force_cast
+        AXValueGetValue(positionValue as! AXValue, .cgPoint, &position)
+        AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
+        // swiftlint:enable force_cast
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        return CGRect(x: position.x, y: mainHeight - position.y - size.height, width: size.width, height: size.height)
     }
 
     /// Window bounds use a top-left origin on the main display; this flips them to AppKit's bottom-left.
