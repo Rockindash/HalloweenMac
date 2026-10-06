@@ -17,11 +17,12 @@ enum DockLocator {
     private static let minimumDockThickness: CGFloat = 20
 
     /// Returns the Dock while it's showing at the bottom of a screen, or nil when it has slid
-    /// away (full-screen apps, auto-hide) or sits on the left or right edge.
-    static func locate() -> DockInfo? {
+    /// away (full-screen apps, auto-hide) or sits on the left or right edge. In Mission Control the
+    /// Dock shows even over a full-screen app, so `inMissionControl` skips that check.
+    static func locate(inMissionControl: Bool = false) -> DockInfo? {
         let screens = NSScreen.screens
         let screen: NSScreen
-        switch dockScreen() {
+        switch dockScreen(inMissionControl: inMissionControl) {
         case .showing(let frame):
             // The Dock follows the pointer between displays, so use the screen it's on now.
             guard let match = screens.first(where: { $0.frame.intersects(frame.insetBy(dx: 2, dy: 2)) }) else { return nil }
@@ -82,7 +83,7 @@ enum DockLocator {
     /// can be seen, and it moves to whichever display the Dock is on. In a full-screen app (or
     /// with auto-hide) the Dock slides away and that window goes off screen. Window positions
     /// and owners are readable without Screen Recording permission.
-    static func dockScreen() -> DockState {
+    static func dockScreen(inMissionControl: Bool = false) -> DockState {
         guard let dockPID = dockPID() else { return .unknown }
         let dockLevel = Int(CGWindowLevelForKey(.dockWindow))
         let screenSizes = NSScreen.screens.map { $0.frame.size }
@@ -112,7 +113,7 @@ enum DockLocator {
 
         // In a full-screen app the Dock only shows while the pointer is on it, but macOS takes
         // a second or two to report it gone. Hide the moment the pointer leaves the Dock instead.
-        if fullScreenAppIsShowing(on: screen, dockPID: dockPID) {
+        if !inMissionControl, fullScreenAppIsShowing(on: screen, dockPID: dockPID) {
             let mouse = NSEvent.mouseLocation
             let thickness = max(minimumDockThickness, NSScreen.screens.map { $0.visibleFrame.minY - $0.frame.minY }.max() ?? 0)
             let onDock = screen.contains(mouse) && mouse.y <= screen.minY + thickness
