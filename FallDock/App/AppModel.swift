@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import ServiceManagement
 import SwiftUI
 
@@ -11,6 +12,10 @@ final class AppModel: ObservableObject {
     private let welcome = WelcomeWindow()
     private let mainWindow = MainWindow()
     private var activity: NSObjectProtocol?
+    private var licenseWatch: AnyCancellable?
+
+    let license = LicenseManager()
+    let updater = Updater()
 
     @Published private(set) var smashCount: Int
     /// The app's window is in full screen (its pages then start below the toolbar).
@@ -99,6 +104,14 @@ final class AppModel: ObservableObject {
 
     func start() {
         overlay.onSmash = { [weak self] in self?.recordSmash() }
+        overlay.isLicensed = license.isActive
+        // The harvest comes and goes with the license, and the window and menu follow it too.
+        licenseWatch = license.$key.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] key in
+            guard let self else { return }
+            self.objectWillChange.send()
+            self.overlay.isLicensed = key != nil
+        }
+        license.start()
         // A menu bar app is never "active", so macOS may put it to sleep (App Nap) and slow
         // its timers to once every few seconds. Opt out so the pumpkins keep up with the Dock.
         activity = ProcessInfo.processInfo.beginActivity(

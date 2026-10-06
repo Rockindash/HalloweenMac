@@ -86,6 +86,11 @@ final class OverlayController {
 
     var onSmash: (() -> Void)?
 
+    /// Without an activated license the harvest stays off the Dock.
+    var isLicensed = false {
+        didSet { if isLicensed != oldValue { refresh(force: true) } }
+    }
+
     /// While paused (for presentations or screen sharing) the pumpkins stay hidden.
     private(set) var pausedUntil: Date?
     private var resumeTimer: Timer?
@@ -242,7 +247,7 @@ final class OverlayController {
         }
         lastDockState = DockLocator.dockScreen()
         let switchingSpaces = ProcessInfo.processInfo.systemUptime < switchingSpacesUntil
-        guard Settings.showPumpkins, !isPaused, !switchingSpaces, let dock = DockLocator.locate() else {
+        guard isLicensed, Settings.showPumpkins, !isPaused, !switchingSpaces, let dock = DockLocator.locate() else {
             hide(animated: animated)
             return
         }
@@ -255,7 +260,7 @@ final class OverlayController {
     /// Hides the pumpkins as soon as the Dock goes away, brings them back with it,
     /// and follows it when it moves to another display.
     private func watchDock() {
-        guard Settings.showPumpkins, !isPaused else { return }
+        guard isLicensed, Settings.showPumpkins, !isPaused else { return }
         // A hidden Dock only comes back when the pointer reaches the bottom of a screen (or the
         // desktop changes, which sends its own notification), and a Dock showing over a full-screen
         // app goes away when the pointer leaves it. So check often while the pointer is near the
@@ -321,7 +326,7 @@ final class OverlayController {
         if showing {
             // Mission Control always shows the Dock, even when it was hidden (in a full-screen app
             // or with auto-hide), and it stays where it was, so bring the harvest up on it there.
-            if panel?.isVisible != true || isHiding, Settings.showPumpkins, !isPaused,
+            if panel?.isVisible != true || isHiding, isLicensed, Settings.showPumpkins, !isPaused,
                let dock = lastDock ?? DockLocator.locate(inMissionControl: true) {
                 show(on: dock, force: false)
             }

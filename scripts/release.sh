@@ -1,6 +1,7 @@
 #!/bin/sh
 # Builds Dockorate for people to download: signed with your Developer ID, notarized by Apple
-# and stapled, then packed as a drag-to-Applications disk image (and a zip) for your website. See README → "Releasing" for the one-time setup.
+# and stapled, then packed as a drag-to-Applications disk image (and a zip) for your website, with the
+# Sparkle update feed (appcast.xml) that points at the zip. See README → "Releasing" for the one-time setup.
 #
 #   TEAM_ID=ABCDE12345 scripts/release.sh
 #
@@ -32,10 +33,20 @@ VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Co
 ditto -c -k --keepParent "$APP" "$OUT/Dockorate-$VERSION.zip"
 spctl --assess --type execute --verbose "$APP"
 
+echo "Making the update feed…"
+# Sparkle's tools come with the package Xcode downloaded for the archive above. The feed is signed
+# with the private key generate_keys put in your login Keychain, so no key file is needed.
+SPARKLE_BIN=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/SourcePackages/artifacts/sparkle/Sparkle/bin" -type d 2>/dev/null | head -n 1)
+[ -n "$SPARKLE_BIN" ] || { echo "Can't find Sparkle's tools. Build the project in Xcode once, then try again."; exit 1; }
+mkdir -p "$OUT/updates"
+cp "$OUT/Dockorate-$VERSION.zip" "$OUT/updates/"
+"$SPARKLE_BIN/generate_appcast" --download-url-prefix "https://amolkmr.com/apps/mac/Dockorate/releases/" \
+    -o "$OUT/appcast.xml" "$OUT/updates"
+
 echo "Making the installer disk image…"
 DMG="$OUT/Dockorate-$VERSION.dmg"
 scripts/make-dmg.sh "$APP" "$DMG"
 codesign --sign "Developer ID Application" --timestamp "$DMG"
 xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait
 xcrun stapler staple "$DMG"
-echo "Ready to upload: $DMG (and $OUT/Dockorate-$VERSION.zip)"
+echo "Ready to upload: $DMG, and for updates $OUT/Dockorate-$VERSION.zip (to /releases/) and $OUT/appcast.xml"

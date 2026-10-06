@@ -10,6 +10,11 @@ struct MenuContent: View {
 
         Divider()
 
+        if !model.license.isActive {
+            Button("Enter License Key") { model.showMainWindow() }
+            Divider()
+        }
+
         if model.isPaused {
             Button("Resume") { model.resume() }
         } else {
@@ -23,6 +28,7 @@ struct MenuContent: View {
 
         Divider()
 
+        Button("Check for Updates") { model.updater.checkForUpdates() }
         Button("Quit Dockorate") { NSApplication.shared.terminate(nil) }
             .keyboardShortcut("q")
     }

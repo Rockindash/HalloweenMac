@@ -42,6 +42,10 @@ struct WelcomeView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if !model.license.isActive {
+                LicenseCard(license: model.license)
+            }
+
             VStack(alignment: .leading, spacing: 12) {
                 tip("macwindow", "Open Dockorate from Applications or the pumpkin menu to change things.")
                 tip("hand.tap", "Click a pumpkin to smash it. A new one grows back a few seconds later.")

@@ -29,7 +29,7 @@ enum Page: String, CaseIterable, Identifiable {
 
 /// Where the harvest is: on the Dock, paused, switched off, or waiting for a hidden Dock.
 enum HarvestState {
-    case showing, dockHidden, paused, hidden
+    case showing, dockHidden, paused, hidden, unlicensed
 
     var title: String {
         switch self {
@@ -37,6 +37,7 @@ enum HarvestState {
         case .dockHidden: return "Dock hidden"
         case .paused: return "Paused"
         case .hidden: return "Hidden"
+        case .unlicensed: return "Not activated"
         }
     }
 
@@ -44,12 +45,13 @@ enum HarvestState {
         switch self {
         case .showing: return .green
         case .dockHidden, .paused: return .yellow
-        case .hidden: return .gray
+        case .hidden, .unlicensed: return .gray
         }
     }
 
     @MainActor
     static func of(_ model: AppModel, dockShowing: Bool) -> HarvestState {
+        if !model.license.isActive { return .unlicensed }
         if !model.showPumpkins { return .hidden }
         if model.isPaused { return .paused }
         return dockShowing ? .showing : .dockHidden
@@ -76,6 +78,8 @@ struct MainView: View {
         } detail: {
             Group {
                 switch page {
+                case .home where !model.license.isActive, .customize where !model.license.isActive:
+                    LicensePage(license: model.license)
                 case .home: HomePage(model: model, state: state) { pageName = Page.customize.rawValue }
                 case .customize: CustomizePage(model: model)
                 case .settings: SettingsPage(model: model)
@@ -210,6 +214,7 @@ struct HomePage: View {
         case .dockHidden: return "Your Dock is hidden right now. Changes show up when it's back."
         case .paused: return "Paused for an hour, then it comes back by itself."
         case .hidden: return "Switched off. Turn it on to bring the harvest back."
+        case .unlicensed: return "Enter your license key to bring the harvest to your Dock."
         }
     }
 
@@ -301,10 +306,15 @@ struct SettingsPage: View {
     @State private var dockAtBottom = SettingsPage.isDockAtBottom
     @State private var confirmingSmashReset = false
     @State private var confirmingResetAll = false
+    @State private var confirmingLicenseRemoval = false
     private let tick = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     private static var isDockAtBottom: Bool {
         (UserDefaults(suiteName: "com.apple.dock")?.string(forKey: "orientation") ?? "bottom") == "bottom"
+    }
+
+    static var build: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
     }
 
     static var version: String {
@@ -361,6 +371,26 @@ struct SettingsPage: View {
                     }
                 }
             }
+
+            Card(title: "License") {
+                if model.license.isActive {
+                    SettingRow(symbol: "checkmark.seal.fill", color: .green, title: "Active",
+                               detail: "License key \(model.license.maskedKey)") {
+                        Button("Remove License") { confirmingLicenseRemoval = true }
+                    }
+                } else {
+                    LicenseCard(license: model.license)
+                        .padding(-18)
+                }
+            }
+            .alert("Remove the license from this Mac?", isPresented: $confirmingLicenseRemoval) {
+                Button("Remove License", role: .destructive) { model.license.remove() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The harvest leaves your Dock until a license key is entered again. Use this to move Dockorate to another Mac.")
+            }
+
+            UpdatesCard(updater: model.updater)
 
             Card(title: "Reset") {
                 SettingRow(symbol: "hammer.fill", color: .pumpkin, title: "Smash count",
@@ -419,5 +449,24 @@ struct SettingsPage: View {
 
     private func openDockSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") { NSWorkspace.shared.open(url) }
+    }
+}
+
+/// Settings → Updates: Sparkle's automatic checks, and a button to check now.
+private struct UpdatesCard: View {
+    @ObservedObject var updater: Updater
+
+    var body: some View {
+        Card(title: "Updates") {
+            SettingRow(symbol: "arrow.down.circle.fill", color: .blue, title: "Automatically check for updates",
+                       detail: "Dockorate \(SettingsPage.version) (\(SettingsPage.build))") {
+                Toggle("", isOn: $updater.checksAutomatically).labelsHidden().toggleStyle(.switch)
+            }
+            HStack {
+                Spacer()
+                Button("Check for Updates") { updater.checkForUpdates() }
+                    .disabled(!updater.canCheck)
+            }
+        }
     }
 }

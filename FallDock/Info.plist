@@ -28,5 +28,11 @@
     <string>© 2026 Amol Kumar</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.entertainment</string>
+    <key>SUFeedURL</key>
+    <string>https://amolkmr.com/apps/mac/Dockorate/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUPublicEDKey</key>
+    <string>yUUdd2c6FMCBsHChuia9VBDxIXZ8c+SqQnyA7Jl0LAk=</string>
 </dict>
 </plist>
