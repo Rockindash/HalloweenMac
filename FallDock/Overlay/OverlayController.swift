@@ -258,7 +258,12 @@ final class OverlayController {
         guard !isMissionControlShowing else { return }
         guard nearBottom || now - lastDockCheck >= 1 else { return }
         lastDockCheck = now
-        if DockLocator.dockScreen() != lastDockState {
+        // Also retry while the Dock shows but the harvest doesn't: measuring it can fail for a
+        // moment (right after it moves to another display), and nothing else would try again.
+        let state = DockLocator.dockScreen()
+        let missing: Bool
+        if case .showing = state { missing = panel?.isVisible != true || isHiding } else { missing = false }
+        if state != lastDockState || missing {
             refresh()
         }
     }
