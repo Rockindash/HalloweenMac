@@ -132,7 +132,10 @@ Then, for each release, set the version in Xcode (target → General → Version
 TEAM_ID=ABCDE12345 scripts/release.sh
 ```
 
-It builds, signs, notarizes and staples the app, and leaves a zip in `build/release/` to put on your website.
+It builds, signs, notarizes and staples the app, and leaves a zip and a disk image in `build/release/` to put on
+your website. The disk image opens a fall-themed window that asks people to drag Dockorate into Applications;
+`scripts/make-dmg.sh` makes it (it can also wrap any build, signed or not), and `scripts/dmg/background.swift`
+draws its background. The first time, macOS may ask to let Terminal control Finder, which lays out the window.
 
 ## The project's name
 

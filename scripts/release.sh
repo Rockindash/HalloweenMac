@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds Dockorate for people to download: signed with your Developer ID, notarized by Apple
-# and stapled, then zipped for your website. See README → "Releasing" for the one-time setup.
+# and stapled, then zipped and wrapped in the fall-themed drag-to-Applications disk image. See README → "Releasing" for the one-time setup.
 #
 #   TEAM_ID=ABCDE12345 scripts/release.sh
 #
@@ -31,4 +31,12 @@ rm "$OUT/notarize.zip"
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
 ditto -c -k --keepParent "$APP" "$OUT/Dockorate-$VERSION.zip"
 spctl --assess --type execute --verbose "$APP"
-echo "Ready to upload: $OUT/Dockorate-$VERSION.zip"
+
+echo "Making the disk image…"
+DMG="$OUT/Dockorate-$VERSION.dmg"
+scripts/make-dmg.sh "$APP" "$DMG"
+codesign --sign "Developer ID Application" --timestamp "$DMG"
+xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait
+xcrun stapler staple "$DMG"
+spctl --assess --type open --context context:primary-signature --verbose "$DMG"
+echo "Ready to upload: $DMG (and $OUT/Dockorate-$VERSION.zip)"
