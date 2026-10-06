@@ -35,14 +35,16 @@ enum DockLocator {
             screen = match
         }
 
-        // Only one screen reports the space the Dock takes up (and none does with auto-hide),
-        // so take the largest gap, falling back to the Dock's icon size.
+        // Only one screen reports the space the Dock takes up, and none does with auto-hide or for a
+        // while after the Dock moves to another display (say, after Mission Control). So take the
+        // largest gap, falling back to the Dock's icon size.
         let frame = screen.frame
         let gaps = screens.map { $0.visibleFrame.minY - $0.frame.minY }
         var thickness = gaps.max() ?? 0
         if thickness < minimumDockThickness {
             let dock = UserDefaults(suiteName: "com.apple.dock")
-            guard dock?.bool(forKey: "autohide") == true else { return nil } // Dock on the left or right
+            let orientation = dock?.string(forKey: "orientation") ?? "bottom"
+            guard orientation == "bottom" else { return nil } // Dock on the left or right
             let tile = CGFloat(dock?.double(forKey: "tilesize") ?? 0)
             thickness = (tile > 0 ? tile : 48) + 22
         }
