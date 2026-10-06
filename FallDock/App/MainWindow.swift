@@ -45,6 +45,17 @@ final class MainWindow: NSObject, NSWindowDelegate {
         self.window = window
     }
 
+    // In full screen macOS draws the toolbar as a solid band across the top, over the page title and
+    // the first sidebar row (they run up under the see-through toolbar). The empty toolbar is only
+    // there for the windowed look, so hide it in full screen.
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        window?.toolbar?.isVisible = false
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        window?.toolbar?.isVisible = true
+    }
+
     func windowWillClose(_ notification: Notification) {
         // Back to living in the menu bar only.
         NSApp.setActivationPolicy(.accessory)
