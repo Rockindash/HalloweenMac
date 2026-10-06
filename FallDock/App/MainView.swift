@@ -289,7 +289,7 @@ struct SettingsPage: View {
                     Toggle("", isOn: $model.openAtLogin).labelsHidden().toggleStyle(.switch)
                 }
                 Divider()
-                SettingRow(symbol: "menubar.rectangle", color: .pumpkin, title: "Show 🎃 in the menu bar",
+                SettingRow(symbol: "menubar.rectangle", color: .pumpkin, title: "Show the pumpkin in the menu bar",
                            detail: model.showMenuBarIcon ? "Quick controls, one click away." : "To come back here, open Dockorate from Applications.") {
                     Toggle("", isOn: $model.showMenuBarIcon).labelsHidden().toggleStyle(.switch)
                 }

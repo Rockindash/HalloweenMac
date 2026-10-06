@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// The app's own window, opened from the Applications folder or the 🎃 menu: Home, Customize and
+/// The app's own window, opened from the Applications folder or the pumpkin menu: Home, Customize and
 /// Settings in a sidebar (see MainView.swift). While it's open Dockorate shows in the Dock and the
 /// app switcher like any other app.
 @MainActor
