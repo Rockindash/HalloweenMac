@@ -303,9 +303,18 @@ struct LiveHarvestView: View {
 
     /// The settings that change what grows; the little harvest regrows when any of them change.
     private var look: [AnyHashable] {
-        [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves,
-         model.appearance]
+        [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves]
     }
+
+    /// Light mode shows a fall afternoon with the sun out; Dark mode, a starry night under a harvest moon.
+    private var isDay: Bool { model.appearance == .light }
+
+    /// A few stars for the night sky, as fractions of the view's size (x, y, diameter).
+    private let stars: [(CGFloat, CGFloat, CGFloat)] = [
+        (0.08, 0.10, 2.5), (0.17, 0.28, 1.5), (0.27, 0.08, 2), (0.36, 0.22, 1.5), (0.46, 0.06, 2.5),
+        (0.55, 0.30, 1.5), (0.63, 0.14, 2), (0.72, 0.32, 1.5), (0.80, 0.06, 1.5), (0.94, 0.26, 2),
+        (0.12, 0.42, 1.5), (0.40, 0.40, 1.5), (0.68, 0.46, 1.5),
+    ]
 
     private let icons: [(String, Color)] = [
         ("face.smiling", .blue), ("globe", .teal), ("envelope.fill", .indigo), ("music.note", .pink),
@@ -316,12 +325,36 @@ struct LiveHarvestView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                // An evening sky with a harvest moon.
-                LinearGradient(colors: [Color.harvestPlum, Color.harvestRust.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                // Day or night, following Light and Dark mode: the skies cross-fade while the sun sets
+                // and the moon rises (or the other way round).
+                LinearGradient(colors: [Color(cgColor: .hex(0x1C2340)), Color(cgColor: .hex(0x4A2238)), Color.harvestPlum],
+                               startPoint: .top, endPoint: .bottom)
+                ForEach(stars.indices, id: \.self) { i in
+                    Circle()
+                        .fill(.white.opacity(0.75))
+                        .frame(width: stars[i].2, height: stars[i].2)
+                        .position(x: geometry.size.width * stars[i].0, y: geometry.size.height * stars[i].1)
+                }
+                .opacity(isDay ? 0 : 1)
+                LinearGradient(colors: [Color(cgColor: .hex(0x8CC4E8)), Color(cgColor: .hex(0xCFE3EE)), Color.harvestPeach],
+                               startPoint: .top, endPoint: .bottom)
+                    .opacity(isDay ? 1 : 0)
+                // The sun, with a warm glow.
                 Circle()
-                    .fill(Color.harvestMustard.opacity(0.85))
+                    .fill(Color(cgColor: .hex(0xF7C948)))
                     .frame(width: 46, height: 46)
+                    .shadow(color: Color(cgColor: .hex(0xF7C948)).opacity(0.8), radius: 18)
                     .position(x: geometry.size.width - 70, y: 44)
+                    .offset(y: isDay ? 0 : geometry.size.height)
+                // The harvest moon: a soft cream disc with a cool glow.
+                Circle()
+                    .fill(Color(cgColor: .hex(0xF4E6C3)))
+                    .overlay(Circle().fill(Color(cgColor: .hex(0xE2CFA2))).frame(width: 10, height: 10).offset(x: -9, y: -6))
+                    .overlay(Circle().fill(Color(cgColor: .hex(0xE2CFA2))).frame(width: 7, height: 7).offset(x: 8, y: 9))
+                    .frame(width: 42, height: 42)
+                    .shadow(color: .white.opacity(0.35), radius: 14)
+                    .position(x: geometry.size.width - 70, y: 44)
+                    .offset(y: isDay ? geometry.size.height : 0)
                 // A pretend Dock.
                 HStack(spacing: 10) {
                     // As many icons as fit, like a real Dock.
@@ -335,13 +368,16 @@ struct LiveHarvestView: View {
                 }
                 .padding(.horizontal, 14)
                 .frame(width: geometry.size.width - 44, height: LiveHarvest.dockTop - 8)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.white.opacity(0.18)))
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.white.opacity(isDay ? 0.4 : 0.16)))
                 .padding(.bottom, 8)
                 SpriteView(scene: harvest.scene, options: [.allowsTransparency])
             }
             .onAppear { harvest.layout(size: geometry.size, regrow: true) }
             .onChange(of: geometry.size) { harvest.layout(size: $0, regrow: false) }
             .onChange(of: look) { _ in harvest.layout(size: geometry.size, regrow: true) }
+            // Same harvest, redrawn in the new colors.
+            .onChange(of: model.appearance) { _ in harvest.scene.repaint() }
+            .animation(.easeInOut(duration: 0.8), value: isDay)
         }
         .frame(height: height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
