@@ -1,44 +1,25 @@
 import SwiftUI
 
-/// The 🎃 menu in the menu bar.
+/// The 🎃 menu in the menu bar. Finer settings live in the app window.
 struct MenuContent: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        Text(model.smashCount == 1 ? "1 pumpkin smashed" : "\(model.smashCount) pumpkins smashed")
-
-        Divider()
-
         Button("Open Dockorate…") { model.showMainWindow() }
             .keyboardShortcut(",")
 
         Divider()
 
-        Toggle("Show Pumpkins", isOn: $model.showPumpkins)
-        Toggle("Vines", isOn: $model.showVines)
-        Toggle("Cozy Extras", isOn: $model.cozyExtras)
-        Toggle("Falling Leaves", isOn: $model.fallingLeaves)
-        Toggle("Smash Sound", isOn: $model.sound)
-
-        Picker("How Full", selection: $model.fullness) {
-            ForEach(Settings.Fullness.allCases, id: \.self) { Text($0.title).tag($0) }
-        }
-
-        Button("Grow New Pumpkins") { model.regrow() }
-            .keyboardShortcut("r")
         if model.isPaused {
             Button("Resume") { model.resume() }
         } else {
             Button("Pause for 1 Hour") { model.pauseForAnHour() }
         }
-
-        Divider()
-
         if !model.hasAccessibility {
             Button("Fit Pumpkins to Dock Exactly…") { model.askForAccessibility() }
         }
+        Toggle("Full-Screen Leaves", isOn: $model.leavesFillScreen)
         Toggle("Open at Login", isOn: $model.openAtLogin)
-        Button("Welcome to Dockorate…") { model.showWelcome() }
 
         Divider()
 
