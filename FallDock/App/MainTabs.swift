@@ -539,14 +539,39 @@ enum ExtraArt {
         return image
     }
 
-    /// A plain pumpkin (no face) sized for the menu bar.
+    /// A plain pumpkin silhouette for the menu bar. It's a template image, so macOS draws it white
+    /// on a dark menu bar (and dark on a light one), like the system's own menu bar icons.
     static func menuBarPumpkin() -> NSImage {
-        let key = "menuBarPumpkin-\(Palette.appearance)"
-        if let image = cache[key] { return image }
-        let height: CGFloat = 19
-        let texture = PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: 3)
-        let image = NSImage(cgImage: texture.cgImage(), size: PumpkinArt.size(of: .roundOrange, height: height))
-        cache[key] = image
+        if let image = cache["menuBarPumpkin"] { return image }
+        let image = NSImage(size: CGSize(width: 20, height: 18), flipped: false) { _ in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            ctx.setFillColor(.black)
+            // Three overlapping lobes for the body.
+            ctx.fillEllipse(in: CGRect(x: 1, y: 1, width: 10.5, height: 13))
+            ctx.fillEllipse(in: CGRect(x: 8.5, y: 1, width: 10.5, height: 13))
+            ctx.fillEllipse(in: CGRect(x: 5, y: 0.5, width: 10, height: 14))
+            // A chunky stem leaning a little to the right.
+            ctx.beginPath()
+            ctx.move(to: CGPoint(x: 9, y: 13))
+            ctx.addLine(to: CGPoint(x: 11.2, y: 13))
+            ctx.addLine(to: CGPoint(x: 12.4, y: 17.2))
+            ctx.addLine(to: CGPoint(x: 10.4, y: 17.6))
+            ctx.closePath()
+            ctx.fillPath()
+            // Rib lines cut out of the body, so they show as gaps.
+            ctx.setBlendMode(.clear)
+            ctx.setLineWidth(1.2)
+            ctx.setLineCap(.round)
+            for (x, bulge) in [(7.6, -1.6), (12.4, 1.6)] {
+                ctx.beginPath()
+                ctx.move(to: CGPoint(x: x, y: 12.2))
+                ctx.addQuadCurve(to: CGPoint(x: x, y: 2), control: CGPoint(x: x + bulge, y: 7.1))
+                ctx.strokePath()
+            }
+            return true
+        }
+        image.isTemplate = true
+        cache["menuBarPumpkin"] = image
         return image
     }
 
