@@ -1,151 +1,184 @@
 {
   "fill" : {
-    "solid" : "srgb:0.83742,0.83744,0.83743,1.00000"
+    "automatic-gradient" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
   },
   "groups" : [
     {
       "layers" : [
         {
-          "blend-mode-specializations" : [
-            {
-              "value" : "plus-darker"
-            },
-            {
-              "appearance" : "dark",
-              "value" : "plus-darker"
-            }
-          ],
-          "image-name" : "App Icon Template-2 3.svg",
-          "name" : "App Icon Template-2 3",
-          "opacity-specializations" : [
-            {
-              "appearance" : "dark",
-              "value" : 1
-            }
-          ],
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              -10,
-              -10
-            ]
-          }
+          "glass" : false,
+          "image-name" : "App Icon Template-1.svg",
+          "name" : "App Icon Template-1"
         },
         {
           "blend-mode-specializations" : [
             {
-              "value" : "plus-darker"
+              "value" : "lighten"
             },
             {
               "appearance" : "dark",
-              "value" : "plus-darker"
+              "value" : "multiply"
             }
           ],
-          "image-name" : "App Icon Template-4 2.svg",
-          "name" : "App Icon Template-4 2",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              10,
-              -10
-            ]
-          }
+          "glass" : false,
+          "image-name" : "App Icon Template-3.svg",
+          "name" : "App Icon Template-3"
+        },
+        {
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.94902,0.90588,0.77647,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "image-name-specializations" : [
+            {
+              "value" : "App Icon Template-2.svg"
+            },
+            {
+              "appearance" : "light",
+              "value" : "sdfdsf.svg"
+            }
+          ],
+          "name" : "sdfdsf"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-4.svg",
+          "name" : "App Icon Template-4"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-5.svg",
+          "name" : "App Icon Template-5"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-6.svg",
+          "name" : "App Icon Template-6"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-7.svg",
+          "name" : "App Icon Template-7"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-8.svg",
+          "name" : "App Icon Template-8"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-9.svg",
+          "name" : "App Icon Template-9"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-10.svg",
+          "name" : "App Icon Template-10"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-13.svg",
+          "name" : "App Icon Template-13"
+        },
+        {
+          "glass" : false,
+          "image-name" : "App Icon Template-14.svg",
+          "name" : "App Icon Template-14"
         },
         {
           "blend-mode-specializations" : [
             {
-              "value" : "plus-darker"
-            },
-            {
               "appearance" : "dark",
-              "value" : "plus-darker"
+              "value" : "lighten"
             }
           ],
-          "image-name" : "App Icon Template-6 2.svg",
-          "name" : "App Icon Template-6 2",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              -10,
-              0
-            ]
-          }
+          "glass" : false,
+          "image-name" : "App Icon Template-15.svg",
+          "name" : "App Icon Template-15"
         },
         {
           "blend-mode-specializations" : [
             {
-              "value" : "plus-darker"
-            },
-            {
               "appearance" : "dark",
-              "value" : "plus-darker"
+              "value" : "lighten"
             }
           ],
-          "image-name" : "App Icon Template 3.svg",
-          "name" : "App Icon Template 3",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              30,
-              0
-            ]
-          }
+          "glass" : false,
+          "image-name" : "App Icon Template-16.svg",
+          "name" : "App Icon Template-16"
         },
         {
           "glass" : false,
-          "image-name" : "App Icon Template-1 3.svg",
-          "name" : "App Icon Template-1 3",
-          "opacity-specializations" : [
-            {
-              "value" : 1
-            },
-            {
-              "appearance" : "dark",
-              "value" : 0
-            }
-          ]
+          "image-name" : "App Icon Template-11.svg",
+          "name" : "App Icon Template-11"
         },
         {
           "glass" : false,
-          "image-name" : "App Icon Template-3 3.svg",
-          "name" : "App Icon Template-3 3",
-          "opacity-specializations" : [
+          "image-name" : "App Icon Template-12.svg",
+          "name" : "App Icon Template-12"
+        },
+        {
+          "blend-mode-specializations" : [
             {
-              "value" : 1
+              "value" : "darken"
             },
             {
               "appearance" : "dark",
-              "value" : 0
+              "value" : "plus-lighter"
             }
-          ]
+          ],
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "hidden" : false,
+          "image-name" : "App Icon Template-17.svg",
+          "name" : "App Icon Template-17"
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "lighten"
+            }
+          ],
+          "glass" : false,
+          "image-name" : "App Icon Template.svg",
+          "name" : "App Icon Template"
         },
         {
           "glass" : false,
-          "image-name" : "App Icon Template-5 2.svg",
-          "name" : "App Icon Template-5 2",
-          "opacity-specializations" : [
-            {
-              "value" : 1
-            },
-            {
-              "appearance" : "dark",
-              "value" : 0
-            }
-          ]
+          "image-name" : "App Icon Template-18.svg",
+          "name" : "App Icon Template-18"
         },
         {
           "glass" : false,
-          "image-name" : "App Icon Template-7 2.svg",
-          "name" : "App Icon Template-7 2",
-          "opacity-specializations" : [
+          "image-name" : "App Icon Template-19.svg",
+          "name" : "App Icon Template-19"
+        },
+        {
+          "glass" : false,
+          "hidden" : false,
+          "image-name-specializations" : [
             {
-              "value" : 1
+              "value" : "App Icon Template-20.svg"
             },
             {
-              "appearance" : "dark",
-              "value" : 0
+              "appearance" : "light",
+              "value" : "dwqdqw.svg"
             }
-          ]
+          ],
+          "name" : "dwqdqw"
         }
       ],
       "shadow" : {
