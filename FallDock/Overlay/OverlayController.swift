@@ -284,7 +284,10 @@ final class OverlayController {
     }
 
     private func updateStackState() {
-        scene?.setTuckedAway(isStackOpen && panel?.isVisible == true && !isHiding)
+        // While the Dock is away the harvest stays slid off screen; it comes back up when the Dock does.
+        if panel?.isVisible == true, !isHiding {
+            scene?.setTuck(isStackOpen ? .behindDock : .none)
+        }
         updateHover()
     }
 
@@ -324,14 +327,11 @@ final class OverlayController {
         scene.configure(dockRect: localDock, pixelScale: scale, magnifier: DockMagnifier.current(), regrow: force)
         skView?.isPaused = false
         if !panel.isVisible || isHiding {
-            // Fade in alongside the Dock.
+            // Slide up alongside the Dock (updateStackState below starts it rising).
             isHiding = false
-            if !panel.isVisible { panel.alphaValue = 0 }
+            if !panel.isVisible { scene.setTuck(.offScreen, animated: false) }
+            panel.alphaValue = 1
             panel.orderFrontRegardless()
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.25
-                panel.animator().alphaValue = 1
-            }
         }
         updateScreenLeaves()
         updateStackState()
@@ -411,18 +411,14 @@ final class OverlayController {
         guard let panel, panel.isVisible, !isHiding else { return }
         panel.ignoresMouseEvents = true
         isHiding = true
-        // Fade out as the Dock slides away, then stop drawing.
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.15
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isHiding else { return }
-                self.isHiding = false
-                self.skView?.isPaused = true
-                self.panel?.orderOut(nil)
-            }
-        })
+        // Slide down off the screen as the Dock slides away, then stop drawing.
+        scene?.setTuck(.offScreen)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) { [weak self] in
+            guard let self, self.isHiding else { return }
+            self.isHiding = false
+            self.skView?.isPaused = true
+            self.panel?.orderOut(nil)
+        }
     }
 
     /// Tells the scene where the pointer is, and lets clicks through everywhere except right on top

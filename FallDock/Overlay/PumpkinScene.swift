@@ -51,10 +51,19 @@ final class PumpkinScene: SKScene {
     private var pumpkins: [Int: PumpkinNode] = [:]
     private weak var hovered: DockSprite?
 
-    /// Holds every layer, so the whole harvest can tuck away (under an open Dock stack).
+    /// Holds every layer, so the whole harvest can tuck away (under an open Dock stack, or with the Dock).
     private let harvestNode = SKNode()
-    /// True while the harvest is tucked away for an open Dock stack.
-    private(set) var isTuckedAway = false
+    /// How far the harvest is tucked away.
+    enum Tuck {
+        /// Showing on the Dock.
+        case none
+        /// Sunk just behind the Dock, while a Dock stack is open.
+        case behindDock
+        /// Slid off the bottom of the screen, along with the Dock as it hides.
+        case offScreen
+    }
+    private(set) var tuck = Tuck.none
+    var isTuckedAway: Bool { tuck != .none }
     private let vineLayer = SKNode()
     let pumpkinLayer = SKNode()
     let effectsLayer = SKNode()
@@ -93,21 +102,20 @@ final class PumpkinScene: SKScene {
         addChild(harvestNode)
     }
 
-    /// Tucks the whole harvest down behind the Dock (so an open Dock stack can be seen and used),
-    /// or springs it back up again.
-    func setTuckedAway(_ tucked: Bool) {
-        guard tucked != isTuckedAway else { return }
-        isTuckedAway = tucked
+    /// Slides the whole harvest down behind the Dock (so an open Dock stack can be seen and used) or
+    /// off the screen as the Dock hides, or springs it back up again.
+    func setTuck(_ newTuck: Tuck, animated: Bool = true) {
+        guard newTuck != tuck else { return }
+        tuck = newTuck
         harvestNode.removeAction(forKey: "tuck")
-        let drop = Self.reduceMotion ? 0 : pumpkinHeight * 0.9
-        let animation: SKAction
-        if tucked {
-            let sink = SKAction.moveTo(y: -drop, duration: 0.22)
-            sink.timingMode = .easeIn
-            let fade = SKAction.fadeOut(withDuration: 0.2)
-            fade.timingMode = .easeIn
-            animation = .group([sink, fade])
-        } else {
+        let motion = !Self.reduceMotion
+        switch newTuck {
+        case .none:
+            guard animated else {
+                harvestNode.position.y = 0
+                harvestNode.alpha = 1
+                return
+            }
             // Rise with a little bounce past the resting spot, then settle.
             let rise = SKAction.moveTo(y: 0, duration: 0.45)
             rise.timingFunction = { t in
@@ -117,9 +125,23 @@ final class PumpkinScene: SKScene {
             }
             let fade = SKAction.fadeIn(withDuration: 0.25)
             fade.timingMode = .easeOut
-            animation = .group([rise, fade])
+            harvestNode.run(.group([rise, fade]), withKey: "tuck")
+        case .behindDock:
+            let sink = SKAction.moveTo(y: motion ? -pumpkinHeight * 0.9 : 0, duration: animated ? 0.22 : 0)
+            sink.timingMode = .easeIn
+            let fade = SKAction.fadeOut(withDuration: animated ? 0.2 : 0)
+            fade.timingMode = .easeIn
+            harvestNode.run(.group([sink, fade]), withKey: "tuck")
+        case .offScreen:
+            // Slide all the way below the screen's bottom edge, like the Dock, fading only at the end.
+            let depth = dockRect.maxY + pumpkinHeight * 2.5
+            let duration = animated ? 0.28 : 0
+            let slide = SKAction.moveTo(y: motion ? -depth : 0, duration: duration)
+            slide.timingMode = .easeIn
+            let fade = SKAction.sequence([.wait(forDuration: motion ? duration * 0.6 : 0),
+                                          .fadeOut(withDuration: motion ? duration * 0.4 : duration)])
+            harvestNode.run(.group([slide, fade]), withKey: "tuck")
         }
-        harvestNode.run(animation, withKey: "tuck")
     }
 
     required init?(coder aDecoder: NSCoder) {
