@@ -124,6 +124,28 @@ enum DockLocator {
         return .showing(screen)
     }
 
+    /// Whether the screens are sliding from one space to another (a swipe or Control-arrow between
+    /// desktops and full-screen apps). macOS only reports a space change once the slide is over, but
+    /// while it slides, windows as wide as a screen (the menu bar, a full-screen app) sit part-way
+    /// between screen edges, so it shows up in the window list right away.
+    static func isSwitchingSpaces() -> Bool {
+        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return false }
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let screens = NSScreen.screens.map(\.frame)
+        let menuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
+        return windows.contains { window in
+            guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0 || layer == menuLevel,
+                  (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) != ownPID,
+                  let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
+            else { return false }
+            return screens.contains { abs($0.width - bounds.width) < 1 }
+                && !screens.contains { abs($0.minX - bounds.minX) < 1 }
+                && screens.contains { $0.minX < bounds.maxX && bounds.minX < $0.maxX }
+        }
+    }
+
     /// Whether Mission Control or App Exposé is showing. While it is, the Dock covers each screen
     /// with an extra screen-sized window just below Dock level (layer 18), which isn't there otherwise.
     static func isMissionControlShowing() -> Bool {
