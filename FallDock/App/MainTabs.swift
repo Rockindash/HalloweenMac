@@ -539,6 +539,17 @@ enum ExtraArt {
         return image
     }
 
+    /// A plain pumpkin (no face) sized for the menu bar.
+    static func menuBarPumpkin() -> NSImage {
+        let key = "menuBarPumpkin-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let height: CGFloat = 19
+        let texture = PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: 3)
+        let image = NSImage(cgImage: texture.cgImage(), size: PumpkinArt.size(of: .roundOrange, height: height))
+        cache[key] = image
+        return image
+    }
+
     static func squirrel() -> NSImage {
         let key = "squirrel-\(Palette.appearance)"
         if let image = cache[key] { return image }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The 🎃 menu in the menu bar. Finer settings live in the app window.
+/// The pumpkin menu in the menu bar. Finer settings live in the app window.
 struct MenuContent: View {
     @ObservedObject var model: AppModel
 
