@@ -13,6 +13,8 @@ final class AppModel: ObservableObject {
     private var activity: NSObjectProtocol?
 
     @Published private(set) var smashCount: Int
+    /// The app's window is in full screen (its pages then start below the toolbar).
+    @Published var isFullScreen = false
     @Published private(set) var isPaused = false
     /// The Mac's Light or Dark setting, which the art follows.
     @Published private(set) var appearance = Palette.Appearance.dark

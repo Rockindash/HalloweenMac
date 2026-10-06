@@ -84,9 +84,39 @@ struct MainView: View {
             .id(page)
         }
         .modifier(NoSidebarToggle())
+        .environment(\.isFullScreen, model.isFullScreen)
         .tint(.pumpkin)
         .frame(minWidth: Self.minSize.width, minHeight: Self.minSize.height)
         .onReceive(tick) { _ in dockShowing = model.dockStatus.isShowing }
+    }
+}
+
+/// Whether the app's window is in full screen.
+private struct IsFullScreenKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var isFullScreen: Bool {
+        get { self[IsFullScreenKey.self] }
+        set { self[IsFullScreenKey.self] = newValue }
+    }
+}
+
+/// Lets a view run up under the see-through toolbar, `inset` points from the top of the window, as
+/// the App Store does. In full screen the toolbar is a solid band, so the view starts below it instead.
+struct UnderToolbar: ViewModifier {
+    var inset: CGFloat = 0
+    @Environment(\.isFullScreen) private var isFullScreen
+
+    func body(content: Content) -> some View {
+        if isFullScreen {
+            content
+        } else {
+            content
+                .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: inset) }
+                .ignoresSafeArea(.container, edges: .top)
+        }
     }
 }
 
@@ -114,9 +144,9 @@ private struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
-        // The first row sits just under the close, minimize and zoom buttons, not a toolbar's height below.
-        .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 40) }
-        .ignoresSafeArea(.container, edges: .top)
+        // The first row sits just under the close, minimize and zoom buttons, not a toolbar's height
+        // below (in full screen, where the toolbar is a solid band, it starts below the band instead).
+        .modifier(UnderToolbar(inset: 40))
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // Who's here, where the App Store shows your account.
             HStack(spacing: 10) {

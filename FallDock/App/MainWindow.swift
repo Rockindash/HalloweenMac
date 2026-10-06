@@ -7,14 +7,18 @@ import SwiftUI
 @MainActor
 final class MainWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private weak var model: AppModel?
 
     func show(model: AppModel) {
+        self.model = model
         if window == nil { build(model: model) }
         // Keep the title hidden on every macOS version. (SwiftUI only removes its own title on macOS 15 and later.)
         window?.titleVisibility = .hidden
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+        // macOS can bring the window back already in full screen (it was left that way last time).
+        updateFullScreen()
     }
 
     private func build(model: AppModel) {
@@ -45,15 +49,25 @@ final class MainWindow: NSObject, NSWindowDelegate {
         self.window = window
     }
 
-    // In full screen macOS draws the toolbar as a solid band across the top, over the page title and
-    // the first sidebar row (they run up under the see-through toolbar). The empty toolbar is only
-    // there for the windowed look, so hide it in full screen.
+    // In full screen macOS draws the toolbar as a solid band across the top. The page title and the
+    // first sidebar row normally run up under the see-through toolbar, so they'd be hidden under it;
+    // the pages move below it while in full screen (see MainView).
     func windowWillEnterFullScreen(_ notification: Notification) {
-        window?.toolbar?.isVisible = false
+        model?.isFullScreen = true
+    }
+
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        updateFullScreen()
     }
 
     func windowDidExitFullScreen(_ notification: Notification) {
-        window?.toolbar?.isVisible = true
+        updateFullScreen()
+    }
+
+    private func updateFullScreen() {
+        guard let window, let model else { return }
+        let fullScreen = window.styleMask.contains(.fullScreen)
+        if model.isFullScreen != fullScreen { model.isFullScreen = fullScreen }
     }
 
     func windowWillClose(_ notification: Notification) {
