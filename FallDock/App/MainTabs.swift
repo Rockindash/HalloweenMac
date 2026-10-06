@@ -539,31 +539,37 @@ enum ExtraArt {
         return image
     }
 
-    /// A plain pumpkin (no face) sized for the menu bar.
-    /// The harvest's plain pumpkin as a one-color menu bar icon: its outline, with the ribs and the
-    /// line under the stem cut out. It's a template image, so macOS draws it white in a dark menu bar
-    /// (and dark in a light one), like the other menu bar icons.
+    /// A plain pumpkin silhouette for the menu bar. It's a template image, so macOS draws it white
+    /// on a dark menu bar (and dark on a light one), like the system's own menu bar icons.
     static func menuBarPumpkin() -> NSImage {
         if let image = cache["menuBarPumpkin"] { return image }
-        let height: CGFloat = 18, scale: CGFloat = 3
-        let size = PumpkinArt.size(of: .roundOrange, height: height)
-        let source = PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: scale).cgImage()
-        let width = source.width, rows = source.height
-        var pixels = [UInt8](repeating: 0, count: width * rows * 4)
-        let ctx = CGContext(data: &pixels, width: width, height: rows, bitsPerComponent: 8, bytesPerRow: width * 4,
-                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-        ctx.draw(source, in: CGRect(x: 0, y: 0, width: width, height: rows))
-        // The body is bright orange and the ribs a darker rust: keep the shape, let the ribs show through.
-        for i in stride(from: 0, to: pixels.count, by: 4) {
-            let a = Int(pixels[i + 3])
-            guard a > 0 else { continue }
-            let r = Int(pixels[i]) * 255 / a, g = Int(pixels[i + 1]) * 255 / a
-            let isRib = r < 200 || g < 95
-            let alpha = UInt8(isRib ? a / 6 : a)
-            pixels[i] = alpha; pixels[i + 1] = alpha; pixels[i + 2] = alpha; pixels[i + 3] = alpha
+        let image = NSImage(size: CGSize(width: 20, height: 18), flipped: false) { _ in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            ctx.setFillColor(.black)
+            // Three overlapping lobes for the body.
+            ctx.fillEllipse(in: CGRect(x: 1, y: 1, width: 10.5, height: 13))
+            ctx.fillEllipse(in: CGRect(x: 8.5, y: 1, width: 10.5, height: 13))
+            ctx.fillEllipse(in: CGRect(x: 5, y: 0.5, width: 10, height: 14))
+            // A chunky stem leaning a little to the right.
+            ctx.beginPath()
+            ctx.move(to: CGPoint(x: 9, y: 13))
+            ctx.addLine(to: CGPoint(x: 11.2, y: 13))
+            ctx.addLine(to: CGPoint(x: 12.4, y: 17.2))
+            ctx.addLine(to: CGPoint(x: 10.4, y: 17.6))
+            ctx.closePath()
+            ctx.fillPath()
+            // Rib lines cut out of the body, so they show as gaps.
+            ctx.setBlendMode(.clear)
+            ctx.setLineWidth(1.2)
+            ctx.setLineCap(.round)
+            for (x, bulge) in [(7.6, -1.6), (12.4, 1.6)] {
+                ctx.beginPath()
+                ctx.move(to: CGPoint(x: x, y: 12.2))
+                ctx.addQuadCurve(to: CGPoint(x: x, y: 2), control: CGPoint(x: x + bulge, y: 7.1))
+                ctx.strokePath()
+            }
+            return true
         }
-        let image = NSImage(cgImage: ctx.makeImage()!, size: size)
         image.isTemplate = true
         cache["menuBarPumpkin"] = image
         return image
