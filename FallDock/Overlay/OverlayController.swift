@@ -468,14 +468,14 @@ final class OverlayController {
         isHiding = true
         // Slide down off the screen as the Dock slides away, then stop drawing.
         scene?.setTuck(.offScreen, animated: animated)
-        let finish = { [weak self] in
+        let finish: @MainActor @Sendable () -> Void = { [weak self] in
             guard let self, self.isHiding else { return }
             self.isHiding = false
             self.skView?.isPaused = true
             self.panel?.orderOut(nil)
         }
         if animated {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.32, execute: finish)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) { MainActor.assumeIsolated { finish() } }
         } else {
             finish()
         }
