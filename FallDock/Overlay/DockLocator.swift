@@ -198,17 +198,21 @@ enum DockLocator {
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
                 as? [[String: Any]] else { return false }
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        return windows.contains { window in
+        // Some apps (like Chrome) fill a full-screen space with several windows (toolbars and
+        // content), so add up each app's windows on this screen rather than looking for one.
+        var covered: [pid_t: CGRect] = [:]
+        for window in windows {
             guard (window[kCGWindowLayer as String] as? Int) == 0,
                   let pid = (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }),
                   pid != dockPID, pid != ownPID,
                   let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
-            else { return false }
-            let frame = flipped(bounds)
-            return abs(frame.width - screen.width) < 1 && abs(frame.height - screen.height) < 1
-                && frame.intersects(screen.insetBy(dx: 2, dy: 2))
+            else { continue }
+            let frame = flipped(bounds).intersection(screen)
+            guard !frame.isNull, frame.width > 1, frame.height > 1 else { continue }
+            covered[pid] = covered[pid]?.union(frame) ?? frame
         }
+        return covered.values.contains { abs($0.width - screen.width) < 1 && abs($0.height - screen.height) < 1 }
     }
 
     // MARK: Estimating the width (no permissions needed)

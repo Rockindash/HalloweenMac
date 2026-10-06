@@ -141,8 +141,10 @@ final class OverlayController {
 
     func start() {
         followAppearance()
+        // Switching spaces or apps (say, to a full-screen app) doesn't slide the Dock away; it just
+        // isn't there. So the harvest goes at once too, rather than sliding.
         let onChange: @Sendable (Notification) -> Void = { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor in self?.refresh(animated: false) }
         }
         let center = NotificationCenter.default
         let workspace = NSWorkspace.shared.notificationCenter
@@ -203,7 +205,7 @@ final class OverlayController {
     }
 
     /// Re-measures the Dock and moves, shows or hides the overlay.
-    func refresh(force: Bool = false) {
+    func refresh(force: Bool = false, animated: Bool = true) {
         // A change made while the harvest is hidden (the Dock slid away, paused, switched off) is
         // remembered, so the harvest regrows with it as soon as it shows again.
         if force { needsRegrow = true }
@@ -215,7 +217,7 @@ final class OverlayController {
         }
         lastDockState = DockLocator.dockScreen()
         guard Settings.showPumpkins, !isPaused, let dock = DockLocator.locate() else {
-            hide()
+            hide(animated: animated)
             return
         }
         if needsRegrow || dock != currentDock || panel?.isVisible != true || isHiding {
@@ -403,21 +405,28 @@ final class OverlayController {
         })
     }
 
-    private func hide() {
+    private func hide(animated: Bool = true) {
         currentDock = nil
         hideScreenLeaves()
         hoverTimer?.invalidate()
         hoverTimer = nil
-        guard let panel, panel.isVisible, !isHiding else { return }
+        guard let panel, panel.isVisible else { return }
+        // A slide already under way finishes on its own, unless this hide is meant to be instant.
+        if isHiding, animated { return }
         panel.ignoresMouseEvents = true
         isHiding = true
         // Slide down off the screen as the Dock slides away, then stop drawing.
-        scene?.setTuck(.offScreen)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) { [weak self] in
+        scene?.setTuck(.offScreen, animated: animated)
+        let finish = { [weak self] in
             guard let self, self.isHiding else { return }
             self.isHiding = false
             self.skView?.isPaused = true
             self.panel?.orderOut(nil)
+        }
+        if animated {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.32, execute: finish)
+        } else {
+            finish()
         }
     }
 

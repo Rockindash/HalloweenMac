@@ -105,17 +105,18 @@ final class PumpkinScene: SKScene {
     /// Slides the whole harvest down behind the Dock (so an open Dock stack can be seen and used) or
     /// off the screen as the Dock hides, or springs it back up again.
     func setTuck(_ newTuck: Tuck, animated: Bool = true) {
-        guard newTuck != tuck else { return }
+        guard newTuck != tuck || !animated else { return }
         tuck = newTuck
         harvestNode.removeAction(forKey: "tuck")
+        guard animated else {
+            // Jump straight there (the view may stop drawing right after, so no zero-length actions).
+            harvestNode.position.y = newTuck == .none ? 0 : -(dockRect.maxY + pumpkinHeight * 2.5)
+            harvestNode.alpha = newTuck == .none ? 1 : 0
+            return
+        }
         let motion = !Self.reduceMotion
         switch newTuck {
         case .none:
-            guard animated else {
-                harvestNode.position.y = 0
-                harvestNode.alpha = 1
-                return
-            }
             // Rise with a little bounce past the resting spot, then settle.
             let rise = SKAction.moveTo(y: 0, duration: 0.45)
             rise.timingFunction = { t in
@@ -127,15 +128,15 @@ final class PumpkinScene: SKScene {
             fade.timingMode = .easeOut
             harvestNode.run(.group([rise, fade]), withKey: "tuck")
         case .behindDock:
-            let sink = SKAction.moveTo(y: motion ? -pumpkinHeight * 0.9 : 0, duration: animated ? 0.22 : 0)
+            let sink = SKAction.moveTo(y: motion ? -pumpkinHeight * 0.9 : 0, duration: 0.22)
             sink.timingMode = .easeIn
-            let fade = SKAction.fadeOut(withDuration: animated ? 0.2 : 0)
+            let fade = SKAction.fadeOut(withDuration: 0.2)
             fade.timingMode = .easeIn
             harvestNode.run(.group([sink, fade]), withKey: "tuck")
         case .offScreen:
             // Slide all the way below the screen's bottom edge, like the Dock, fading only at the end.
             let depth = dockRect.maxY + pumpkinHeight * 2.5
-            let duration = animated ? 0.28 : 0
+            let duration = 0.28
             let slide = SKAction.moveTo(y: motion ? -depth : 0, duration: duration)
             slide.timingMode = .easeIn
             let fade = SKAction.sequence([.wait(forDuration: motion ? duration * 0.6 : 0),
