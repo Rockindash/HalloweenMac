@@ -55,6 +55,10 @@ final class OverlayController {
     private var timer: Timer?
     private var hoverTimer: Timer?
     private var dockWatchTimer: Timer?
+    private var spaceSwitchTimer: Timer?
+    /// While the screens slide to another space, the harvest stays hidden until this time (or until
+    /// macOS reports the new space, whichever comes first).
+    private var switchingSpacesUntil: TimeInterval = 0
     private var lastDockState: DockLocator.DockState = .unknown
     private var lastDockCheck: TimeInterval = 0
     /// A Dock stack (like Downloads) is open: the whole harvest tucks away behind the Dock
@@ -147,7 +151,11 @@ final class OverlayController {
         // Switching spaces or apps (say, to a full-screen app) doesn't slide the Dock away; it just
         // isn't there. So the harvest goes at once too, rather than sliding.
         let onChange: @Sendable (Notification) -> Void = { [weak self] _ in
-            Task { @MainActor in self?.refresh(animated: false) }
+            Task { @MainActor in
+                // The slide to another space is over (if one was under way): show again if the Dock is here.
+                self?.switchingSpacesUntil = 0
+                self?.refresh(animated: false)
+            }
         }
         let center = NotificationCenter.default
         let workspace = NSWorkspace.shared.notificationCenter
@@ -181,6 +189,13 @@ final class OverlayController {
         }
         dockWatchTimer?.tolerance = 0.03
 
+        // Sliding to another space (say, a full-screen app) would carry the harvest along over it until
+        // macOS reports the change at the end, so watch for the slide itself while the harvest shows.
+        spaceSwitchTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.watchSpaceSwitch() }
+        }
+        spaceSwitchTimer?.tolerance = 0.01
+
         // Watching the pointer needs no special permission (only key presses do).
         globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
             Task { @MainActor in self?.updateHover() }
@@ -207,6 +222,13 @@ final class OverlayController {
         refresh()
     }
 
+    /// The screens started sliding to another space: hide the harvest at once, before it can ride along.
+    private func watchSpaceSwitch() {
+        guard panel?.isVisible == true, !isHiding, !isMissionControlShowing, DockLocator.isSwitchingSpaces() else { return }
+        switchingSpacesUntil = ProcessInfo.processInfo.systemUptime + 1.5
+        hide(animated: false)
+    }
+
     /// Re-measures the Dock and moves, shows or hides the overlay.
     func refresh(force: Bool = false, animated: Bool = true) {
         // A change made while the harvest is hidden (the Dock slid away, paused, switched off) is
@@ -219,7 +241,8 @@ final class OverlayController {
             return
         }
         lastDockState = DockLocator.dockScreen()
-        guard Settings.showPumpkins, !isPaused, let dock = DockLocator.locate() else {
+        let switchingSpaces = ProcessInfo.processInfo.systemUptime < switchingSpacesUntil
+        guard Settings.showPumpkins, !isPaused, !switchingSpaces, let dock = DockLocator.locate() else {
             hide(animated: animated)
             return
         }
@@ -412,26 +435,30 @@ final class OverlayController {
         }
     }
 
-    private func hideScreenLeaves() {
-        guard let leafPanel, leafPanel.isVisible, !isHidingLeaves else { return }
+    private func hideScreenLeaves(animated: Bool = true) {
+        guard let leafPanel, leafPanel.isVisible else { return }
+        if isHidingLeaves, animated { return }
         isHidingLeaves = true
+        let finish = { [weak self] in
+            guard let self, self.isHidingLeaves else { return }
+            self.isHidingLeaves = false
+            self.leafView?.isPaused = true
+            self.leafScene?.stop()
+            self.leafPanel?.orderOut(nil)
+        }
+        guard animated else {
+            finish()
+            return
+        }
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.15
             leafPanel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isHidingLeaves else { return }
-                self.isHidingLeaves = false
-                self.leafView?.isPaused = true
-                self.leafScene?.stop()
-                self.leafPanel?.orderOut(nil)
-            }
-        })
+        }, completionHandler: { Task { @MainActor in finish() } })
     }
 
     private func hide(animated: Bool = true) {
         currentDock = nil
-        hideScreenLeaves()
+        hideScreenLeaves(animated: animated)
         hoverTimer?.invalidate()
         hoverTimer = nil
         guard let panel, panel.isVisible else { return }
@@ -489,6 +516,7 @@ final class OverlayController {
     func stop() {
         timer?.invalidate()
         dockWatchTimer?.invalidate()
+        spaceSwitchTimer?.invalidate()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }
         if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor) }
         if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
