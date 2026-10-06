@@ -540,13 +540,32 @@ enum ExtraArt {
     }
 
     /// A plain pumpkin (no face) sized for the menu bar.
+    /// The harvest's plain pumpkin as a one-color menu bar icon: its outline, with the ribs and the
+    /// line under the stem cut out. It's a template image, so macOS draws it white in a dark menu bar
+    /// (and dark in a light one), like the other menu bar icons.
     static func menuBarPumpkin() -> NSImage {
-        let key = "menuBarPumpkin-\(Palette.appearance)"
-        if let image = cache[key] { return image }
-        let height: CGFloat = 19
-        let texture = PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: 3)
-        let image = NSImage(cgImage: texture.cgImage(), size: PumpkinArt.size(of: .roundOrange, height: height))
-        cache[key] = image
+        if let image = cache["menuBarPumpkin"] { return image }
+        let height: CGFloat = 18, scale: CGFloat = 3
+        let size = PumpkinArt.size(of: .roundOrange, height: height)
+        let source = PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: scale).cgImage()
+        let width = source.width, rows = source.height
+        var pixels = [UInt8](repeating: 0, count: width * rows * 4)
+        let ctx = CGContext(data: &pixels, width: width, height: rows, bitsPerComponent: 8, bytesPerRow: width * 4,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.draw(source, in: CGRect(x: 0, y: 0, width: width, height: rows))
+        // The body is bright orange and the ribs a darker rust: keep the shape, let the ribs show through.
+        for i in stride(from: 0, to: pixels.count, by: 4) {
+            let a = Int(pixels[i + 3])
+            guard a > 0 else { continue }
+            let r = Int(pixels[i]) * 255 / a, g = Int(pixels[i + 1]) * 255 / a
+            let isRib = r < 200 || g < 95
+            let alpha = UInt8(isRib ? a / 6 : a)
+            pixels[i] = alpha; pixels[i + 1] = alpha; pixels[i + 2] = alpha; pixels[i + 3] = alpha
+        }
+        let image = NSImage(cgImage: ctx.makeImage()!, size: size)
+        image.isTemplate = true
+        cache["menuBarPumpkin"] = image
         return image
     }
 
