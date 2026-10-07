@@ -458,14 +458,15 @@ private struct UpdatesCard: View {
 
     var body: some View {
         Card(title: "Updates") {
-            SettingRow(symbol: "arrow.down.circle.fill", color: .blue, title: "Automatically check for updates",
-                       detail: "Dockorate \(SettingsPage.version) (\(SettingsPage.build))") {
-                Toggle("", isOn: $updater.checksAutomatically).labelsHidden().toggleStyle(.switch)
-            }
-            HStack {
-                Spacer()
+            SettingRow(symbol: "arrow.down.circle.fill", color: .blue, title: "Version \(SettingsPage.version) (build \(SettingsPage.build))",
+                       detail: "Dockorate checks the website for new versions.") {
                 Button("Check for Updates") { updater.checkForUpdates() }
                     .disabled(!updater.canCheck)
+            }
+            Divider()
+            SettingRow(symbol: "clock.arrow.circlepath", color: .teal, title: "Automatically check for updates",
+                       detail: "Looks once a day and asks before installing anything.") {
+                Toggle("", isOn: $updater.checksAutomatically).labelsHidden().toggleStyle(.switch)
             }
         }
     }
