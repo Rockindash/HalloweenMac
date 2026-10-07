@@ -425,7 +425,7 @@ struct SettingsPage: View {
                         .frame(width: 44, height: 44)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Dockorate \(Self.version)").font(.headline)
-                        Text("Drawn and voiced in code. Nothing leaves your Mac.")
+                        Text("Drawn and voiced in code. It only goes online to check your license and look for updates.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
