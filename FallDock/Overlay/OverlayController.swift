@@ -73,6 +73,10 @@ final class OverlayController {
     /// meanwhile; the harvest still follows the pointer.)
     private var isMissionControlShowing = false
     private var lastMissionControlCheck: TimeInterval = 0
+    /// When the pointer was last over the Dock. With magnification on, the Dock measures wider while
+    /// the pointer is on it and for a moment after it leaves (while the icons shrink back), so the
+    /// harvest isn't re-laid out from a measurement taken then.
+    private var lastPointerOnDock: TimeInterval = 0
     /// Where the Dock was last seen, to put the harvest back on it when Mission Control shows it.
     private var lastDock: DockInfo?
     private var clickMonitor: Any?
@@ -251,10 +255,27 @@ final class OverlayController {
             hide(animated: animated)
             return
         }
+        // A magnified Dock measures wider than it really is; keep the harvest as it is and measure
+        // again once the icons have settled (the safety-net timer does).
+        if !needsRegrow, panel?.isVisible == true, !isHiding, let current = currentDock,
+           dock.screenFrame == current.screenFrame, dock != current, isDockMagnified(current) {
+            return
+        }
         if needsRegrow || dock != currentDock || panel?.isVisible != true || isHiding {
             show(on: dock, force: needsRegrow)
             needsRegrow = false
         }
+    }
+
+    /// Whether the Dock may be magnified right now: the pointer is on it (magnified icons stand up to
+    /// twice as tall, so the area above it counts too), or left it less than a second ago.
+    private func isDockMagnified(_ dock: DockInfo) -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        let area = dock.dockFrame.insetBy(dx: -dock.dockFrame.height, dy: 0)
+        let reach = CGRect(x: area.minX, y: dock.screenFrame.minY,
+                           width: area.width, height: dock.dockFrame.maxY - dock.screenFrame.minY + dock.dockFrame.height * 1.5)
+        if reach.contains(NSEvent.mouseLocation) { lastPointerOnDock = now }
+        return now - lastPointerOnDock < 1.0
     }
 
     /// Hides the pumpkins as soon as the Dock goes away, brings them back with it,
@@ -271,6 +292,7 @@ final class OverlayController {
         // Stacks open from a click or the keyboard and close the same ways, so keep watching:
         // closely while the pointer is near the Dock, while one is open and just after a click,
         // and a few times a second otherwise (it only asks about the Dock's folder tiles).
+        if nearBottom, let dock = currentDock { _ = isDockMagnified(dock) }
         let watchClosely = nearBottom || isStackOpen || now - lastClickTime < 1.5
         if panel?.isVisible == true, watchClosely || now - lastStackCheck >= 0.25 {
             lastStackCheck = now
