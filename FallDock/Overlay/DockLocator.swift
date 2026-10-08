@@ -129,7 +129,10 @@ enum DockLocator {
     /// while it slides, windows as wide as a screen (the menu bar, a full-screen app) sit part-way
     /// between screen edges, so it shows up in the window list right away.
     /// Only the Dock's own screen counts: with "Displays have separate Spaces", swiping on another
-    /// screen slides that screen alone, and the harvest should stay put.
+    /// screen slides that screen alone, and the harvest should stay put. A window sliding off a
+    /// neighbouring screen passes right across this one's coordinates, so where it sits mid-slide
+    /// doesn't tell which screen is sliding. What does is the screen it sat on before the slide, which
+    /// is remembered for every screen-wide window seen resting on a screen.
     static func isSwitchingSpaces(on screen: CGRect) -> Bool {
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
                 as? [[String: Any]] else { return false }
@@ -137,21 +140,38 @@ enum DockLocator {
         let menuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
         // The window list uses top-left-origin coordinates, flipped against the main screen.
         let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        let screens = NSScreen.screens.map {
+            CGRect(x: $0.frame.minX, y: mainHeight - $0.frame.maxY, width: $0.frame.width, height: $0.frame.height)
+        }
         let dockScreen = CGRect(x: screen.minX, y: mainHeight - screen.maxY, width: screen.width, height: screen.height)
-        return windows.contains { window in
+        if homeScreens.count > 500 { homeScreens.removeAll() }
+        var sliding = false
+        for window in windows {
             guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0 || layer == menuLevel,
                   (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) != ownPID,
+                  let number = window[kCGWindowNumber as String] as? Int,
                   let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
-            else { return false }
-            // As wide as the Dock's screen, part-way across it, and mostly on it (a window sliding
-            // on a neighbouring screen can poke into this one's coordinates, but not by much).
-            guard abs(bounds.width - dockScreen.width) < 1, abs(bounds.minX - dockScreen.minX) >= 1,
-                  bounds.minY >= dockScreen.minY - 1, bounds.minY < dockScreen.maxY else { return false }
+            else { continue }
+            // Resting exactly on a screen: remember which.
+            if let home = screens.first(where: { abs($0.minX - bounds.minX) < 1 && abs($0.width - bounds.width) < 1 }) {
+                homeScreens[number] = home
+                continue
+            }
+            // As wide as the Dock's screen, part-way across it, mostly on it, and not last seen on another screen.
+            guard !sliding, abs(bounds.width - dockScreen.width) < 1,
+                  bounds.minY >= dockScreen.minY - 1, bounds.minY < dockScreen.maxY else { continue }
+            if let home = homeScreens[number], abs(home.minX - dockScreen.minX) >= 1 || abs(home.minY - dockScreen.minY) >= 1 {
+                continue
+            }
             let overlap = bounds.intersection(dockScreen)
-            return !overlap.isNull && overlap.width > bounds.width / 2
+            sliding = !overlap.isNull && overlap.width > bounds.width / 2
         }
+        return sliding
     }
+
+    /// The screen each screen-wide window (a full-screen app, a menu bar) was last seen resting on.
+    private static var homeScreens: [Int: CGRect] = [:]
 
     /// Whether Mission Control or App Exposé is showing. While it is, the Dock covers each screen
     /// with an extra screen-sized window just below Dock level (layer 18), which isn't there otherwise.
