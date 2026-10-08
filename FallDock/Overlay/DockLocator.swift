@@ -158,6 +158,10 @@ enum DockLocator {
         let dockScreen = CGRect(x: screen.minX, y: mainHeight - screen.maxY, width: screen.width, height: screen.height)
         if homeScreens.count > 500 { homeScreens.removeAll() }
         var sliding = false
+        // The Dock screen's own menu bar (or a full-screen app on it) resting in place means that screen
+        // isn't sliding, whatever windows from a neighbouring screen's slide pass across its coordinates.
+        // This also covers windows never seen resting before (say, the first swipe to a space).
+        var dockScreenAtRest = false
         for window in windows {
             guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0 || layer == menuLevel,
                   (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) != ownPID,
@@ -168,6 +172,11 @@ enum DockLocator {
             // Resting on a screen (give or take a pixel or two of rounding): remember which.
             if let home = screens.first(where: { abs($0.minX - bounds.minX) < 3 && abs($0.width - bounds.width) < 1 }) {
                 homeScreens[number] = home
+                if abs(home.minX - dockScreen.minX) < 1, abs(home.minY - dockScreen.minY) < 1,
+                   abs(bounds.minY - dockScreen.minY) < 3,
+                   layer == menuLevel || bounds.height >= dockScreen.height - 1 {
+                    dockScreenAtRest = true
+                }
                 continue
             }
             // As wide as the Dock's screen, part-way across it, mostly on it, and not last seen on another screen.
@@ -182,7 +191,7 @@ enum DockLocator {
             let overlap = bounds.intersection(dockScreen)
             sliding = !overlap.isNull && overlap.width > bounds.width / 2
         }
-        return sliding
+        return sliding && !dockScreenAtRest
     }
 
     /// The screen each screen-wide window (a full-screen app, a menu bar) was last seen resting on.
