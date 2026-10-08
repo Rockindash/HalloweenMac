@@ -15,6 +15,8 @@ enum DockLocator {
     /// Smallest gap at the bottom of a screen that we treat as a visible Dock.
     /// An auto-hidden Dock leaves only a few points.
     private static let minimumDockThickness: CGFloat = 20
+    /// How far the Dock's list of icons (as Accessibility reports it) reaches above the top of its glass.
+    private static let accessibilityTopInset: CGFloat = 5
 
     /// Returns the Dock while it's showing at the bottom of a screen, or nil when it has slid
     /// away (full-screen apps, auto-hide) or sits on the left or right edge. In Mission Control the
@@ -35,12 +37,22 @@ enum DockLocator {
             screen = match
         }
 
-        // Only one screen reports the space the Dock takes up, and none does with auto-hide or for a
-        // while after the Dock moves to another display (say, after Mission Control). So take the
-        // largest gap, falling back to the Dock's icon size.
+        // The Dock's top edge. The screen it's on reports the space it takes up, which is exact. But
+        // after the Dock changes size or moves to another display, that screen can report nothing
+        // for a while, and the screen it left keeps the old figure. Accessibility measures the Dock
+        // itself (its list of icons reaches a few points above the glass), so use that next, then
+        // the largest gap any screen reports, then the Dock's icon size.
         let frame = screen.frame
-        let gaps = screens.map { $0.visibleFrame.minY - $0.frame.minY }
-        var thickness = gaps.max() ?? 0
+        let precise = accessibilityDockFrame().flatMap { frame.intersects($0) ? $0 : nil }
+        let ownGap = screen.visibleFrame.minY - frame.minY
+        var thickness: CGFloat
+        if ownGap >= minimumDockThickness {
+            thickness = ownGap
+        } else if let precise, precise.maxY - frame.minY - accessibilityTopInset >= minimumDockThickness {
+            thickness = precise.maxY - frame.minY - accessibilityTopInset
+        } else {
+            thickness = screens.map { $0.visibleFrame.minY - $0.frame.minY }.max() ?? 0
+        }
         if thickness < minimumDockThickness {
             let dock = UserDefaults(suiteName: "com.apple.dock")
             let orientation = dock?.string(forKey: "orientation") ?? "bottom"
@@ -49,8 +61,8 @@ enum DockLocator {
             thickness = (tile > 0 ? tile : 48) + 22
         }
 
-        if let precise = accessibilityDockFrame(), frame.intersects(precise) {
-            // Use the measured width, but the screen gap for the top edge.
+        if let precise {
+            // The measured width, and the top edge worked out above.
             let rect = CGRect(x: precise.minX, y: frame.minY, width: precise.width, height: thickness)
             return DockInfo(screenFrame: frame, dockFrame: rect, isPrecise: true)
         }
