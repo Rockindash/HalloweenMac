@@ -153,13 +153,16 @@ enum DockLocator {
                   let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
             else { continue }
-            // Resting exactly on a screen: remember which.
-            if let home = screens.first(where: { abs($0.minX - bounds.minX) < 1 && abs($0.width - bounds.width) < 1 }) {
+            // Resting on a screen (give or take a pixel or two of rounding): remember which.
+            if let home = screens.first(where: { abs($0.minX - bounds.minX) < 3 && abs($0.width - bounds.width) < 1 }) {
                 homeScreens[number] = home
                 continue
             }
             // As wide as the Dock's screen, part-way across it, mostly on it, and not last seen on another screen.
+            // Only a menu bar or a full-height window counts: some apps (like Chrome) keep thin screen-wide
+            // helper windows at odd positions that never move.
             guard !sliding, abs(bounds.width - dockScreen.width) < 1,
+                  layer == menuLevel || bounds.height >= dockScreen.height - 1,
                   bounds.minY >= dockScreen.minY - 1, bounds.minY < dockScreen.maxY else { continue }
             if let home = homeScreens[number], abs(home.minX - dockScreen.minX) >= 1 || abs(home.minY - dockScreen.minY) >= 1 {
                 continue
