@@ -260,7 +260,11 @@ enum DockLocator {
                   let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
             else { continue }
-            let frame = flipped(bounds).intersection(screen)
+            // Only windows resting on this screen: one sliding off a neighbouring screen (a swipe
+            // there) passes across this screen's coordinates without being on it.
+            let window = flipped(bounds)
+            guard window.minX >= screen.minX - 1, window.maxX <= screen.maxX + 1 else { continue }
+            let frame = window.intersection(screen)
             guard !frame.isNull, frame.width > 1, frame.height > 1 else { continue }
             covered[pid] = covered[pid]?.union(frame) ?? frame
         }
