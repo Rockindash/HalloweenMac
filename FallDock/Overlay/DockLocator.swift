@@ -277,7 +277,19 @@ enum DockLocator {
         // Some apps (like Chrome) fill a full-screen space with several windows (toolbars and
         // content), so add up each app's windows on this screen rather than looking for one.
         var covered: [pid_t: CGRect] = [:]
+        let menuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
         for window in windows {
+            // A full-screen app hides the menu bar. If this screen's menu bar is resting in place, it's
+            // showing a desktop, whatever a slide on a neighbouring screen parks over its coordinates
+            // (an app coming in can sit there for a moment before it slides across).
+            if (window[kCGWindowLayer as String] as? Int) == menuLevel,
+               let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+               let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) {
+                let bar = flipped(bounds)
+                if abs(bar.width - screen.width) < 1, abs(bar.minX - screen.minX) < 3, abs(bar.maxY - screen.maxY) < 3 {
+                    return false
+                }
+            }
             guard (window[kCGWindowLayer as String] as? Int) == 0,
                   let pid = (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }),
                   pid != dockPID, pid != ownPID,
