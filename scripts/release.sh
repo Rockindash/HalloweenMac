@@ -47,7 +47,7 @@ cp "$OUT/Dockorate-$VERSION.zip" "$OUT/updates/"
 echo "Making the installer disk image…"
 # The disk image carries the build number too, so each one can be told apart. (The update zip keeps
 # a fixed name: the update feed points at it.)
-DMG="$OUT/Dockorate-$VERSION-build$BUILD.dmg"
+DMG="$OUT/Dockorate-$VERSION.$BUILD.dmg"
 scripts/make-dmg.sh "$APP" "$DMG"
 codesign --sign "Developer ID Application" --timestamp "$DMG"
 xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait
