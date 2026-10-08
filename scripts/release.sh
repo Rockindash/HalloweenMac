@@ -30,6 +30,7 @@ xcrun stapler staple "$APP"
 rm "$OUT/notarize.zip"
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
+BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Contents/Info.plist")
 ditto -c -k --keepParent "$APP" "$OUT/Dockorate-$VERSION.zip"
 spctl --assess --type execute --verbose "$APP"
 
@@ -44,7 +45,9 @@ cp "$OUT/Dockorate-$VERSION.zip" "$OUT/updates/"
     -o "$OUT/appcast.xml" "$OUT/updates"
 
 echo "Making the installer disk image…"
-DMG="$OUT/Dockorate-$VERSION.dmg"
+# The disk image carries the build number too, so each one can be told apart. (The update zip keeps
+# a fixed name: the update feed points at it.)
+DMG="$OUT/Dockorate-$VERSION-build$BUILD.dmg"
 scripts/make-dmg.sh "$APP" "$DMG"
 codesign --sign "Developer ID Application" --timestamp "$DMG"
 xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait

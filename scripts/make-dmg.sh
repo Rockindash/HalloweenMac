@@ -10,7 +10,8 @@ set -eu
 APP="${1:?Pass the path to Dockorate.app}"
 cd "$(dirname "$0")/.."
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
-OUT="${2:-build/Dockorate-$VERSION.dmg}"
+BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Contents/Info.plist")
+OUT="${2:-build/Dockorate-$VERSION-build$BUILD.dmg}"
 VOLUME="Dockorate"
 WORK=$(mktemp -d)
 trap 'hdiutil detach "/Volumes/$VOLUME" -quiet 2>/dev/null || true; rm -rf "$WORK"' EXIT
