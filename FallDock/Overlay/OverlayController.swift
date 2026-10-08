@@ -233,7 +233,8 @@ final class OverlayController {
 
     /// The screens started sliding to another space: hide the harvest at once, before it can ride along.
     private func watchSpaceSwitch() {
-        guard panel?.isVisible == true, !isHiding, !isMissionControlShowing, DockLocator.isSwitchingSpaces() else { return }
+        guard panel?.isVisible == true, !isHiding, !isMissionControlShowing, let dock = currentDock,
+              DockLocator.isSwitchingSpaces(on: dock.screenFrame) else { return }
         switchingSpacesUntil = ProcessInfo.processInfo.systemUptime + 1.5
         hide(animated: false)
     }

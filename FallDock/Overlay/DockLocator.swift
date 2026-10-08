@@ -128,21 +128,28 @@ enum DockLocator {
     /// desktops and full-screen apps). macOS only reports a space change once the slide is over, but
     /// while it slides, windows as wide as a screen (the menu bar, a full-screen app) sit part-way
     /// between screen edges, so it shows up in the window list right away.
-    static func isSwitchingSpaces() -> Bool {
+    /// Only the Dock's own screen counts: with "Displays have separate Spaces", swiping on another
+    /// screen slides that screen alone, and the harvest should stay put.
+    static func isSwitchingSpaces(on screen: CGRect) -> Bool {
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
                 as? [[String: Any]] else { return false }
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        let screens = NSScreen.screens.map(\.frame)
         let menuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
+        // The window list uses top-left-origin coordinates, flipped against the main screen.
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        let dockScreen = CGRect(x: screen.minX, y: mainHeight - screen.maxY, width: screen.width, height: screen.height)
         return windows.contains { window in
             guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0 || layer == menuLevel,
                   (window[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) }) != ownPID,
                   let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
             else { return false }
-            return screens.contains { abs($0.width - bounds.width) < 1 }
-                && !screens.contains { abs($0.minX - bounds.minX) < 1 }
-                && screens.contains { $0.minX < bounds.maxX && bounds.minX < $0.maxX }
+            // As wide as the Dock's screen, part-way across it, and mostly on it (a window sliding
+            // on a neighbouring screen can poke into this one's coordinates, but not by much).
+            guard abs(bounds.width - dockScreen.width) < 1, abs(bounds.minX - dockScreen.minX) >= 1,
+                  bounds.minY >= dockScreen.minY - 1, bounds.minY < dockScreen.maxY else { return false }
+            let overlap = bounds.intersection(dockScreen)
+            return !overlap.isNull && overlap.width > bounds.width / 2
         }
     }
 
