@@ -77,6 +77,8 @@ final class PumpkinScene: SKScene {
     private var lastPointer: (point: CGPoint, time: TimeInterval)?
     private var magnifyStrength: CGFloat = 0
     private var lastUpdate: TimeInterval = 0
+    /// Counts the frames drawn, so the overlay can tell when SpriteKit has stopped drawing.
+    private(set) var frameCount = 0
     private var vineWarpStrength: CGFloat = -1
     private var vineWarpX: CGFloat = 0
     /// A new Dock size that arrived while the Dock was magnified.
@@ -381,6 +383,7 @@ final class PumpkinScene: SKScene {
     }
 
     override func update(_ currentTime: TimeInterval) {
+        frameCount &+= 1
         // The clock can jump (after the view was paused), so keep each step small and positive.
         let dt = lastUpdate == 0 ? 1.0 / 30 : (currentTime - lastUpdate).clamped(to: 0...0.1)
         lastUpdate = currentTime

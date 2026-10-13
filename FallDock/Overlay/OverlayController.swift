@@ -56,6 +56,10 @@ final class OverlayController {
     private var hoverTimer: Timer?
     private var dockWatchTimer: Timer?
     private var spaceSwitchTimer: Timer?
+    private var healthTimer: Timer?
+    /// The scene's frame count at the last health check, while the harvest was showing.
+    private var lastFrameCount: Int?
+    private var lastRebuild: TimeInterval = 0
     /// While the screens slide to another space, the harvest stays hidden until this time (or until
     /// macOS reports the new space, whichever comes first).
     private var switchingSpacesUntil: TimeInterval = 0
@@ -174,6 +178,7 @@ final class OverlayController {
             (workspace, workspace.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main, using: onChange)),
+            (workspace, workspace.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main, using: onChange)),
             // Reduce Motion turned on or off: grow the harvest again with or without the movement.
             (workspace, workspace.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil,
                                               queue: .main) { [weak self] _ in
@@ -190,6 +195,15 @@ final class OverlayController {
             }
         }
         timer?.tolerance = 0.5
+
+        // After the displays sleep, wake or reconnect, SpriteKit can stop drawing for good: the harvest
+        // freezes (nothing reacts or follows the Dock's magnification) or stays slid away after a hide,
+        // since sliding back is an animation too. While it should be showing, check that frames keep
+        // coming, and rebuild the overlay if they've stopped.
+        healthTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkHealth() }
+        }
+        healthTimer?.tolerance = 1
 
         // The Dock slides away in full-screen apps (and with auto-hide), so check often
         // whether it's on screen (watchDock decides how often it's worth it).
@@ -541,8 +555,59 @@ final class OverlayController {
         }
     }
 
+    /// Rebuilds the overlay if the harvest should be drawing but no frames have been drawn since the last check.
+    private func checkHealth() {
+        guard let panel, let scene, let skView, panel.isVisible, !isHiding, !skView.isPaused,
+              let dock = currentDock, !Self.isDisplayAsleep(under: dock.screenFrame), !Self.isScreenLocked else {
+            lastFrameCount = nil
+            return
+        }
+        defer { lastFrameCount = scene.frameCount }
+        guard let last = lastFrameCount, scene.frameCount == last else { return }
+        // At most once a minute, in case frames stop for some reason a rebuild can't fix.
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastRebuild > 60 else { return }
+        lastRebuild = now
+        rebuild()
+    }
+
+    /// Throws away the overlay's windows and SpriteKit views and grows a fresh harvest in new ones.
+    private func rebuild() {
+        lastFrameCount = nil
+        hoverTimer?.invalidate()
+        hoverTimer = nil
+        isHiding = false
+        panel?.orderOut(nil)
+        panel?.contentView = nil
+        panel?.close()
+        panel = nil
+        skView = nil
+        scene = nil
+        isHidingLeaves = false
+        leafPanel?.orderOut(nil)
+        leafPanel?.contentView = nil
+        leafPanel?.close()
+        leafPanel = nil
+        leafView = nil
+        leafScene = nil
+        currentDock = nil
+        refresh(force: true, animated: false)
+    }
+
+    private static var isScreenLocked: Bool {
+        (CGSessionCopyCurrentDictionary() as? [String: Any])?["CGSSessionScreenIsLocked"] as? Bool ?? false
+    }
+
+    private static func isDisplayAsleep(under frame: CGRect) -> Bool {
+        guard let screen = NSScreen.screens.first(where: { $0.frame == frame }),
+              let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        else { return false }
+        return CGDisplayIsAsleep(CGDirectDisplayID(number.uint32Value)) != 0
+    }
+
     func stop() {
         timer?.invalidate()
+        healthTimer?.invalidate()
         dockWatchTimer?.invalidate()
         spaceSwitchTimer?.invalidate()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }
