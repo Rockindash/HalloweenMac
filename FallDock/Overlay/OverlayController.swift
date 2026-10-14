@@ -1,5 +1,8 @@
 import AppKit
+import OSLog
 import SpriteKit
+
+private let log = Logger(subsystem: "com.amol.dockorate", category: "overlay")
 
 /// A borderless, see-through panel that floats just above the Dock on every desktop.
 final class OverlayPanel: NSPanel {
@@ -60,6 +63,10 @@ final class OverlayController {
     /// The scene's frame count at the last health check, while the harvest was showing.
     private var lastFrameCount: Int?
     private var lastRebuild: TimeInterval = 0
+    /// The Mac woke or the screen unlocked: show the harvest afresh once the Dock is back.
+    private var reshowPending = false
+    /// The last health check found the harvest not showing properly and showed it afresh.
+    private var reshownForHealth = false
     /// While the screens slide to another space, the harvest stays hidden until this time (or until
     /// macOS reports the new space, whichever comes first).
     private var switchingSpacesUntil: TimeInterval = 0
@@ -195,6 +202,19 @@ final class OverlayController {
             }
         }
         timer?.tolerance = 0.5
+
+        // After a sleep or a screen lock, show the harvest afresh, just as the Dock hiding and coming
+        // back does: macOS can leave the overlay off screen, or the harvest slid away, without saying so.
+        let awake: @Sendable (Notification) -> Void = { [weak self] note in
+            Task { @MainActor in self?.scheduleReshow(note.name.rawValue) }
+        }
+        for name in [NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification,
+                     NSWorkspace.sessionDidBecomeActiveNotification] {
+            observers.append((workspace, workspace.addObserver(forName: name, object: nil, queue: .main, using: awake)))
+        }
+        let distributed = DistributedNotificationCenter.default()
+        observers.append((distributed, distributed.addObserver(forName: .init("com.apple.screenIsUnlocked"), object: nil,
+                                                                 queue: .main, using: awake)))
 
         // After the displays sleep, wake or reconnect, SpriteKit can stop drawing for good: the harvest
         // freezes (nothing reacts or follows the Dock's magnification) or stays slid away after a hide,
@@ -423,6 +443,7 @@ final class OverlayController {
             if !panel.isVisible { scene.setTuck(.offScreen, animated: false) }
             panel.alphaValue = 1
             panel.orderFrontRegardless()
+            log.debug("Showing the harvest on the Dock")
         }
         updateScreenLeaves()
         updateStackState()
@@ -508,6 +529,7 @@ final class OverlayController {
         if isHiding, animated { return }
         panel.ignoresMouseEvents = true
         isHiding = true
+        log.debug("Hiding the harvest (animated: \(animated, privacy: .public))")
         // Slide down off the screen as the Dock slides away, then stop drawing.
         scene?.setTuck(.offScreen, animated: animated)
         let finish: @MainActor @Sendable () -> Void = { [weak self] in
@@ -555,20 +577,78 @@ final class OverlayController {
         }
     }
 
-    /// Rebuilds the overlay if the harvest should be drawing but no frames have been drawn since the last check.
+    private func scheduleReshow(_ reason: String) {
+        log.info("\(reason, privacy: .public): showing the harvest afresh shortly")
+        reshowPending = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { MainActor.assumeIsolated { self.reshowIfPending() } }
+    }
+
+    /// Once the screen is unlocked and the Dock's display is awake, hides the harvest and shows it again
+    /// from scratch, as the Dock hiding and coming back would. Until then, the health check tries again.
+    private func reshowIfPending() {
+        guard reshowPending, !Self.isScreenLocked, !isMissionControlShowing else { return }
+        if let dock = currentDock ?? lastDock, Self.isDisplayAsleep(under: dock.screenFrame) { return }
+        reshowPending = false
+        reshow("after waking or unlocking")
+    }
+
+    private func reshow(_ reason: String) {
+        log.info("Showing the harvest afresh: \(reason, privacy: .public)")
+        DockLocator.resetCaches()
+        lastDockState = .unknown
+        switchingSpacesUntil = 0
+        hide(animated: false)
+        refresh(animated: true)
+    }
+
+    /// While the harvest should be showing, checks that it really is: SpriteKit is still drawing, the
+    /// window is on screen where it was put, and the harvest isn't stuck slid away. If not, it's shown
+    /// afresh, and if that didn't help by the next check, the overlay is rebuilt.
     private func checkHealth() {
+        reshowIfPending()
         guard let panel, let scene, let skView, panel.isVisible, !isHiding, !skView.isPaused,
-              let dock = currentDock, !Self.isDisplayAsleep(under: dock.screenFrame), !Self.isScreenLocked else {
+              let dock = currentDock, !isMissionControlShowing, !isStackOpen,
+              ProcessInfo.processInfo.systemUptime >= switchingSpacesUntil,
+              !Self.isDisplayAsleep(under: dock.screenFrame), !Self.isScreenLocked else {
             lastFrameCount = nil
+            reshownForHealth = false
             return
         }
         defer { lastFrameCount = scene.frameCount }
-        guard let last = lastFrameCount, scene.frameCount == last else { return }
-        // At most once a minute, in case frames stop for some reason a rebuild can't fix.
+        let framesStopped = lastFrameCount.map { scene.frameCount == $0 } ?? false
+        let offScreen = !Self.isOnScreen(panel)
+        let stuckAway = scene.isStuckAway
+        guard framesStopped || offScreen || stuckAway else {
+            reshownForHealth = false
+            return
+        }
+        let problem = framesStopped ? "frames stopped" : offScreen ? "window off screen" : "harvest stuck away"
+        guard reshownForHealth else {
+            reshownForHealth = true
+            lastFrameCount = nil
+            reshow(problem)
+            return
+        }
+        // At most once a minute, in case something a rebuild can't fix is wrong.
         let now = ProcessInfo.processInfo.systemUptime
         guard now - lastRebuild > 60 else { return }
         lastRebuild = now
+        reshownForHealth = false
+        log.error("Rebuilding the overlay: \(problem, privacy: .public)")
         rebuild()
+    }
+
+    /// Whether the window server has the panel on screen, where AppKit thinks it is.
+    private static func isOnScreen(_ panel: NSPanel) -> Bool {
+        guard let info = (CGWindowListCopyWindowInfo([.optionIncludingWindow], CGWindowID(panel.windowNumber))
+                            as? [[String: Any]])?.first else { return false }
+        guard (info[kCGWindowIsOnscreen as String] as? Bool) == true,
+              let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
+              let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) else { return false }
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        let frame = CGRect(x: bounds.minX, y: mainHeight - bounds.maxY, width: bounds.width, height: bounds.height)
+        return abs(frame.minX - panel.frame.minX) < 2 && abs(frame.minY - panel.frame.minY) < 2
+            && abs(frame.width - panel.frame.width) < 2 && abs(frame.height - panel.frame.height) < 2
     }
 
     /// Throws away the overlay's windows and SpriteKit views and grows a fresh harvest in new ones.
@@ -604,6 +684,7 @@ final class OverlayController {
         else { return false }
         return CGDisplayIsAsleep(CGDirectDisplayID(number.uint32Value)) != 0
     }
+
 
     func stop() {
         timer?.invalidate()

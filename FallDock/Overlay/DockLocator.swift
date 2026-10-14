@@ -83,6 +83,13 @@ enum DockLocator {
     }
 
     private static var dockWindowSupported: Bool?
+
+    /// Forgets what was learned about the Dock and the screens, after a sleep or a screen lock.
+    static func resetCaches() {
+        dockWindowSupported = nil
+        cachedDockPID = nil
+        homeScreens.removeAll()
+    }
     private static var cachedDockPID: pid_t?
 
     /// The Dock's process. Looking it up is slow and this runs often, so remember it until the

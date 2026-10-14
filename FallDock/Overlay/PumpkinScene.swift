@@ -64,6 +64,10 @@ final class PumpkinScene: SKScene {
     }
     private(set) var tuck = Tuck.none
     var isTuckedAway: Bool { tuck != .none }
+    /// Meant to be showing, but not sitting where it should (a slide back up that never finished).
+    var isStuckAway: Bool {
+        tuck == .none && harvestNode.action(forKey: "tuck") == nil && (harvestNode.position.y != 0 || harvestNode.alpha < 1)
+    }
     private let vineLayer = SKNode()
     let pumpkinLayer = SKNode()
     let effectsLayer = SKNode()
