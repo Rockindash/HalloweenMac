@@ -197,8 +197,6 @@
 				A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */,
 				A1C0FFEE0000000000003001 /* Info-AppStore.plist */,
 				A1C0FFEE0000000000003002 /* Dockorate-AppStore.entitlements */,
-				A1C0FFEE0000000000004021 /* SpookyArt.swift */,
-				A1C0FFEE0000000000004023 /* ThemesPage.swift */,
 			);
 			path = FallDock;
 			sourceTree = "<group>";
@@ -220,6 +218,7 @@
 				868266014263B38779531296 /* SmashSound.swift */,
 				A1C0FFEE00000000000000B1 /* CozyArt.swift */,
 				A1C0FFEE0000000000001011 /* WallpaperArt.swift */,
+				A1C0FFEE0000000000004021 /* SpookyArt.swift */,
 			);
 			path = Art;
 			sourceTree = "<group>";
@@ -251,6 +250,7 @@
 				A1C0FFEE0000000000001013 /* BackgroundPage.swift */,
 				A1C0FFEE0000000000001012 /* Wallpaper.swift */,
 				A1C0FFEE0000000000002002 /* AppEnvironment.swift */,
+				A1C0FFEE0000000000004023 /* ThemesPage.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
