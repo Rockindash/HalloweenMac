@@ -251,18 +251,18 @@ final class DockorateUITests: XCTestCase {
         open("customize")
         let menu = app.popUpButtons["customize-theme"].firstMatch
         XCTAssertTrue(menu.waitForExistence(timeout: 5), "a drop-down menu of themes")
-        // A plain click at its middle: XCUITest's own click on a pop-up waits for a menu notification
-        // that a SwiftUI menu doesn't always send.
-        menu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
-        let halloween = app.menuItems["Halloween"].firstMatch
-        XCTAssertTrue(halloween.waitForExistence(timeout: 3))
+        XCTAssertTrue((menu.value as? String)?.contains("Fall") == true, "showing the theme on the Dock: \(menu.debugDescription)")
+        // It follows the theme on the Dock. (XCUITest can't open the menu itself on the CI Mac: its
+        // click waits for a menu-open notification that never arrives there.)
+        open("themes")
+        let halloween = app.buttons["theme-halloween"].firstMatch
+        reveal(halloween)
         halloween.click()
-        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5), "Halloween's options, to set up ahead of time")
-        let show = app.buttons["Show Halloween"].firstMatch
-        XCTAssertTrue(show.exists, "Halloween isn't on the Dock yet")
-        show.click()
-        let gone = NSPredicate { _, _ in !show.exists }
-        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
+        open("customize")
+        XCTAssertTrue(menu.waitForExistence(timeout: 5))
+        let showsHalloween = NSPredicate { _, _ in (menu.value as? String)?.contains("Halloween") == true }
+        wait(for: [expectation(for: showsHalloween, evaluatedWith: nil)], timeout: 5)
+        XCTAssertTrue(element("Graveyard dirt").exists)
         XCTAssertTrue(element("Bats").exists)
     }
 

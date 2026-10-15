@@ -39,7 +39,7 @@ Each theme is a case of `Settings.Theme`: a season says the day it starts, and a
 - Spooky extras, each with a click: **tombstones** (a zombie hand reaches up out of the dirt and waves), a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it, and it meows when clicked), a **bubbling cauldron**, a pile of **assorted candy** that flies when clicked, **dripping candles** that blow out and relight, a **skull** whose jaw chatters, and gnarled **crypt pedestals** with a jack-o'-lantern on top.
 - **Bats** flutter past now and then instead of falling leaves.
 - A cute **ghost** flies across above the Dock instead of the squirrel. Click it and it dashes off the side of the screen.
-- With Background on, a dusky purple sky with a big moon, bats, a bare tree and a few tombstones on the hills (light and dark).
+- With Background on, a scene of its own rather than Fall's soft hills: a **haunted house** with lit windows on a hill under a **huge moon** with bats crossing it, and a graveyard in front with tombstones, crosses, an iron fence, a gnarled tree and glowing jack-o'-lanterns. The light picture is a violet and pumpkin-orange dusk; the dark one is a starry night with an eerie green glow and fog in the valley.
 
 ![Halloween on the Dock](docs/halloween-preview.png)
 
@@ -151,7 +151,7 @@ xcodebuild test -project FallDock.xcodeproj -scheme FallDock -destination 'platf
 
 They also run on GitHub (see `.github/workflows/tests.yml`) for every pull request and every push to `main`, `version-*` and `dockorate-*` branches, so a new feature can't quietly break an old one.
 
-- **DockorateTests** (unit tests): settings and their defaults, carrying settings over from older versions, Reset Everything, how the harvest is laid out on Docks of different lengths, what each Customize and Settings switch changes, smashing, the Dock's magnification math, the art in light and dark, the Background pictures, and themes (Fall staying the default, festivals a week before their day, each theme's harvest, the cobwebs beside the Dock, and the crossfade between them).
+- **DockorateTests** (unit tests): settings and their defaults, carrying settings over from older versions, Reset Everything, how the harvest is laid out on Docks of different lengths, what each Customize and Settings switch changes, smashing, the Dock's magnification math, the art in light and dark, the Background pictures (Halloween's looking nothing like Fall's), and themes (Fall staying the default, festivals a week before their day, each theme's harvest, the cobwebs beside the Dock, and the crossfade between them).
 - **DockorateUITests** (UI tests): open every page, flip the main switches, check choices survive a relaunch, Background starting off, picking a theme, changing automatically, the Themes page's layout, the Customize theme menu, Reset Everything asking first, and the license page when there's no license.
 
 The tests never touch your own settings, license key, desktop picture or login items. Unit tests keep their settings in a throwaway place. UI tests start the app with `-UITesting` (see `App/AppEnvironment.swift`), which gives it fresh settings of its own and a pretend license, and stops it from changing the desktop or login items. The first UI test run asks to let Xcode control the app (System Settings → Privacy & Security → Accessibility).

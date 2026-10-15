@@ -59,19 +59,51 @@ final class WallpaperTests: SettingsTestCase {
         }
     }
 
-    func testHalloweenPictureHasItsSkyMoonHillsAndBats() {
+    func testHalloweenPictureIsAHauntedHillUnderABigMoon() throws {
         for appearance in [Palette.Appearance.light, .dark] {
             let look = WallpaperArt.look(for: .halloween, appearance)
-            XCTAssertTrue(look.spooky)
-            let image = try! XCTUnwrap(WallpaperArt.image(look, pixels: CGSize(width: 1600, height: 1000)))
-            XCTAssertColor(color(in: image, x: 0.02, y: 0.01), look.skyTop.rgb255, tolerance: 4, "sky at the top")
-            XCTAssertColor(color(in: image, x: 0.79, y: 0.18), look.orb.rgb255, tolerance: 2, "sun or moon")
-            XCTAssertColor(color(in: image, x: 0.772, y: 0.21), look.frontHill.rgb255, tolerance: 8, "a bat across it")
-            XCTAssertColor(color(in: image, x: 0.5, y: 0.84), look.backHill.rgb255, tolerance: 2, "back hill")
-            XCTAssertColor(color(in: image, x: 0.5, y: 0.98), look.frontHill.rgb255, tolerance: 2, "front hill")
+            let spooky = try XCTUnwrap(look.spooky, "Halloween has its own scene")
+            let image = try XCTUnwrap(WallpaperArt.image(look, pixels: CGSize(width: 1600, height: 1000)))
+            // Places worked out from where the scene puts things on a 1600 by 1000 picture.
+            XCTAssertColor(color(in: image, x: 0.015, y: 0.004), look.skyTop.rgb255, tolerance: 4, "sky at the top")
+            XCTAssertColor(color(in: image, x: 0.69, y: 0.565), look.orb.rgb255, tolerance: 2, "the middle of the big moon")
+            XCTAssertColor(color(in: image, x: 0.705, y: 0.439), look.frontHill.rgb255, tolerance: 8, "a bat across the moon")
+            XCTAssertColor(color(in: image, x: 0.176, y: 0.619), spooky.light.rgb255, tolerance: 3, "a lit window in the haunted house")
+            XCTAssertColor(color(in: image, x: 0.05, y: 0.8566), CGColor.hex(0xE0701E).rgb255, tolerance: 3, "a jack-o'-lantern")
+            XCTAssertColor(color(in: image, x: 0.5, y: 0.79), look.backHill.rgb255, tolerance: 2, "the haunted hill")
+            XCTAssertColor(color(in: image, x: 0.5, y: 0.98), look.frontHill.rgb255, tolerance: 2, "the graveyard hill")
         }
-        XCTAssertFalse(WallpaperArt.look(for: .fall, .light).spooky, "Fall's pictures stay as they were")
-        XCTAssertFalse(WallpaperArt.look(for: .fall, .dark).spooky)
+        XCTAssertNil(WallpaperArt.look(for: .fall, .light).spooky, "Fall's pictures stay as they were")
+        XCTAssertNil(WallpaperArt.look(for: .fall, .dark).spooky)
+    }
+
+    /// Every pixel of a picture, as RGBA bytes, rows from the top.
+    private func pixels(of image: CGImage) -> [UInt8] {
+        var bytes = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        bytes.withUnsafeMutableBytes { buffer in
+            let context = CGContext(data: buffer.baseAddress, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                                    space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        return bytes
+    }
+
+    func testHalloweenLooksNothingLikeFall() throws {
+        let size = CGSize(width: 400, height: 250)
+        for appearance in [Palette.Appearance.light, .dark] {
+            let fallLook = WallpaperArt.look(for: .fall, appearance), halloweenLook = WallpaperArt.look(for: .halloween, appearance)
+            let fall = pixels(of: try XCTUnwrap(WallpaperArt.image(fallLook, pixels: size)))
+            let halloween = pixels(of: try XCTUnwrap(WallpaperArt.image(halloweenLook, pixels: size)))
+            // How much of each picture is its sun or moon: Halloween's moon is many times bigger.
+            func orbShare(_ bytes: [UInt8], _ orb: [Int]) -> Int {
+                stride(from: 0, to: bytes.count, by: 4).filter { i in (0..<3).allSatisfy { abs(Int(bytes[i + $0]) - orb[$0]) <= 3 } }.count
+            }
+            let fallSun = orbShare(fall, fallLook.orb.rgb255), bigMoon = orbShare(halloween, halloweenLook.orb.rgb255)
+            XCTAssertGreaterThan(bigMoon, max(fallSun, 1) * 10, "\(appearance): \(bigMoon) moon pixels against \(fallSun)")
+            // And most of the picture is a different color.
+            let different = stride(from: 0, to: fall.count, by: 4).filter { i in (0..<3).contains { abs(Int(fall[i + $0]) - Int(halloween[i + $0])) > 24 } }.count
+            XCTAssertGreaterThan(Double(different) / Double(fall.count / 4), 0.35, "\(appearance)")
+        }
     }
 
     func testEachThemeGetsItsOwnFiles() {
