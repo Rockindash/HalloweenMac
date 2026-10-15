@@ -18,4 +18,5 @@ The tests run on GitHub for every push and pull request (`.github/workflows/test
 - The Xcode project, scheme and target are still named `FallDock`; the app is Dockorate (`com.amol.dockorate`).
 - The app icon is an Icon Composer file, so building needs Xcode 26 (CI uses `macos-26`).
 - There are two app targets built from the same files: `FallDock` (website version: Gumroad license, Sparkle) and `DockorateAppStore` (Mac App Store: sandboxed, `APP_STORE` flag, no license or Sparkle). Add every new app source or resource file to **both** targets. Anything the sandbox might block needs checking in the App Store build too; see docs/AppStore.md.
+- Desktop pictures (Background) stay minimal so the Dock is the star: every theme's sun or moon is the size and in the spot of Fall's, and nothing big, bright or glowing pulls the eye (`testEveryPictureKeepsItsSunOrMoonSmallAndInTheSameSpot`).
 - See README.md for the file layout, releasing and the test commands.

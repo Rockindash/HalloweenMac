@@ -2,11 +2,12 @@ import AppKit
 import ImageIO
 import UniformTypeIdentifiers
 
-// The desktop pictures that go with each theme, drawn in code like the rest of the art. Fall's is a
-// soft sky, a sun or moon with a glow, and two rolling hills along the bottom. Halloween's is its own
-// scene: a big moon low over a haunted house on a hill, bats, a gnarled tree, a graveyard and glowing
-// jack-o'-lanterns. Every theme has a light and a dark picture, to go with a light or dark Dock.
-// They're drawn at each display's exact size, so they stay sharp on any screen.
+// The desktop pictures that go with each theme, drawn in code like the rest of the art. They stay
+// minimal and quiet, so the Dock is the star: every theme has the same small sun or moon in the same
+// spot, and nothing big or bright pulls the eye. Fall's is a soft sky and two rolling hills along the bottom.
+// Halloween's is its own scene: a haunted house on a hill, a few bats by the moon, a gnarled tree and
+// a graveyard. Every theme has a light and a dark picture, to go with a light or dark Dock. They're
+// drawn at each display's exact size, so they stay sharp on any screen.
 
 enum WallpaperArt {
     /// The colors of one picture.
@@ -28,7 +29,7 @@ enum WallpaperArt {
         var skyMiddle: CGColor
         /// The moon's craters.
         var moonShade: CGColor
-        /// Lit windows and the jack-o'-lanterns' faces.
+        /// The haunted house's lit windows.
         var light: CGColor
         /// Fog lying in the valley (none at dusk).
         var mist: CGColor?
@@ -36,7 +37,7 @@ enum WallpaperArt {
     }
 
     /// Bump this when the pictures change, so Macs that already have the old files draw them again.
-    static let version = 2
+    static let version = 3
 
     static func look(for theme: Settings.Theme, _ appearance: Palette.Appearance) -> Look {
         switch (theme, appearance) {
@@ -49,26 +50,27 @@ enum WallpaperArt {
             return Look(skyTop: .hex(0x17152B), skyBottom: .hex(0x342236), orb: .hex(0xD4CBB4),
                         glow: .hex(0xD4CBB4, alpha: 0.13), backHill: .hex(0x2F1E2F), frontHill: .hex(0x271A2A))
         case (.halloween, .light):
-            // Halloween dusk: violet sky turning rose, then pumpkin orange at the horizon, a big pale
-            // moon rising, and everything on the hills in deep purple silhouette.
+            // Halloween dusk: violet sky turning rose, then pumpkin orange at the horizon, a pale moon,
+            // and everything on the hills in deep purple silhouette.
             return Look(skyTop: .hex(0x5E4389), skyBottom: .hex(0xF6A04D), orb: .hex(0xFFE9B8),
-                        glow: .hex(0xFFD79A, alpha: 0.55), backHill: .hex(0x3C2552), frontHill: .hex(0x1E1229),
+                        glow: .hex(0xFFD79A, alpha: 0.32), backHill: .hex(0x3C2552), frontHill: .hex(0x1E1229),
                         spooky: Spooky(skyMiddle: .hex(0xB4567E), moonShade: .hex(0xF7DDA8), light: .hex(0xFFC54A),
                                        mist: nil, stars: false))
         case (.halloween, .dark):
-            // Halloween night: a starry sky going eerie green near the ground, a huge pale moon,
-            // black hills and fog in the valley.
+            // Halloween night: a starry sky going eerie green near the ground, a pale moon, black hills
+            // and fog in the valley.
             return Look(skyTop: .hex(0x070B16), skyBottom: .hex(0x24443F), orb: .hex(0xEEF3DA),
-                        glow: .hex(0xD8F0C8, alpha: 0.22), backHill: .hex(0x0F1A20), frontHill: .hex(0x05090C),
+                        glow: .hex(0xD8F0C8, alpha: 0.18), backHill: .hex(0x0F1A20), frontHill: .hex(0x05090C),
                         spooky: Spooky(skyMiddle: .hex(0x10202B), moonShade: .hex(0xDCE4C8), light: .hex(0xFFC23D),
                                        mist: .hex(0xBFE3D0, alpha: 0.16), stars: true))
         }
     }
 
-    // Where things sit, as fractions of the picture: x from the left, y from the top.
-    private static let orbCenter = CGPoint(x: 0.78, y: 0.205)
+    // Where things sit, as fractions of the picture: x from the left, y from the top. Every theme's sun
+    // or moon is this size, in this spot.
+    static let orbCenter = CGPoint(x: 0.78, y: 0.205)
     /// The sun or moon's diameter, as a fraction of the picture's width.
-    private static let orbSize: CGFloat = 0.05
+    static let orbSize: CGFloat = 0.05
     private static let glowSize: CGFloat = 0.14
     /// The top edge of each hill, at every tenth of the way across.
     private static let backHill = ridge([0.777, 0.768, 0.774, 0.786, 0.794, 0.795, 0.796, 0.806, 0.826, 0.848, 0.86])
@@ -130,9 +132,6 @@ enum WallpaperArt {
     // MARK: Halloween
 
     // Where Halloween's things sit, as fractions of the picture: x from the left, y from the top.
-    private static let moonCenter = CGPoint(x: 0.69, y: 0.565)
-    /// The moon's diameter, as a fraction of the picture's width.
-    private static let moonSize: CGFloat = 0.24
     /// A tall hill on the left for the haunted house, and the graveyard hill in front.
     private static let hauntedHill = ridge([0.700, 0.652, 0.640, 0.656, 0.700, 0.752, 0.782, 0.790, 0.788, 0.794, 0.806])
     private static let graveyardHill = ridge([0.872, 0.868, 0.878, 0.893, 0.900, 0.896, 0.884, 0.872, 0.862, 0.858, 0.866])
@@ -164,7 +163,7 @@ enum WallpaperArt {
                 let n = CGFloat(i)
                 let x = (n * 0.618034 + 0.13).truncatingRemainder(dividingBy: 1)
                 let y = (n * 0.7548777 + 0.31).truncatingRemainder(dividingBy: 1) * 0.55
-                if hypot(x - moonCenter.x, (y - moonCenter.y) * h / w) < moonSize * 0.85 { continue }
+                if hypot(x - orbCenter.x, (y - orbCenter.y) * h / w) < orbSize { continue }
                 let r = w * 0.0007 * (0.6 + (n * 0.381966).truncatingRemainder(dividingBy: 1) * 1.1)
                 ctx.setFillColor(CGColor.hex(0xFFFFFF, alpha: 0.35 + (n * 0.2357).truncatingRemainder(dividingBy: 1) * 0.45))
                 let c = point(x, y)
@@ -172,12 +171,11 @@ enum WallpaperArt {
             }
         }
 
-        // A big moon low over the hills, with a wide glow and a few soft craters.
-        let center = point(moonCenter.x, moonCenter.y)
-        let radius = w * moonSize / 2
+        // The moon, where Fall's sun is and just as big, with a soft glow and a few faint craters.
+        let center = point(orbCenter.x, orbCenter.y)
+        let radius = w * orbSize / 2
         if let glow = CGGradient(colorsSpace: nil, colors: [look.glow, look.glow.withAlpha(0)] as CFArray, locations: [0, 1]) {
-            ctx.drawRadialGradient(glow, startCenter: center, startRadius: radius * 0.9, endCenter: center, endRadius: radius * 2.6,
-                                   options: [.drawsBeforeStartLocation])
+            ctx.drawRadialGradient(glow, startCenter: center, startRadius: 0, endCenter: center, endRadius: w * glowSize, options: [])
         }
         ctx.setFillColor(look.orb)
         ctx.fillEllipse(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
@@ -205,11 +203,10 @@ enum WallpaperArt {
             }
         }
 
-        // The graveyard hill in front, with its tree, stones, fence and jack-o'-lanterns.
+        // The graveyard hill in front, with its tree, stones and fence.
         fillHill(graveyardHill, color: look.frontHill, in: ctx, size: size)
         drawTree(in: ctx, size: size, color: look.frontHill)
         drawGraveyard(in: ctx, size: size, color: look.frontHill)
-        drawJackOLanterns(in: ctx, size: size, light: spooky.light)
     }
 
     private static func fillHill(_ line: [CGPoint], color: CGColor, in ctx: CGContext, size: CGSize) {
@@ -223,12 +220,12 @@ enum WallpaperArt {
         ctx.fillPath()
     }
 
-    /// Bats flying across the moon, big and small.
+    /// A few small bats flying by the moon, one across it.
     private static func drawBats(in ctx: CGContext, size: CGSize, color: CGColor) {
         let w = size.width, h = size.height
         ctx.setFillColor(color)
-        for (x, y, span) in [(0.635, 0.48, 0.038), (0.705, 0.44, 0.03), (0.75, 0.53, 0.022), (0.6, 0.385, 0.02),
-                             (0.795, 0.405, 0.017), (0.665, 0.335, 0.015), (0.535, 0.43, 0.012)] as [(CGFloat, CGFloat, CGFloat)] {
+        for (x, y, span) in [(0.772, 0.212, 0.014), (0.738, 0.168, 0.010), (0.818, 0.172, 0.008), (0.712, 0.232, 0.007),
+                             (0.842, 0.236, 0.006)] as [(CGFloat, CGFloat, CGFloat)] {
             let c = CGPoint(x: x * w, y: (1 - y) * h), s = span * w
             // Each piece is filled on its own: the two wings wind opposite ways, so filled together
             // with the body, the overlaps would cancel out and leave holes.
@@ -364,41 +361,6 @@ enum WallpaperArt {
                 ctx.addLine(to: CGPoint(x: last.x, y: last.y + rail * u))
                 ctx.strokePath()
             }
-        }
-    }
-
-    /// Where each glowing jack-o'-lantern sits on the front hill, and how big it is.
-    private static let jackOLanterns: [(x: CGFloat, size: CGFloat)] = [(0.05, 1), (0.085, 0.75), (0.83, 0.85)]
-
-    /// Glowing jack-o'-lanterns at the edges of the graveyard, clear of the Dock.
-    private static func drawJackOLanterns(in ctx: CGContext, size: CGSize, light: CGColor) {
-        let w = size.width, h = size.height, u = w * 0.001
-        let glow = CGGradient(colorsSpace: nil, colors: [light.withAlpha(0.45), light.withAlpha(0)] as CFArray, locations: [0, 1])
-        for lantern in jackOLanterns {
-            let x = lantern.x * w
-            let foot = (1 - height(of: graveyardHill, at: lantern.x)) * h - 2 * u
-            let r = 13 * u * lantern.size
-            let cy = foot + r * 0.8
-            if let glow {
-                ctx.drawRadialGradient(glow, startCenter: CGPoint(x: x, y: cy), startRadius: 0, endCenter: CGPoint(x: x, y: cy), endRadius: r * 3.2, options: [])
-            }
-            ctx.setFillColor(CGColor.hex(0xE0701E))
-            ctx.fillEllipse(in: CGRect(x: x - r * 1.18, y: cy - r * 0.86, width: r * 2.36, height: r * 1.72))
-            ctx.setFillColor(CGColor.hex(0x3E5A1E))
-            ctx.fill(CGRect(x: x - 1.5 * u * lantern.size, y: cy + r * 0.8, width: 3 * u * lantern.size, height: 5 * u * lantern.size))
-            // A carved face: triangle eyes and a wide grin, lit from inside.
-            ctx.setFillColor(light)
-            let face = CGMutablePath()
-            for side: CGFloat in [-1, 1] {
-                let eye = x + side * r * 0.42
-                face.addLines(between: [CGPoint(x: eye - r * 0.2, y: cy + r * 0.08), CGPoint(x: eye + r * 0.2, y: cy + r * 0.08), CGPoint(x: eye, y: cy + r * 0.42)])
-                face.closeSubpath()
-            }
-            face.addLines(between: [CGPoint(x: x - r * 0.62, y: cy - r * 0.12), CGPoint(x: x + r * 0.62, y: cy - r * 0.12),
-                                    CGPoint(x: x + r * 0.3, y: cy - r * 0.5), CGPoint(x: x - r * 0.3, y: cy - r * 0.5)])
-            face.closeSubpath()
-            ctx.addPath(face)
-            ctx.fillPath()
         }
     }
 

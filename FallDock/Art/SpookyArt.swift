@@ -636,6 +636,9 @@ enum SpookyArt {
     /// Web threads: pale on a dark Dock, stone gray on a light one.
     static var webColor: CGColor { Palette.appearance == .dark ? Palette.ghost.withAlpha(0.6) : Palette.stone.withAlpha(0.85) }
 
+    /// How far a cobweb of size `s` reaches in over the Dock's top corner, across and down.
+    static func cobwebOverlap(size s: CGFloat) -> CGFloat { (s * 0.3).rounded() }
+
     /// A cobweb tucked into a corner: threads fanning out from the bottom-left, joined by sagging loops.
     static func cobwebTexture(size: CGSize, scale: CGFloat) -> SKTexture {
         cached("cobweb", size: size, scale: scale) { ctx in

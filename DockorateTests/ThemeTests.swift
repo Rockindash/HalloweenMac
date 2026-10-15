@@ -127,6 +127,40 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertEqual(ThemeYear.stretches(in: 2028).days, 366)
     }
 
+    // MARK: The rotation
+
+    func testEveryThemeIsInTheRotationUntilLeftOut() {
+        XCTAssertEqual(Settings.rotation, Set(Settings.Theme.allCases))
+        Settings.rotation = [.fall]
+        XCTAssertEqual(Settings.rotation, [.fall])
+        // Saved as the ones left out, so themes added in an update join the rotation by themselves.
+        XCTAssertEqual(defaults.stringArray(forKey: "themesLeftOut"), ["halloween"])
+        defaults.set(["halloween", "a-theme-from-a-later-version"], forKey: "themesLeftOut")
+        XCTAssertEqual(Settings.rotation, [.fall])
+    }
+
+    @MainActor func testAThemeLeftOutOfTheRotationNeverComesOnByItself() {
+        Settings.rotation = [.fall]
+        let automatic = Settings.ThemeChoice.automatic
+        XCTAssertEqual(automatic.theme(on: date(10, 28)), .fall, "Halloween's week stays with the season")
+        XCTAssertNil(automatic.next(after: date(10, 15)), "nothing else to change to")
+        XCTAssertEqual(ThemeYear.stretches(in: 2026, rotation: [.fall]).stretches.map(\.theme), [.fall])
+        XCTAssertEqual(ThemeSchedule.summary(.automatic, now: date(10, 15)), "Fall stays on your Dock all year.")
+        XCTAssertEqual(Settings.ThemeChoice.keep(.halloween).theme(on: date(3, 1)), .halloween, "it can still be kept on its own")
+
+        Settings.rotation = Set(Settings.Theme.allCases)
+        XCTAssertEqual(automatic.theme(on: date(10, 28)), .halloween)
+    }
+
+    func testTheLastSeasonStaysInTheRotation() {
+        XCTAssertTrue(Settings.canLeave(.halloween, [.fall, .halloween]), "festivals can all be left out")
+        XCTAssertFalse(Settings.canLeave(.fall, [.fall, .halloween]), "the only season stays, for the days between festivals")
+        Settings.rotation = [.halloween]
+        XCTAssertEqual(Settings.rotation, [.fall, .halloween], "a season always comes back in")
+        XCTAssertEqual(ThemeSchedule.dates(.fall, rotation: [.fall, .halloween]), "All year, between festivals")
+        XCTAssertTrue(ThemeSchedule.dates(.halloween, rotation: [.fall, .halloween]).contains(" to "))
+    }
+
     func testScheduleWords() {
         XCTAssertEqual(ThemeSchedule.summary(.keep(.fall)), "Fall stays on your Dock all year.")
         XCTAssertTrue(ThemeSchedule.summary(.automatic, now: date(10, 15)).hasPrefix("Fall now, then Halloween on"))
@@ -141,11 +175,13 @@ final class ThemeTests: SettingsTestCase {
 
     func testResetEverythingGoesBackToFall() {
         Settings.themeChoice = .keep(.halloween)
+        Settings.rotation = [.fall]
         Settings.bats = false
         Settings.ghost = false
         Settings.resetAll()
         Settings.registerDefaults()
         XCTAssertEqual(Settings.themeChoice, .keep(.fall))
+        XCTAssertEqual(Settings.rotation, Set(Settings.Theme.allCases), "every theme back in the rotation")
         XCTAssertTrue(Settings.bats)
         XCTAssertTrue(Settings.ghost)
     }
@@ -211,7 +247,7 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertNotNil(scene.action(forKey: "respawn-\(lantern.slot)"))
     }
 
-    @MainActor func testCobwebsSitBesideEachEndOfTheDock() {
+    @MainActor func testCobwebsSitOverEachTopCornerOfTheDock() {
         Settings.themeChoice = .keep(.halloween)
         let dock = CGRect(x: 120, y: 0, width: 1200, height: 70)
         let scene = PumpkinScene(size: CGSize(width: 1440, height: 220))
@@ -219,22 +255,26 @@ final class ThemeTests: SettingsTestCase {
         let webs = scene.pumpkinLayer.children.compactMap { $0 as? WebNode }.sorted { $0.restX < $1.restX }
         XCTAssertEqual(webs.count, 2)
         let left = webs[0], right = webs[1]
-        // Each tucked into the corner between the end of the Dock and the bottom of the screen, opening outward.
-        XCTAssertEqual(left.restX, dock.minX)
-        XCTAssertEqual(right.restX, dock.maxX)
-        XCTAssertEqual(left.restY, dock.minY)
-        XCTAssertEqual(right.restY, dock.minY)
+        // Each fans up and outward from a little inside the Dock's top corner.
+        XCTAssertGreaterThan(left.restX, dock.minX)
+        XCTAssertLessThan(right.restX, dock.maxX)
+        XCTAssertLessThan(left.restY, dock.maxY)
+        XCTAssertEqual(left.restY, right.restY)
         XCTAssertLessThan(left.facing, 0, "the left web opens to the left, away from the Dock")
         XCTAssertGreaterThan(right.facing, 0, "the right web opens to the right")
         XCTAssertLessThanOrEqual(left.size.height, dock.height, "no taller than the Dock")
-        XCTAssertFalse(left.risesWithIcons, "it stays put beside the Dock when the icons magnify")
+        XCTAssertFalse(left.risesWithIcons, "it stays put on the Dock when the icons magnify")
 
-        // Placed, they sit outside the Dock.
+        // Placed, each reaches over the Dock's end and its top edge, and is mostly above the Dock.
         scene.update(1)
         scene.update(1.1)
-        let leftFrame = left.calculateAccumulatedFrame(), rightFrame = right.calculateAccumulatedFrame()
-        XCTAssertLessThanOrEqual(leftFrame.maxX, dock.minX + 1)
-        XCTAssertGreaterThanOrEqual(rightFrame.minX, dock.maxX - 1)
+        for (web, end) in [(left, dock.minX), (right, dock.maxX)] {
+            let frame = web.calculateAccumulatedFrame()
+            XCTAssertLessThan(frame.minX, end, "\(frame) crosses the end of the Dock")
+            XCTAssertGreaterThan(frame.maxX, end, "\(frame) crosses the end of the Dock")
+            XCTAssertLessThan(frame.minY, dock.maxY, "\(frame) overlaps the top of the Dock")
+            XCTAssertGreaterThan(frame.midY, dock.maxY, "\(frame) sits on top of the Dock")
+        }
 
         Settings.themeChoice = .keep(.fall)
         scene.configure(dockRect: dock, pixelScale: 1, magnifier: DockMagnifier(), regrow: true)

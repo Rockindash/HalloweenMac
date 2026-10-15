@@ -239,11 +239,36 @@ final class DockorateUITests: XCTestCase {
         let automatic = toggle("Change automatically")
         let fall = app.buttons["theme-fall"].firstMatch, halloween = app.buttons["theme-halloween"].firstMatch
         XCTAssertTrue(fall.waitForExistence(timeout: 5))
-        XCTAssertTrue(element("theme-year").exists, "the year at a glance")
         XCTAssertLessThan(automatic.frame.minY, fall.frame.minY, "Change Automatically comes before the themes")
         XCTAssertEqual(fall.frame.minY, halloween.frame.minY, accuracy: 2, "side by side")
         XCTAssertLessThan(fall.frame.maxX, halloween.frame.minX)
         XCTAssertLessThan(fall.frame.width, app.windows.firstMatch.frame.width / 2, "about half the page each")
+    }
+
+    func testChangeAutomaticallyShowsTheYearAndTheRotationOnlyWhenOn() {
+        launch()
+        open("themes")
+        XCTAssertFalse(isOn(toggle("Change automatically")))
+        XCTAssertFalse(element("theme-year").exists, "nothing about changing automatically while it's off")
+        XCTAssertFalse(app.switches["rotation-halloween"].exists)
+
+        setSwitch("Change automatically", on: true)
+        XCTAssertTrue(element("theme-year").waitForExistence(timeout: 5), "the year at a glance")
+        let fall = toggle("rotation-fall"), halloween = toggle("rotation-halloween")
+        XCTAssertTrue(isOn(fall))
+        XCTAssertTrue(isOn(halloween), "every theme starts out in the rotation")
+        XCTAssertFalse(fall.isEnabled, "the only season stays in")
+
+        // Leaving Halloween out is kept.
+        setSwitch("rotation-halloween", on: false)
+        launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
+        open("themes")
+        XCTAssertFalse(isOn(toggle("rotation-halloween")))
+
+        // Switched off, it all goes away again.
+        setSwitch("Change automatically", on: false)
+        let gone = NSPredicate { _, _ in !self.element("theme-year").exists }
+        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
     }
 
     func testCustomizeHasAThemeMenu() {

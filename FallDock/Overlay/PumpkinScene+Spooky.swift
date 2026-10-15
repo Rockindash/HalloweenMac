@@ -402,20 +402,21 @@ extension PumpkinScene {
 
     // MARK: Cobwebs
 
-    /// Cobwebs tucked into both ends of the Dock at Halloween (with the vine), and a spider
+    /// Cobwebs over both top corners of the Dock at Halloween (with the vine), and a spider
     /// dangling from the left one.
     func layoutCobwebs() {
         for case let web as WebNode in pumpkinLayer.children { web.removeFromParent() }
         guard Settings.theme == .halloween, Settings.showVines, dockRect.width > 200 else { return }
-        // In the corner between each end of the Dock and the bottom of the screen, opening outward,
-        // a little shorter than the Dock.
+        // Each fans up and outward from a little inside the Dock's top corner, so it reaches over the
+        // corner's edge, a little shorter than the Dock.
         let s = (dockRect.height * 0.8).rounded()
+        let overlap = SpookyArt.cobwebOverlap(size: s)
         for left in [true, false] {
             let web = WebNode(texture: SpookyArt.cobwebTexture(size: CGSize(width: s, height: s), scale: pixelScale),
                               color: .clear, size: CGSize(width: s, height: s))
             web.anchorPoint = .zero
-            web.restX = left ? dockRect.minX : dockRect.maxX
-            web.restY = dockRect.minY
+            web.restX = left ? dockRect.minX + overlap : dockRect.maxX - overlap
+            web.restY = dockRect.maxY - overlap
             web.facing = left ? -1 : 1
             web.zPosition = 0.3
             pumpkinLayer.addChild(web)

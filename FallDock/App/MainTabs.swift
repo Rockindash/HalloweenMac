@@ -809,24 +809,26 @@ enum ThemePreview {
                 ctx.draw(SpookyArt.batTexture(frame: frame, unit: h * 0.7, scale: scale).cgImage(),
                          in: CGRect(x: CGFloat(x), y: CGFloat(y), width: bat.width, height: bat.height))
             }
-            // A Dock that stops short of the edges, with a cobweb in the corner beside each end.
+            // A Dock that stops short of the edges, with a cobweb over each top corner.
             let shelf: CGFloat = 24
             let dock = CGRect(x: 30, y: 0, width: size.width - 60, height: shelf)
             ctx.setFillColor(Palette.soot.mixed(with: Palette.plum, 0.4))
             ctx.fill(dock)
-            let web = CGSize(width: 30, height: 30)
-            let webTexture = SpookyArt.cobwebTexture(size: web, scale: scale).cgImage()
-            ctx.draw(webTexture, in: CGRect(origin: CGPoint(x: dock.maxX, y: 0), size: web))
-            ctx.saveGState()
-            ctx.translateBy(x: dock.minX, y: 0)
-            ctx.scaleBy(x: -1, y: 1)
-            ctx.draw(webTexture, in: CGRect(origin: .zero, size: web))
-            ctx.restoreGState()
 
             let k = h / 60
             let dirtHeight = (h * 0.3).rounded()
             ctx.draw(SpookyArt.dirtTexture(width: dock.width, height: dirtHeight, seed: 11, unit: k, scale: scale).cgImage(),
                      in: CGRect(x: dock.minX, y: shelf - 6, width: dock.width, height: dirtHeight))
+
+            let web = CGSize(width: 30, height: 30)
+            let overlap = SpookyArt.cobwebOverlap(size: web.width)
+            let webTexture = SpookyArt.cobwebTexture(size: web, scale: scale).cgImage()
+            ctx.draw(webTexture, in: CGRect(origin: CGPoint(x: dock.maxX - overlap, y: shelf - overlap), size: web))
+            ctx.saveGState()
+            ctx.translateBy(x: dock.minX + overlap, y: shelf - overlap)
+            ctx.scaleBy(x: -1, y: 1)
+            ctx.draw(webTexture, in: CGRect(origin: .zero, size: web))
+            ctx.restoreGState()
 
             enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), crypt(PumpkinKind) }
             let items: [Item] = [.lantern(.roundOrange, 1, 0), .decor(.tombstone), .pumpkin(.ghostWhite, 0.8), .decor(.cauldron),

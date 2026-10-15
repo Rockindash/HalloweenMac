@@ -64,6 +64,22 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// The themes Change Automatically takes turns with.
+    @Published private(set) var rotation: Set<Settings.Theme> {
+        didSet {
+            Settings.rotation = rotation
+            themeMayHaveChanged()
+        }
+    }
+
+    /// Whether `theme` can leave the rotation: any festival can, and any season but the last one left.
+    func canLeaveRotation(_ theme: Settings.Theme) -> Bool { Settings.canLeave(theme, rotation) }
+
+    /// Puts `theme` in the rotation or takes it out.
+    func setInRotation(_ theme: Settings.Theme, _ isIn: Bool) {
+        if isIn { rotation.insert(theme) } else if canLeaveRotation(theme) { rotation.remove(theme) }
+    }
+
     /// The theme on the Dock right now.
     @Published private(set) var theme: Settings.Theme
 
@@ -131,6 +147,7 @@ final class AppModel: ObservableObject {
         enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
         showMenuBarIcon = Settings.showMenuBarIcon
         themeChoice = Settings.themeChoice
+        rotation = Settings.rotation
         theme = Settings.theme
         bats = Settings.bats
         ghost = Settings.ghost
@@ -225,6 +242,7 @@ final class AppModel: ObservableObject {
         enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
         showMenuBarIcon = Settings.showMenuBarIcon
         themeChoice = Settings.themeChoice
+        rotation = Settings.rotation
         bats = Settings.bats
         ghost = Settings.ghost
         wallpaperEnabled = Settings.wallpaperEnabled
