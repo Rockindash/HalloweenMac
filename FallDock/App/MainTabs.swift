@@ -819,7 +819,7 @@ enum ThemePreview {
             func drawPumpkin(_ kind: PumpkinKind, height: CGFloat, centerX: CGFloat, y: CGFloat, face: Int?) {
                 let s = PumpkinArt.size(of: kind, height: height)
                 let rect = CGRect(x: centerX - s.width / 2, y: y, width: s.width, height: s.height)
-                if let face {
+                if face != nil {
                     // The candle's glow around a jack-o'-lantern.
                     let glow = s.width * 1.5
                     ctx.draw(CozyArt.glowTexture(color: Palette.orange.mixed(with: Palette.mustard, 0.5), diameter: glow, scale: scale).cgImage(),

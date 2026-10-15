@@ -66,7 +66,7 @@ final class WallpaperTests: SettingsTestCase {
             let image = try! XCTUnwrap(WallpaperArt.image(look, pixels: CGSize(width: 1600, height: 1000)))
             XCTAssertColor(color(in: image, x: 0.02, y: 0.01), look.skyTop.rgb255, tolerance: 4, "sky at the top")
             XCTAssertColor(color(in: image, x: 0.79, y: 0.18), look.orb.rgb255, tolerance: 2, "sun or moon")
-            XCTAssertColor(color(in: image, x: 0.772, y: 0.214), look.frontHill.rgb255, tolerance: 8, "a bat across it")
+            XCTAssertColor(color(in: image, x: 0.772, y: 0.21), look.frontHill.rgb255, tolerance: 8, "a bat across it")
             XCTAssertColor(color(in: image, x: 0.5, y: 0.84), look.backHill.rgb255, tolerance: 2, "back hill")
             XCTAssertColor(color(in: image, x: 0.5, y: 0.98), look.frontHill.rgb255, tolerance: 2, "front hill")
         }

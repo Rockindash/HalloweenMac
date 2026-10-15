@@ -132,7 +132,7 @@ final class ArtTests: XCTestCase {
     }
 
     @MainActor func testEveryPageHasATitleAndSymbol() {
-        XCTAssertEqual(Page.allCases.map(\.title), ["Home", "Customize", "Background", "Settings"])
+        XCTAssertEqual(Page.allCases.map(\.title), ["Home", "Themes", "Customize", "Background", "Settings"])
         for page in Page.allCases {
             XCTAssertNotNil(NSImage(systemSymbolName: page.symbol, accessibilityDescription: nil), "\(page.symbol)")
         }
