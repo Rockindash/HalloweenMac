@@ -127,7 +127,7 @@ They also run on GitHub (see `.github/workflows/tests.yml`) for every pull reque
 
 The tests never touch your own settings, license key, desktop picture or login items. Unit tests keep their settings in a throwaway place. UI tests start the app with `-UITesting` (see `App/AppEnvironment.swift`), which gives it fresh settings of its own and a pretend license, and stops it from changing the desktop or login items. The first UI test run asks to let Xcode control the app (System Settings → Privacy & Security → Accessibility).
 
-When you add a feature, add a test for it next to the others, and give any new switch a `SettingRow` (or an `.accessibilityIdentifier`) so the UI tests can find it.
+Every feature and fix should come with a test (the rule is written down in `CLAUDE.md`, and the pull request template asks for it). When you add a feature, add a test for it next to the others, and give any new switch a `SettingRow` (or an `.accessibilityIdentifier`) so the UI tests can find it.
 
 ## The app icon
 
