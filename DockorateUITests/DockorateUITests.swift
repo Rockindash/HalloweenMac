@@ -67,7 +67,9 @@ final class DockorateUITests: XCTestCase {
     /// Scrolls the page until `element` can be clicked.
     private func reveal(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(element.waitForExistence(timeout: 5), "\(element) isn't there", file: file, line: line)
-        let page = app.scrollViews.firstMatch
+        guard !element.isHittable else { return }
+        // The page's own scroll view (the sidebar is one too).
+        let page = app.scrollViews.containing(NSPredicate(format: "identifier == %@", element.identifier)).firstMatch
         for deltaY in [-300.0, 300.0] {
             var tries = 0
             while !element.isHittable && tries < 12 {
@@ -82,7 +84,12 @@ final class DockorateUITests: XCTestCase {
         let control = toggle(identifier, file: file, line: line)
         reveal(control, file: file, line: line)
         if isOn(control) != on { control.click() }
-        XCTAssertEqual(isOn(control), on, "\(identifier) didn't switch", file: file, line: line)
+        // SwiftUI can take a moment to update the switch.
+        let deadline = Date().addingTimeInterval(3)
+        while isOn(control) != on && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        XCTAssertEqual(isOn(control), on, "\(identifier) didn't switch: \(control.debugDescription)", file: file, line: line)
     }
 
     private func text(_ string: String) -> XCUIElement {
@@ -173,17 +180,17 @@ final class DockorateUITests: XCTestCase {
         let match = toggle("Match my desktop to the Dock")
         let followDock = toggle("Switch with Light and Dark")
         XCTAssertFalse(isOn(match), "Background must start switched off")
-        XCTAssertFalse(followDock.isEnabled, "nothing to pick until it's switched on")
+        XCTAssertFalse(followDock.isEnabled, "nothing to pick until it's switched on: \(followDock.debugDescription)")
 
         setSwitch("Match my desktop to the Dock", on: true)
-        XCTAssertTrue(followDock.isEnabled)
+        XCTAssertTrue(followDock.isEnabled, "can pick once it's on")
         XCTAssertTrue(isOn(followDock), "switches with Light and Dark by default")
 
         // Picking a picture keeps it, whatever the Dock does.
         let dark = element("wallpaper-dark")
         reveal(dark)
         dark.click()
-        XCTAssertFalse(isOn(followDock))
+        XCTAssertFalse(isOn(followDock), "picking the dark picture keeps it")
         setSwitch("Switch with Light and Dark", on: true)
     }
 
