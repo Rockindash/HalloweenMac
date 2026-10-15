@@ -38,9 +38,10 @@ enum Settings {
 
     static func registerDefaults() {
         carryOverFromFallDock()
-        // The menu used to pick a number of pumpkins; now it picks how full the Dock is.
-        // (Checked before registering defaults, which would make every key look set.)
-        if defaults.object(forKey: Key.fullness) == nil, defaults.object(forKey: Key.pumpkinCount) != nil {
+        // The menu used to pick a number of pumpkins; now it picks how full the Dock is. The old
+        // setting is removed once carried over, so it's only ever there from Fall Dock. (Registered
+        // defaults are shared by the whole app, so whether "fullness" was set can't be told reliably.)
+        if defaults.object(forKey: Key.pumpkinCount) != nil {
             let count = defaults.integer(forKey: Key.pumpkinCount)
             defaults.set((count <= 6 ? Fullness.aFew : count >= 12 ? .overflowing : .plenty).rawValue, forKey: Key.fullness)
             defaults.removeObject(forKey: Key.pumpkinCount)
