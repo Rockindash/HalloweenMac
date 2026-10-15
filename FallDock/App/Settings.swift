@@ -21,6 +21,8 @@ enum Settings {
         static let squirrel = "squirrel"
         static let showMenuBarIcon = "showMenuBarIcon"
         static let theme = "theme"
+        static let bats = "bats"
+        static let ghost = "ghost"
         static let wallpaperEnabled = "wallpaperEnabled"
         static let wallpaperMode = "wallpaperMode"
         static let wallpaperOriginals = "wallpaperOriginals"
@@ -54,6 +56,10 @@ enum Settings {
             Key.showVines: true,
             Key.cozyExtras: true,
             Key.squirrel: true,
+            Key.bats: true,
+            Key.ghost: true,
+            // Fall stays on the Dock until the person picks Halloween or the calendar.
+            Key.theme: ThemeChoice.keep(.fall).rawValue,
             Key.showMenuBarIcon: true,
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
@@ -68,7 +74,8 @@ enum Settings {
     static func resetAll() {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
-                    Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.wallpaperEnabled, Key.wallpaperMode]
+                    Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.wallpaperEnabled, Key.wallpaperMode,
+                    Key.bats, Key.ghost]
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -171,27 +178,167 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.showMenuBarIcon) }
     }
 
-    /// The season or festival on the Dock. Only fall so far; each one gets its own tab in the app window.
+    /// Bats fluttering past (Halloween's version of falling leaves).
+    static var bats: Bool {
+        get { defaults.bool(forKey: Key.bats) }
+        set { defaults.set(newValue, forKey: Key.bats) }
+    }
+
+    /// The friendly ghost that floats by (Halloween's version of the squirrel).
+    static var ghost: Bool {
+        get { defaults.bool(forKey: Key.ghost) }
+        set { defaults.set(newValue, forKey: Key.ghost) }
+    }
+
+    /// The current theme's visitor: the squirrel in fall, the ghost at Halloween.
+    static var visitor: Bool { theme == .halloween ? ghost : squirrel }
+
+    /// The season or festival on the Dock. Each one has its own art, extras and desktop pictures.
     enum Theme: String, CaseIterable {
+        /// The original look, and still the one Dockorate starts with.
         case fall
+        case halloween
 
         var title: String {
             switch self {
             case .fall: return "Fall"
+            case .halloween: return "Halloween"
             }
         }
 
         var symbol: String {
             switch self {
             case .fall: return "leaf.fill"
+            case .halloween: return "moon.stars.fill"
             }
+        }
+
+        /// What grows on the Dock, as a page heading.
+        var headline: String {
+            switch self {
+            case .fall: return "Pumpkins, Hay and Falling Leaves"
+            case .halloween: return "Jack-o'-Lanterns, Candy and a Friendly Ghost"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .fall: return "Pumpkins, hay bales, a latte and falling leaves."
+            case .halloween: return "Glowing jack-o'-lanterns, tombstones, candy, bats and a friendly ghost."
+            }
+        }
+
+        /// This theme's extras, in the order their tiles show.
+        var extras: [DecorKind] {
+            switch self {
+            case .fall: return [.hayBale, .leafPile, .acorns, .mug, .lantern, .apples]
+            case .halloween: return [.crypt, .tombstone, .blackCat, .cauldron, .candy, .candles, .skull]
+            }
+        }
+
+        /// What some pumpkins sit up high on.
+        var perch: DecorKind { self == .halloween ? .crypt : .hayBale }
+
+        /// The order extras fill the gaps between pumpkins; it starts at a random point each time the
+        /// pumpkins are regrown, so the special ones turn up in different spots.
+        var gapCycle: [DecorKind] {
+            switch self {
+            case .fall:
+                return [.leafPile, .acorns, .mug, .apples, .leafPile, .lantern, .acorns, .apples, .leafPile, .acorns]
+            case .halloween:
+                return [.tombstone, .candy, .cauldron, .skull, .blackCat, .candles, .candy, .tombstone, .skull, .candy]
+            }
+        }
+
+        /// Extras special enough to show up at most once every eight gaps.
+        var specials: Set<DecorKind> { self == .halloween ? [.cauldron, .blackCat] : [.mug, .lantern] }
+
+        var vineTitle: String { self == .halloween ? "Graveyard dirt" : "Vine" }
+        var vineDetail: String {
+            self == .halloween ? "Purple dirt along the top of the Dock, with cobwebs at both ends."
+                               : "Curling along the top of the Dock, behind the pumpkins."
+        }
+        var extrasTitle: String { self == .halloween ? "Spooky extras" : "Cozy extras" }
+        var extrasDetail: String {
+            self == .halloween ? "Tombstones, candy, a cauldron and more between the pumpkins."
+                               : "Hay bales, leaf piles and more between the pumpkins."
+        }
+        var visitorTitle: String { self == .halloween ? "Ghost" : "Squirrel" }
+
+        /// When the calendar puts it on the Dock, as (month, day) pairs, both days included. Halloween
+        /// takes over for its fortnight; Fall is on the rest of the time.
+        var window: (start: (month: Int, day: Int), end: (month: Int, day: Int))? {
+            switch self {
+            case .fall: return nil
+            case .halloween: return ((10, 15), (11, 1))
+            }
+        }
+
+        func isOn(_ date: Date, calendar: Calendar = .current) -> Bool {
+            guard let window else { return false }
+            let day = calendar.dateComponents([.month, .day], from: date)
+            let today = (day.month ?? 1) * 100 + (day.day ?? 1)
+            let start = window.start.month * 100 + window.start.day, end = window.end.month * 100 + window.end.day
+            return start <= end ? (start...end).contains(today) : today >= start || today <= end
         }
     }
 
-    static var theme: Theme {
-        get { defaults.string(forKey: Key.theme).flatMap(Theme.init(rawValue:)) ?? .fall }
+    /// How the Dock picks its theme: keeping one all year, or changing with the calendar.
+    enum ThemeChoice: Hashable {
+        case keep(Theme)
+        /// Halloween while it's on, Fall the rest of the year.
+        case calendar
+
+        static var allCases: [ThemeChoice] { Theme.allCases.map(keep) + [.calendar] }
+
+        /// Saved as the theme's name, or "automatic" (what the Halloween branch called the calendar).
+        var rawValue: String {
+            switch self {
+            case let .keep(theme): return theme.rawValue
+            case .calendar: return "automatic"
+            }
+        }
+
+        init?(rawValue: String) {
+            if let theme = Theme(rawValue: rawValue) { self = .keep(theme) }
+            else if rawValue == "automatic" { self = .calendar }
+            else { return nil }
+        }
+
+        var title: String {
+            switch self {
+            case let .keep(theme): return theme.title
+            case .calendar: return "Change with the Calendar"
+            }
+        }
+
+        func theme(on date: Date, calendar: Calendar = .current) -> Theme {
+            switch self {
+            case let .keep(theme): return theme
+            case .calendar: return Theme.allCases.first { $0.isOn(date, calendar: calendar) } ?? .fall
+            }
+        }
+
+        /// The next time the calendar changes the theme, and to what (nil when it never changes).
+        func next(after date: Date, calendar: Calendar = .current) -> (theme: Theme, date: Date)? {
+            guard self == .calendar else { return nil }
+            let now = theme(on: date, calendar: calendar)
+            for days in 1...366 {
+                guard let day = calendar.date(byAdding: .day, value: days, to: date) else { break }
+                let theme = theme(on: day, calendar: calendar)
+                if theme != now { return (theme, calendar.startOfDay(for: day)) }
+            }
+            return nil
+        }
+    }
+
+    static var themeChoice: ThemeChoice {
+        get { defaults.string(forKey: Key.theme).flatMap(ThemeChoice.init(rawValue:)) ?? .keep(.fall) }
         set { defaults.set(newValue.rawValue, forKey: Key.theme) }
     }
+
+    /// The theme on the Dock right now.
+    static var theme: Theme { themeChoice.theme(on: Date()) }
 
     // MARK: Background
 

@@ -10,21 +10,22 @@ extension PumpkinScene {
 
     // MARK: Decorations
 
-    func addDecorations() {
+    func addDecorations(grow: Bool = false) {
         for (slot, perch) in slotPerch.enumerated() where perch > 0 {
-            addBale(slot: slot, grow: false)
+            addBale(slot: slot, grow: grow)
         }
         for gap in gapKinds.indices {
-            addDecor(gap: gap, grow: false)
+            addDecor(gap: gap, grow: grow)
         }
     }
 
-    /// A hay bale under a pumpkin that sits up high, behind every pumpkin.
+    /// A hay bale (or crypt pedestal) under a pumpkin that sits up high, behind every pumpkin.
     private func addBale(slot: Int, grow: Bool) {
         let h = pumpkinHeight
-        let bale = DecorNode(kind: .hayBale, gap: -(slot + 1),
-                             texture: CozyArt.texture(.hayBale, unit: h, variant: slot, scale: pixelScale),
-                             size: CozyArt.size(of: .hayBale, unit: h))
+        let perch = Settings.theme.perch
+        let bale = DecorNode(kind: perch, gap: -(slot + 1),
+                             texture: CozyArt.texture(perch, unit: h, variant: slot, scale: pixelScale),
+                             size: CozyArt.size(of: perch, unit: h))
         bale.anchorPoint = CGPoint(x: 0.5, y: 0)
         bale.restX = slotX[slot]
         bale.restY = dockRect.maxY - 3
@@ -50,6 +51,9 @@ extension PumpkinScene {
         switch kind {
         case .mug: startSteam(decor, unit: unit)
         case .lantern: addLanternGlow(decor, unit: unit)
+        case .cauldron: brew(decor)
+        case .candles: light(decor)
+        case .blackCat: dress(decor)
         default: break
         }
     }
@@ -153,6 +157,8 @@ extension PumpkinScene {
         case .lantern:
             decor.childNode(withName: "glow")?.run(.sequence([.scale(to: 1.7, duration: 0.15), .scale(to: 1, duration: 0.6)]))
             decor.run(DockSprite.hop(height: h * 0.08, duration: 0.25), withKey: "hop")
+        case .tombstone, .blackCat, .cauldron, .candy, .candles, .crypt, .skull:
+            pokeSpooky(decor)
         default:
             decor.run(DockSprite.hop(height: h * 0.12, duration: 0.3), withKey: "hop")
         }
@@ -198,12 +204,16 @@ extension PumpkinScene {
 
     // MARK: The squirrel
 
-    func scheduleSquirrel(first: Bool) {
+    /// Schedules the season's visitor: the squirrel in fall, the ghost at Halloween.
+    func scheduleVisitor(first: Bool) {
         removeAction(forKey: "squirrel")
-        guard !Self.reduceMotion, Settings.squirrel else { return }
+        guard !Self.reduceMotion, Settings.visitor else { return }
+        let halloween = Settings.theme == .halloween
         run(.sequence([
             .wait(forDuration: first ? Double.random(in: 10...20) : Double.random(in: 45...90)),
-            .run { [weak self] in self?.squirrelVisit() },
+            .run { [weak self] in
+                if halloween { self?.ghostVisit() } else { self?.squirrelVisit() }
+            },
         ]), withKey: "squirrel")
     }
 
@@ -212,7 +222,7 @@ extension PumpkinScene {
     /// hops across to the other end.
     private func squirrelVisit() {
         guard Settings.cozyExtras, Settings.squirrel, dockRect.width > 300, !pumpkinLayer.children.contains(where: { $0 is SquirrelNode }) else {
-            scheduleSquirrel(first: false)
+            scheduleVisitor(first: false)
             return
         }
         let h = pumpkinHeight
@@ -230,7 +240,7 @@ extension PumpkinScene {
         let leave = SKAction.sequence([
             .fadeOut(withDuration: 0.25),
             .removeFromParent(),
-            .run { [weak self] in self?.scheduleSquirrel(first: false) },
+            .run { [weak self] in self?.scheduleVisitor(first: false) },
         ])
         let acorns = pumpkinLayer.children.compactMap { $0 as? DecorNode }.filter { $0.kind == .acorns }.map(\.restX)
         guard let spot = acorns.randomElement() else {
@@ -306,7 +316,7 @@ extension PumpkinScene {
     }
 
     /// Hops along the Dock from one x to another.
-    private func hops(from x0: CGFloat, to x1: CGFloat, hopLength: CGFloat, height: CGFloat, duration: TimeInterval) -> SKAction {
+    func hops(from x0: CGFloat, to x1: CGFloat, hopLength: CGFloat, height: CGFloat, duration: TimeInterval) -> SKAction {
         let count = max(1, Int((abs(x1 - x0) / hopLength).rounded()))
         let steps = (1...count).map { i -> SKAction in
             let x = x0 + (x1 - x0) * CGFloat(i) / CGFloat(count)
@@ -333,7 +343,7 @@ extension PumpkinScene {
             hops(from: squirrel.restX, to: exitX, hopLength: h * 0.6, height: h * 0.12, duration: 0.13),
             .fadeOut(withDuration: 0.15),
             .removeFromParent(),
-            .run { [weak self] in self?.scheduleSquirrel(first: false) },
+            .run { [weak self] in self?.scheduleVisitor(first: false) },
         ]), withKey: "visit")
     }
 }

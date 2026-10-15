@@ -14,6 +14,8 @@ extension Color {
     static let harvestMustard = Color(cgColor: .hex(0xDB9D24))
     static let harvestPeach = Color(cgColor: .hex(0xFCDCBE))
     static let harvestGreen = Color(cgColor: .hex(0x627329))
+    /// Halloween's night-sky purple.
+    static let harvestNight = Color(cgColor: .hex(0x2E2140))
 
     /// The page behind the cards: white in Light mode, near black in Dark.
     static let pageBackground = Color(nsColor: .textBackgroundColor)
@@ -305,11 +307,22 @@ struct LiveHarvestView: View {
 
     /// The settings that change what grows; the little harvest regrows when any of them change.
     private var look: [AnyHashable] {
-        [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves]
+        [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves,
+         model.bats, model.ghost]
     }
 
     /// Light mode shows a fall afternoon with the sun out; Dark mode, a starry night under a harvest moon.
+    /// At Halloween, a purple dusk or a deep purple night.
     private var isDay: Bool { model.appearance == .light }
+
+    private func sky(_ theme: Settings.Theme, day: Bool) -> [Color] {
+        switch (theme, day) {
+        case (.fall, true): return [Color(cgColor: .hex(0x8CC4E8)), Color(cgColor: .hex(0xCFE3EE)), Color.harvestPeach]
+        case (.fall, false): return [Color(cgColor: .hex(0x1C2340)), Color(cgColor: .hex(0x4A2238)), Color.harvestPlum]
+        case (.halloween, true): return [Color(cgColor: .hex(0x6B5A8E)), Color(cgColor: .hex(0xC48BA0)), Color(cgColor: .hex(0xF2B279))]
+        case (.halloween, false): return [Color(cgColor: .hex(0x120C1F)), Color.harvestNight, Color(cgColor: .hex(0x4D2A4A))]
+        }
+    }
 
     /// A few stars for the night sky, as fractions of the view's size (x, y, diameter).
     private let stars: [(CGFloat, CGFloat, CGFloat)] = [
@@ -329,8 +342,11 @@ struct LiveHarvestView: View {
             ZStack(alignment: .bottom) {
                 // Day or night, following Light and Dark mode: the skies cross-fade while the sun sets
                 // and the moon rises (or the other way round).
-                LinearGradient(colors: [Color(cgColor: .hex(0x1C2340)), Color(cgColor: .hex(0x4A2238)), Color.harvestPlum],
-                               startPoint: .top, endPoint: .bottom)
+                // One sky for each theme, by night and by day, cross-fading as the theme or Light and Dark change.
+                ForEach(Settings.Theme.allCases, id: \.self) { theme in
+                    LinearGradient(colors: sky(theme, day: false), startPoint: .top, endPoint: .bottom)
+                        .opacity(model.theme == theme ? 1 : 0)
+                }
                 ForEach(stars.indices, id: \.self) { i in
                     Circle()
                         .fill(.white.opacity(0.75))
@@ -338,9 +354,13 @@ struct LiveHarvestView: View {
                         .position(x: geometry.size.width * stars[i].0, y: geometry.size.height * stars[i].1)
                 }
                 .opacity(isDay ? 0 : 1)
-                LinearGradient(colors: [Color(cgColor: .hex(0x8CC4E8)), Color(cgColor: .hex(0xCFE3EE)), Color.harvestPeach],
-                               startPoint: .top, endPoint: .bottom)
-                    .opacity(isDay ? 1 : 0)
+                ZStack {
+                    ForEach(Settings.Theme.allCases, id: \.self) { theme in
+                        LinearGradient(colors: sky(theme, day: true), startPoint: .top, endPoint: .bottom)
+                            .opacity(model.theme == theme ? 1 : 0)
+                    }
+                }
+                .opacity(isDay ? 1 : 0)
                 // The sun, with a warm glow.
                 Circle()
                     .fill(Color(cgColor: .hex(0xF7C948)))
@@ -377,9 +397,15 @@ struct LiveHarvestView: View {
             .onAppear { harvest.layout(size: geometry.size, regrow: true) }
             .onChange(of: geometry.size) { harvest.layout(size: $0, regrow: false) }
             .onChange(of: look) { _ in harvest.layout(size: geometry.size, regrow: true) }
+            // A new theme grows in as the old one fades, as on the Dock.
+            .onChange(of: model.theme) { _ in
+                harvest.scene.crossfadeNextHarvest = true
+                harvest.layout(size: geometry.size, regrow: true)
+            }
             // Same harvest, redrawn in the new colors.
             .onChange(of: model.appearance) { _ in harvest.scene.repaint() }
             .animation(.easeInOut(duration: 0.8), value: isDay)
+            .animation(.easeInOut(duration: 0.8), value: model.theme)
         }
         .frame(height: height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
@@ -391,58 +417,58 @@ struct LiveHarvestView: View {
 
 struct CustomizePage: View {
     @ObservedObject var model: AppModel
+    /// The theme whose options are showing: the one on the Dock, unless another one is picked above.
+    @State private var picked: Settings.Theme?
     private let columns = [GridItem(.adaptive(minimum: 132), spacing: 14)]
+
+    private var theme: Settings.Theme { picked ?? model.theme }
+    private var halloween: Bool { theme == .halloween }
 
     var body: some View {
         PageLayout(title: "Customize") {
-            HeroCard(eyebrow: model.theme.title, title: "Pumpkins, Hay and Falling Leaves",
+            if Settings.Theme.allCases.count > 1 {
+                HStack(spacing: 12) {
+                    Picker("Theme", selection: Binding(get: { theme }, set: { new in withAnimation(.easeInOut(duration: 0.25)) { picked = new } })) {
+                        ForEach(Settings.Theme.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                    .accessibilityIdentifier("customize-theme")
+                    if theme != model.theme {
+                        Text("Not on your Dock right now.").font(.callout).foregroundStyle(.secondary)
+                        Button("Show \(theme.title)") { model.themeChoice = .keep(theme) }
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+
+            HeroCard(eyebrow: theme.title, title: theme.headline,
                      subtitle: "Pick what grows on your Dock. Changes show up right away.", height: 240) {
-                Image(nsImage: ThemePreview.image(for: model.theme))
+                Image(nsImage: ThemePreview.image(for: theme))
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .id(theme)
+                    .transition(.opacity)
             }
 
             Card(title: "On Your Dock") {
-                SettingRow(symbol: "laurel.leading", color: .harvestGreen, title: "Vine",
-                           detail: "Curling along the top of the Dock, behind the pumpkins.") {
+                SettingRow(symbol: halloween ? "mountain.2.fill" : "laurel.leading", color: halloween ? .purple : .harvestGreen,
+                           title: theme.vineTitle, detail: theme.vineDetail) {
                     Toggle("", isOn: $model.showVines).labelsHidden().toggleStyle(.switch)
                 }
                 Divider()
-                SettingRow(symbol: "leaf.fill", color: .harvestRust, title: "Falling leaves",
-                           detail: "A leaf drifting down now and then.") {
-                    Toggle("", isOn: $model.fallingLeaves.animation(.easeInOut(duration: 0.25))).labelsHidden().toggleStyle(.switch)
-                }
-                if model.fallingLeaves {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Divider()
-                        SettingRow(symbol: "slider.horizontal.3", color: .harvestRust, title: "Amount",
-                                   detail: "How many leaves fall, from a few to lots.") {
-                            HStack(spacing: 8) {
-                                Image(systemName: "leaf").font(.caption).foregroundStyle(.secondary)
-                                MiddleMarkedSlider(value: $model.leafAmount)
-                                    .accessibilityLabel("Amount of falling leaves")
-                                    // A small mark under the middle of the track, where the usual amount is.
-                                    .overlay(alignment: .bottom) {
-                                        Capsule()
-                                            .fill(.secondary)
-                                            .frame(width: 2, height: 5)
-                                            .offset(y: 4)
-                                    }
-                                Image(systemName: "leaf.fill").foregroundStyle(.secondary)
-                            }
-                            .frame(width: 190)
-                        }
-                        Divider()
-                        SettingRow(symbol: "rectangle.inset.filled", color: .harvestRust, title: "Fill the whole screen",
-                                   detail: "Leaves drift down across the screen the Dock is on, not just above the Dock.") {
-                            Toggle("", isOn: $model.leavesFillScreen).labelsHidden().toggleStyle(.switch)
-                        }
+                if halloween {
+                    SettingRow(symbol: "moon.stars.fill", color: .harvestNight, title: "Bats",
+                               detail: "A bat fluttering past now and then, and one hiding in each jack-o'-lantern.") {
+                        Toggle("", isOn: $model.bats).labelsHidden().toggleStyle(.switch)
                     }
-                    .padding(.leading, 40)
+                } else {
+                    fallingLeaves
                 }
                 Divider()
-                SettingRow(symbol: "basket.fill", color: .harvestMustard, title: "Cozy extras",
-                           detail: "Hay bales, leaf piles and more between the pumpkins.") {
+                SettingRow(symbol: halloween ? "theatermasks.fill" : "basket.fill", color: halloween ? .purple : .harvestMustard,
+                           title: theme.extrasTitle, detail: theme.extrasDetail) {
                     Toggle("", isOn: $model.cozyExtras).labelsHidden().toggleStyle(.switch)
                 }
             }
@@ -450,21 +476,66 @@ struct CustomizePage: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Extras").font(.title3.weight(.bold))
                 LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(DecorKind.allCases, id: \.self) { kind in
+                    ForEach(theme.extras, id: \.self) { kind in
                         ExtraTile(image: ExtraArt.image(for: kind), title: kind.title, isOn: model.enabledExtras.contains(kind)) {
                             model.setExtra(kind, enabled: !model.enabledExtras.contains(kind))
                         }
                     }
-                    ExtraTile(image: ExtraArt.squirrel(), title: "Squirrel", isOn: model.squirrel) { model.squirrel.toggle() }
+                    if halloween {
+                        ExtraTile(image: ExtraArt.ghost(), title: theme.visitorTitle, isOn: model.ghost) { model.ghost.toggle() }
+                    } else {
+                        ExtraTile(image: ExtraArt.squirrel(), title: theme.visitorTitle, isOn: model.squirrel) { model.squirrel.toggle() }
+                    }
                 }
+                .id(theme)
                 .disabled(!model.cozyExtras)
                 .opacity(model.cozyExtras ? 1 : 0.45)
-                Text(model.cozyExtras
-                     ? "Click to switch each one on or off. On the Dock, click the hay bales, leaf piles, the latte and the lantern."
-                     : "Switch on Cozy extras to pick them.")
+                Text(!model.cozyExtras ? "Switch on \(theme.extrasTitle) to pick them."
+                     : halloween ? "Click to switch each one on or off. On the Dock, click the jack-o'-lanterns, the cat, the cauldron and the candles."
+                     : "Click to switch each one on or off. On the Dock, click the hay bales, leaf piles, the latte and the lantern.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        // A new theme on the Dock (picked elsewhere, or by the calendar) shows its own options.
+        .onChange(of: model.theme) { _ in picked = nil }
+    }
+
+    /// Fall's falling leaves, with how many and whether they fill the screen.
+    private var fallingLeaves: some View {
+        Group {
+            SettingRow(symbol: "leaf.fill", color: .harvestRust, title: "Falling leaves",
+                       detail: "A leaf drifting down now and then.") {
+                Toggle("", isOn: $model.fallingLeaves.animation(.easeInOut(duration: 0.25))).labelsHidden().toggleStyle(.switch)
+            }
+            if model.fallingLeaves {
+                VStack(alignment: .leading, spacing: 14) {
+                    Divider()
+                    SettingRow(symbol: "slider.horizontal.3", color: .harvestRust, title: "Amount",
+                               detail: "How many leaves fall, from a few to lots.") {
+                        HStack(spacing: 8) {
+                            Image(systemName: "leaf").font(.caption).foregroundStyle(.secondary)
+                            MiddleMarkedSlider(value: $model.leafAmount)
+                                .accessibilityLabel("Amount of falling leaves")
+                                // A small mark under the middle of the track, where the usual amount is.
+                                .overlay(alignment: .bottom) {
+                                    Capsule()
+                                        .fill(.secondary)
+                                        .frame(width: 2, height: 5)
+                                        .offset(y: 4)
+                                }
+                            Image(systemName: "leaf.fill").foregroundStyle(.secondary)
+                        }
+                        .frame(width: 190)
+                    }
+                    Divider()
+                    SettingRow(symbol: "rectangle.inset.filled", color: .harvestRust, title: "Fill the whole screen",
+                               detail: "Leaves drift down across the screen the Dock is on, not just above the Dock.") {
+                        Toggle("", isOn: $model.leavesFillScreen).labelsHidden().toggleStyle(.switch)
+                    }
+                }
+                .padding(.leading, 40)
             }
         }
     }
@@ -525,8 +596,17 @@ enum ExtraArt {
         if let image = cache[key] { return image }
         let unit: CGFloat = 60
         let size = CozyArt.size(of: kind, unit: unit)
-        let texture = CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
+        let texture = kind.isSpooky ? SpookyArt.tile(kind, unit: unit, scale: 2) : CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
         let image = NSImage(cgImage: texture.cgImage(), size: size)
+        cache[key] = image
+        return image
+    }
+
+    static func ghost() -> NSImage {
+        let key = "ghost-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let unit: CGFloat = 60
+        let image = NSImage(cgImage: SpookyArt.ghostTexture(unit: unit, scale: 2).cgImage(), size: SpookyArt.ghostSize(unit: unit))
         cache[key] = image
         return image
     }
@@ -537,6 +617,22 @@ enum ExtraArt {
         let height: CGFloat = 80
         let texture = PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: 2)
         let image = NSImage(cgImage: texture.cgImage(), size: PumpkinArt.size(of: .roundOrange, height: height))
+        cache[key] = image
+        return image
+    }
+
+    /// A glowing jack-o'-lantern, for Halloween.
+    static func jackOLantern() -> NSImage {
+        let key = "jackOLantern-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let height: CGFloat = 80
+        let size = PumpkinArt.size(of: .roundOrange, height: height)
+        let texture = TextureMaker.make(size: size, scale: 2) { ctx in
+            let rect = CGRect(origin: .zero, size: size)
+            ctx.draw(PumpkinArt.texture(kind: .roundOrange, height: height, variant: 1, scale: 2).cgImage(), in: rect)
+            ctx.draw(SpookyArt.faceTexture(kind: .roundOrange, height: height, face: 0, scale: 2).cgImage(), in: rect)
+        }
+        let image = NSImage(cgImage: texture.cgImage(), size: size)
         cache[key] = image
         return image
     }
@@ -602,6 +698,7 @@ enum ThemePreview {
         let image: NSImage
         switch theme {
         case .fall: image = fall()
+        case .halloween: image = halloween()
         }
         cache[key] = image
         return image
@@ -668,6 +765,99 @@ enum ThemePreview {
             // Falling leaves.
             LeafArt.drawWagonLeaf(ctx, kind: .oak, at: CGPoint(x: 300, y: 140), length: 18, angle: -30, flip: false)
             LeafArt.drawWagonLeaf(ctx, kind: .ovate, at: CGPoint(x: 380, y: 112), length: 15, angle: 40, flip: true)
+        }
+        return NSImage(cgImage: texture.cgImage(), size: size)
+    }
+
+    private static func halloween() -> NSImage {
+        let size = CGSize(width: 520, height: 170)
+        let scale: CGFloat = 2
+        let h: CGFloat = 62
+        let texture = TextureMaker.make(size: size, scale: scale) { ctx in
+            // A night sky with stars, a big moon and bats.
+            ctx.setFillColor(Palette.night)
+            ctx.fill(CGRect(origin: .zero, size: size))
+            var rng = SeededRandom(seed: 31)
+            ctx.setFillColor(Palette.ghost.withAlpha(0.7))
+            for _ in 0..<26 {
+                let r = rng.float(0.6...1.4)
+                ctx.fillEllipse(in: CGRect(x: rng.float(0...size.width), y: rng.float(70...size.height), width: r * 2, height: r * 2))
+            }
+            ctx.setFillColor(Palette.ghost.mixed(with: Palette.mustard, 0.25))
+            ctx.fillEllipse(in: CGRect(x: 420, y: 100, width: 52, height: 52))
+            ctx.setFillColor(Palette.ghost.mixed(with: Palette.stone, 0.35))
+            ctx.fillEllipse(in: CGRect(x: 436, y: 124, width: 9, height: 8))
+            ctx.fillEllipse(in: CGRect(x: 452, y: 112, width: 6, height: 5))
+            for (x, y, frame) in [(330.0, 128.0, 0), (372.0, 146.0, 1), (238.0, 140.0, 1)] {
+                let bat = SpookyArt.batSize(unit: h * 0.7)
+                ctx.draw(SpookyArt.batTexture(frame: frame, unit: h * 0.7, scale: scale).cgImage(),
+                         in: CGRect(x: CGFloat(x), y: CGFloat(y), width: bat.width, height: bat.height))
+            }
+            let shelf: CGFloat = 24
+            ctx.setFillColor(Palette.soot.mixed(with: Palette.plum, 0.4))
+            ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: shelf))
+
+            let k = h / 60
+            let dirtHeight = (h * 0.3).rounded()
+            ctx.draw(SpookyArt.dirtTexture(width: size.width, height: dirtHeight, seed: 11, unit: k, scale: scale).cgImage(),
+                     in: CGRect(x: 0, y: shelf - 6, width: size.width, height: dirtHeight))
+            let web = CGSize(width: h * 0.7, height: h * 0.7)
+            ctx.draw(SpookyArt.cobwebTexture(size: web, scale: scale).cgImage(), in: CGRect(origin: CGPoint(x: 2, y: shelf - 3), size: web))
+
+            enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), crypt(PumpkinKind) }
+            let items: [Item] = [.lantern(.roundOrange, 1, 0), .decor(.tombstone), .pumpkin(.ghostWhite, 0.8), .decor(.cauldron),
+                                 .crypt(.squatOrange), .decor(.skull), .lantern(.tallOrange, 0.95, 3), .decor(.candles),
+                                 .lantern(.roundOrange, 0.86, 1), .decor(.candy)]
+            let decorUnit = (h * 0.75).rounded()
+            func width(_ item: Item) -> CGFloat {
+                switch item {
+                case let .lantern(kind, s, _), let .pumpkin(kind, s): return PumpkinArt.size(of: kind, height: (h * s).rounded()).width
+                case let .decor(kind): return CozyArt.size(of: kind, unit: decorUnit).width
+                case .crypt: return CozyArt.size(of: .crypt, unit: h).width
+                }
+            }
+            func drawPumpkin(_ kind: PumpkinKind, height: CGFloat, centerX: CGFloat, y: CGFloat, face: Int?) {
+                let s = PumpkinArt.size(of: kind, height: height)
+                let rect = CGRect(x: centerX - s.width / 2, y: y, width: s.width, height: s.height)
+                if let face {
+                    // The candle's glow around a jack-o'-lantern.
+                    let glow = s.width * 1.5
+                    ctx.draw(CozyArt.glowTexture(color: Palette.orange.mixed(with: Palette.mustard, 0.5), diameter: glow, scale: scale).cgImage(),
+                             in: CGRect(x: centerX - glow / 2, y: y + s.height * 0.42 - glow / 2, width: glow, height: glow))
+                }
+                ctx.draw(PumpkinArt.texture(kind: kind, height: height, variant: 1, scale: scale).cgImage(), in: rect)
+                if let face {
+                    ctx.draw(SpookyArt.faceTexture(kind: kind, height: height, face: face, scale: scale).cgImage(), in: rect)
+                }
+            }
+            let used = items.map(width).reduce(0, +)
+            let space = (size.width - used) / CGFloat(items.count + 1)
+            var x = space
+            for item in items {
+                let w = width(item)
+                let center = x + w / 2
+                switch item {
+                case let .lantern(kind, s, face):
+                    drawPumpkin(kind, height: (h * s).rounded(), centerX: center, y: shelf - 3, face: face)
+                case let .pumpkin(kind, s):
+                    drawPumpkin(kind, height: (h * s).rounded(), centerX: center, y: shelf - 3, face: nil)
+                case let .decor(kind):
+                    let s = CozyArt.size(of: kind, unit: decorUnit)
+                    ctx.draw(SpookyArt.tile(kind, unit: decorUnit, scale: scale).cgImage(),
+                             in: CGRect(x: center - s.width / 2, y: shelf - 2, width: s.width, height: s.height))
+                case let .crypt(kind):
+                    let s = CozyArt.size(of: .crypt, unit: h)
+                    ctx.draw(CozyArt.texture(.crypt, unit: h, variant: 2, scale: scale).cgImage(),
+                             in: CGRect(x: center - s.width / 2, y: shelf - 3, width: s.width, height: s.height))
+                    drawPumpkin(kind, height: (h * 0.78).rounded(), centerX: center, y: shelf - 3 + s.height * 0.86, face: 3)
+                }
+                x += w + space
+            }
+            // The ghost, floating by.
+            let ghost = SpookyArt.ghostSize(unit: h * 0.8)
+            ctx.setAlpha(0.92)
+            ctx.draw(SpookyArt.ghostTexture(unit: h * 0.8, scale: scale).cgImage(), in: CGRect(x: 300, y: 86, width: ghost.width, height: ghost.height))
+            ctx.setAlpha(1)
         }
         return NSImage(cgImage: texture.cgImage(), size: size)
     }

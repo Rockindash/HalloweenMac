@@ -95,7 +95,7 @@ final class HarvestLayoutTests: SettingsTestCase {
     }
 
     @MainActor func testEveryGapExtraOffStillLeavesHayBales() {
-        for kind in Set(DecorKind.gapCycle) { Settings.setEnabled(kind, false) }
+        for kind in Set(Settings.Theme.fall.gapCycle) { Settings.setEnabled(kind, false) }
         let scene = harvest(width: 1400)
         XCTAssertTrue(scene.gapKinds.isEmpty)
         XCTAssertGreaterThan(scene.pumpkinCount, 2)

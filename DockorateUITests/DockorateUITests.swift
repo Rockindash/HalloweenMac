@@ -190,6 +190,43 @@ final class DockorateUITests: XCTestCase {
         XCTAssertFalse(isOn(toggle("Sounds")))
     }
 
+    func testPickingHalloweenChangesWhatCustomizeShows() {
+        launch()
+        open("themes")
+        XCTAssertTrue(element("theme-fall").waitForExistence(timeout: 5), "Fall is on the Themes page")
+        let halloween = app.buttons["theme-halloween"].firstMatch
+        reveal(halloween)
+        halloween.click()
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5), "Customize shows Halloween's options")
+        XCTAssertTrue(element("Bats").exists)
+
+        // Still Halloween after a relaunch.
+        launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5))
+
+        // And back to Fall, the original.
+        open("themes")
+        let fall = app.buttons["theme-fall"].firstMatch
+        reveal(fall)
+        fall.click()
+        open("customize")
+        XCTAssertTrue(element("Vine").waitForExistence(timeout: 5), "Customize shows Fall's options again")
+        XCTAssertTrue(element("Falling leaves").exists)
+    }
+
+    func testChangeWithTheCalendarIsKept() {
+        launch()
+        open("themes")
+        XCTAssertFalse(isOn(toggle("Change with the calendar")), "Fall stays on until something else is picked")
+        setSwitch("Change with the calendar", on: true)
+        launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
+        open("themes")
+        XCTAssertTrue(isOn(toggle("Change with the calendar")))
+        setSwitch("Change with the calendar", on: false)
+    }
+
     func testBackgroundIsOffUntilSwitchedOn() {
         launch()
         open("background")

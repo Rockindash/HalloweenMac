@@ -14,6 +14,8 @@ final class AppModel: ObservableObject {
     private let wallpaper = WallpaperController()
     private var activity: NSObjectProtocol?
     private var licenseWatch: AnyCancellable?
+    private var calendarTimer: Timer?
+    private var dayWatch: NSObjectProtocol?
 
     let license = LicenseManager()
     let updater = Updater()
@@ -54,8 +56,33 @@ final class AppModel: ObservableObject {
         didSet { Settings.showMenuBarIcon = showMenuBarIcon }
     }
 
-    @Published var theme: Settings.Theme {
-        didSet { Settings.theme = theme; overlay.refresh(force: true); wallpaper.refresh() }
+    /// The theme picked on the Themes page: Fall or Halloween all year, or changing with the calendar.
+    @Published var themeChoice: Settings.ThemeChoice {
+        didSet {
+            Settings.themeChoice = themeChoice
+            themeMayHaveChanged()
+        }
+    }
+
+    /// The theme on the Dock right now.
+    @Published private(set) var theme: Settings.Theme
+
+    /// Switches the Dock, the desktop picture and the window to the theme that's on now, if it changed:
+    /// after a new pick, or when the calendar turns the page.
+    private func themeMayHaveChanged() {
+        let now = Settings.theme
+        guard now != theme else { return }
+        theme = now
+        overlay.changeTheme()
+        wallpaper.refresh()
+    }
+
+    @Published var bats: Bool {
+        didSet { Settings.bats = bats }
+    }
+
+    @Published var ghost: Bool {
+        didSet { Settings.ghost = ghost; overlay.refresh(force: true) }
     }
 
     /// The desktop picture goes with the theme (the Background page).
@@ -103,7 +130,10 @@ final class AppModel: ObservableObject {
         squirrel = Settings.squirrel
         enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
         showMenuBarIcon = Settings.showMenuBarIcon
+        themeChoice = Settings.themeChoice
         theme = Settings.theme
+        bats = Settings.bats
+        ghost = Settings.ghost
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
@@ -143,6 +173,14 @@ final class AppModel: ObservableObject {
         // After the overlay, which reads the Mac's Light/Dark setting the pictures follow.
         wallpaper.isLicensed = license.isActive
         wallpaper.start()
+        // Changing with the calendar: switch themes when the day changes (at midnight, or on waking
+        // up on a new day), with a regular check in case a change is missed.
+        dayWatch = NotificationCenter.default.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.themeMayHaveChanged() }
+        }
+        calendarTimer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.themeMayHaveChanged() }
+        }
     }
 
     func stop() {
@@ -186,7 +224,9 @@ final class AppModel: ObservableObject {
         squirrel = Settings.squirrel
         enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
         showMenuBarIcon = Settings.showMenuBarIcon
-        theme = Settings.theme
+        themeChoice = Settings.themeChoice
+        bats = Settings.bats
+        ghost = Settings.ghost
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves

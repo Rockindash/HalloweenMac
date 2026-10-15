@@ -67,6 +67,13 @@
 		A1C0FFEE0000000000003010 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */; };
 		A1C0FFEE0000000000003011 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */; };
 		A1C0FFEE0000000000002025 /* AppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002035 /* AppStoreTests.swift */; };
+		A1C0FFEE0000000000004001 /* SpookyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004021 /* SpookyArt.swift */; };
+		A1C0FFEE0000000000004011 /* SpookyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004021 /* SpookyArt.swift */; };
+		A1C0FFEE0000000000004002 /* PumpkinScene+Spooky.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */; };
+		A1C0FFEE0000000000004012 /* PumpkinScene+Spooky.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */; };
+		A1C0FFEE0000000000004003 /* ThemesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004023 /* ThemesPage.swift */; };
+		A1C0FFEE0000000000004013 /* ThemesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004023 /* ThemesPage.swift */; };
+		A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002036 /* ThemeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -126,6 +133,10 @@
 		A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A1C0FFEE0000000000003004 /* DockorateAppStore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DockorateAppStore.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1C0FFEE0000000000002035 /* AppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000004021 /* SpookyArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpookyArt.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Spooky.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000004023 /* ThemesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ThemesPage.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002036 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -170,6 +181,7 @@
 				A1C0FFEE00000000000000B2 /* DockSprite.swift */,
 				A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */,
 				A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */,
+				A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */,
 			);
 			path = Overlay;
 			sourceTree = "<group>";
@@ -185,6 +197,8 @@
 				A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */,
 				A1C0FFEE0000000000003001 /* Info-AppStore.plist */,
 				A1C0FFEE0000000000003002 /* Dockorate-AppStore.entitlements */,
+				A1C0FFEE0000000000004021 /* SpookyArt.swift */,
+				A1C0FFEE0000000000004023 /* ThemesPage.swift */,
 			);
 			path = FallDock;
 			sourceTree = "<group>";
@@ -250,6 +264,7 @@
 				A1C0FFEE0000000000002033 /* ArtTests.swift */,
 				A1C0FFEE0000000000002034 /* WallpaperTests.swift */,
 				A1C0FFEE0000000000002035 /* AppStoreTests.swift */,
+				A1C0FFEE0000000000002036 /* ThemeTests.swift */,
 			);
 			path = DockorateTests;
 			sourceTree = "<group>";
@@ -451,6 +466,9 @@
 				A1C0FFEE0000000000001002 /* Wallpaper.swift in Sources */,
 				A1C0FFEE0000000000001001 /* WallpaperArt.swift in Sources */,
 				A1C0FFEE0000000000002001 /* AppEnvironment.swift in Sources */,
+				A1C0FFEE0000000000004001 /* SpookyArt.swift in Sources */,
+				A1C0FFEE0000000000004002 /* PumpkinScene+Spooky.swift in Sources */,
+				A1C0FFEE0000000000004003 /* ThemesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +482,7 @@
 				A1C0FFEE0000000000002023 /* ArtTests.swift in Sources */,
 				A1C0FFEE0000000000002024 /* WallpaperTests.swift in Sources */,
 				A1C0FFEE0000000000002025 /* AppStoreTests.swift in Sources */,
+				A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -502,6 +521,9 @@
 				A1C0FFEE0000000000003114 /* Wallpaper.swift in Sources */,
 				A1C0FFEE0000000000003115 /* WallpaperArt.swift in Sources */,
 				A1C0FFEE0000000000003116 /* AppEnvironment.swift in Sources */,
+				A1C0FFEE0000000000004011 /* SpookyArt.swift in Sources */,
+				A1C0FFEE0000000000004012 /* PumpkinScene+Spooky.swift in Sources */,
+				A1C0FFEE0000000000004013 /* ThemesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

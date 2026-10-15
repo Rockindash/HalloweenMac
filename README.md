@@ -21,6 +21,29 @@ Sweep the pointer quickly across the pumpkins to rock them, and get close to the
 
 ![Growing with the Dock's magnification](docs/magnify-preview.png)
 
+## Themes
+
+**Fall** is the original theme, and it's what you get unless you pick another. On the **Themes** page of the app window (or **Theme** in the 🎃 menu) choose:
+
+- **Fall** all year: the harvest above.
+- **Halloween** all year.
+- **Change with the calendar**: Halloween from October 15th to November 1st, and Fall the rest of the year. The page says which one is next and when. The Dock changes by itself the day it turns over, even if the app has been running for days.
+
+Switching is smooth: the old harvest fades away while the new one grows in from left to right, and the app window, the live harvest and the desktop picture (with Background on) cross-fade to the new theme. The Customize page follows the theme on the Dock, and its switcher lets you look at and set up the other theme too. Every theme keeps its own extras, so turning off the hay bales in Fall leaves Halloween alone.
+
+### Halloween
+
+- The orange pumpkins become **jack-o'-lanterns** with glowing yellow carved faces: pointy eyes and a toothy grin, happy closed eyes, big round eyes, or a mischievous jagged smile. Their candles flicker, and flare up when you point at one. Smash one and assorted candy flies out, and a bat that was hiding inside flutters away. A few pale ghost pumpkins sit among them.
+- **Purple graveyard dirt** runs along the Dock instead of a vine, lumpy, with pebbles and tufts of grass, and **cobwebs** at both ends with a spider slowly lowering itself on its thread.
+- Spooky extras, each with a click: **tombstones** (a zombie hand reaches up out of the dirt and waves), a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it, and it meows when clicked), a **bubbling cauldron**, a pile of **assorted candy** that flies when clicked, **dripping candles** that blow out and relight, a **skull** whose jaw chatters, and gnarled **crypt pedestals** with a jack-o'-lantern on top.
+- **Bats** flutter past now and then instead of falling leaves.
+- A cute **ghost** flies across above the Dock instead of the squirrel. Click it and it dashes off the side of the screen.
+- With Background on, a dusky purple sky with a big moon, bats, a bare tree and a few tombstones on the hills (light and dark).
+
+![Halloween on the Dock](docs/halloween-preview.png)
+
+Each theme is a case of `Settings.Theme` with its own extras, perch, vine and calendar window, so a new theme only has to say what it brings.
+
 ## What you need
 
 - A Mac running macOS 13 Ventura or newer.
@@ -45,9 +68,12 @@ While it's open, Dockorate shows in the Dock and the app switcher like any app; 
 When Dockorate starts by itself at login, the window stays closed.
 
 - **Home**: a live little harvest on a pretend Dock (click its pumpkins to smash them), whether the harvest is on your Dock right now, your smash count, and buttons to pause it for an hour, grow new pumpkins, or show or hide it.
-- **Customize**: the vine, falling leaves and cozy extras, with a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. With falling leaves on:
+- **Themes**: the theme on your Dock now, a picture card for each theme (Fall is marked as the original), and **Change with the calendar**.
+- **Customize**: the theme on the Dock, with a switcher to look at the other one. For Fall: the vine, falling leaves and cozy extras, with a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. With falling leaves on:
   - **Amount**: how many leaves fall, from a few to lots. The mark in the middle is the usual amount, and the slider snaps to it.
   - **Fill the whole screen** (off by default): leaves drift down across the whole screen the Dock is on and settle behind the Dock, instead of only just above it.
+
+  For Halloween: the graveyard dirt, bats and spooky extras, with a tile for each (crypt pedestals, tombstones, the black cat, the cauldron, candy, candles, the skull and the ghost).
 - **Background** (off by default): sets your desktop picture to go with the theme, a soft sky and rolling hills. Each theme has a light and a dark picture. **Switch with Light and Dark** (on by default) shows the light one when the Dock is light and the dark one when it's dark; clicking a picture keeps that one instead. The pictures are drawn at each display's exact size and saved in `~/Library/Application Support/Dockorate/Wallpapers`. Your own picture for each display is saved first and comes back when Background is switched off (or by Reset everything). macOS only changes the desktop of the space you're on, so the picture is set again as you move between spaces, plug in displays or switch Light and Dark.
 - **Settings**:
   - **General**: open at login, the 🎃 in the menu bar, and the smash sound.
@@ -66,6 +92,7 @@ When Dockorate starts by itself at login, the window stays closed.
 - **How Full**: A Few, Plenty or Overflowing, which sets how closely pumpkins and extras are packed. They always stay the same size: when the Dock gets longer or shorter (adding apps, or changing its size in System Settings), pumpkins and extras grow in or shrink away at the end instead of everything stretching.
 - **Grow New Pumpkins**: a fresh set of pumpkins.
 - **Pause for 1 Hour**: hides everything for an hour, for presentations and screen sharing (or **Resume** early).
+- **Theme**: Fall, Halloween, or Change with the Calendar, the same choice as the Themes page.
 - **Fit Pumpkins to Dock Exactly…**: by default the app estimates how wide your Dock is. If the pumpkins hang past the ends of your Dock, allow Dockorate under System Settings → Privacy & Security → Accessibility and it will measure the Dock exactly. It only reads the Dock's size.
 - **Open at Login**: starts Dockorate when you log in (use the copy in Applications).
 - **Welcome to Dockorate…**: shows the welcome window again. It opens by itself the first time.
@@ -96,6 +123,7 @@ Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transpare
 | `App/Welcome.swift` | The welcome window shown on first launch |
 | `App/MainWindow.swift` | The app window |
 | `App/MainView.swift` | The window's sidebar, and the Home and Settings pages |
+| `App/ThemesPage.swift` | The Themes page, and the words for when the theme changes |
 | `App/MainTabs.swift` | The Customize page, the cards and rows the pages are built from, and the live little harvest |
 | `App/BackgroundPage.swift` | The Background page |
 | `App/Wallpaper.swift` | Puts the theme's picture on the desktop, keeps it there across spaces and displays, and puts yours back |
@@ -103,12 +131,14 @@ Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transpare
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
 | `Overlay/PumpkinScene+Cozy.swift` | The cozy extras and the squirrel |
+| `Overlay/PumpkinScene+Spooky.swift` | Halloween: jack-o'-lanterns, the spooky extras, zombie hands, the ghost, bats and cobwebs |
 | `Overlay/ScreenLeafScene.swift` | Leaves falling across the whole screen, for Fill the whole screen |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
+| `Art/SpookyArt.swift` | Draws Halloween: jack-o'-lantern faces, crypt pedestals, tombstones, the black cat, the cauldron, candy, candles, the skull, the zombie hand, the ghost, bats, the spider, cobwebs and purple dirt |
 | `Art/WallpaperArt.swift` | Draws each theme's light and dark desktop pictures |
-| `Art/SmashSound.swift` | Makes the smash sound from scratch |
+| `Art/SmashSound.swift` | Makes the smash sound and the cat's meow from scratch |
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.
 
@@ -122,8 +152,8 @@ xcodebuild test -project FallDock.xcodeproj -scheme FallDock -destination 'platf
 
 They also run on GitHub (see `.github/workflows/tests.yml`) for every pull request and every push to `main`, `version-*` and `dockorate-*` branches, so a new feature can't quietly break an old one.
 
-- **DockorateTests** (unit tests): settings and their defaults, carrying settings over from older versions, Reset Everything, how the harvest is laid out on Docks of different lengths, what each Customize and Settings switch changes, smashing, the Dock's magnification math, the art in light and dark, and the Background pictures.
-- **DockorateUITests** (UI tests): open every page, flip the main switches, check choices survive a relaunch, Background starting off, Reset Everything asking first, and the license page when there's no license.
+- **DockorateTests** (unit tests): settings and their defaults, carrying settings over from older versions, Reset Everything, how the harvest is laid out on Docks of different lengths, what each Customize and Settings switch changes, smashing, the Dock's magnification math, the art in light and dark, the Background pictures, and themes (Fall staying the default, the calendar, each theme's harvest, and the crossfade between them).
+- **DockorateUITests** (UI tests): open every page, flip the main switches, check choices survive a relaunch, Background starting off, picking a theme and changing with the calendar, Reset Everything asking first, and the license page when there's no license.
 
 The tests never touch your own settings, license key, desktop picture or login items. Unit tests keep their settings in a throwaway place. UI tests start the app with `-UITesting` (see `App/AppEnvironment.swift`), which gives it fresh settings of its own and a pretend license, and stops it from changing the desktop or login items. The first UI test run asks to let Xcode control the app (System Settings → Privacy & Security → Accessibility).
 

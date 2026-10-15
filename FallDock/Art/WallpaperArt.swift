@@ -17,6 +17,8 @@ enum WallpaperArt {
         var glow: CGColor
         var backHill: CGColor
         var frontHill: CGColor
+        /// Halloween's touches: a bare tree, tombstones along the hill and bats by the moon.
+        var spooky = false
     }
 
     /// Bump this when the pictures change, so Macs that already have the old files draw them again.
@@ -32,6 +34,14 @@ enum WallpaperArt {
             // Night: indigo sky warming to plum at the horizon, a harvest moon, dark plum hills.
             return Look(skyTop: .hex(0x17152B), skyBottom: .hex(0x342236), orb: .hex(0xD4CBB4),
                         glow: .hex(0xD4CBB4, alpha: 0.13), backHill: .hex(0x2F1E2F), frontHill: .hex(0x271A2A))
+        case (.halloween, .light):
+            // Dusk on Halloween: lavender sky glowing pumpkin orange at the horizon, a low sun, purple hills.
+            return Look(skyTop: .hex(0x8F7BB0), skyBottom: .hex(0xF4B67E), orb: .hex(0xFFE0AE),
+                        glow: .hex(0xFFE2B8, alpha: 0.5), backHill: .hex(0x7E6A99), frontHill: .hex(0x5E4C78), spooky: true)
+        case (.halloween, .dark):
+            // Halloween night: a deep purple sky, a big bright moon, nearly black hills.
+            return Look(skyTop: .hex(0x16112A), skyBottom: .hex(0x3D2148), orb: .hex(0xF2E6C8),
+                        glow: .hex(0xF2E6C8, alpha: 0.18), backHill: .hex(0x221730), frontHill: .hex(0x150E1E), spooky: true)
         }
     }
 
@@ -80,6 +90,11 @@ enum WallpaperArt {
         ctx.setFillColor(look.orb)
         ctx.fillEllipse(in: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2))
 
+        if look.spooky {
+            drawBats(in: ctx, size: size, color: look.frontHill)
+            drawTree(in: ctx, size: size, color: look.frontHill)
+        }
+
         // Hills, back then front.
         for (line, color) in [(backHill, look.backHill), (frontHill, look.frontHill)] {
             let path = CGMutablePath()
@@ -90,6 +105,83 @@ enum WallpaperArt {
             ctx.setFillColor(color)
             ctx.addPath(path)
             ctx.fillPath()
+        }
+
+        if look.spooky {
+            drawTombstones(in: ctx, size: size, color: look.frontHill)
+        }
+    }
+
+    /// The top of a hill at `x` (a fraction across), as a fraction from the top.
+    private static func height(of line: [CGPoint], at x: CGFloat) -> CGFloat {
+        guard let after = line.firstIndex(where: { $0.x >= x }), after > 0 else { return line.first?.y ?? 1 }
+        let a = line[after - 1], b = line[after]
+        return a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x)
+    }
+
+    /// A few tombstones standing on the front hill.
+    private static func drawTombstones(in ctx: CGContext, size: CGSize, color: CGColor) {
+        let w = size.width, h = size.height
+        ctx.setFillColor(color)
+        for (x, scale, tilt) in [(0.11, 1.0, -0.06), (0.155, 0.75, 0.04), (0.6, 0.9, 0.05), (0.66, 0.7, -0.08), (0.88, 0.85, 0.03)] as [(CGFloat, CGFloat, CGFloat)] {
+            let stoneW = w * 0.012 * scale, stoneH = w * 0.019 * scale
+            // Sunk a little into the hill, at the hill's height there.
+            let base = (1 - height(of: frontHill, at: x)) * h - stoneH * 0.25
+            ctx.saveGState()
+            ctx.translateBy(x: x * w, y: base)
+            ctx.rotate(by: tilt)
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: -stoneW / 2, y: 0))
+            path.addLine(to: CGPoint(x: -stoneW / 2, y: stoneH - stoneW / 2))
+            path.addArc(center: CGPoint(x: 0, y: stoneH - stoneW / 2), radius: stoneW / 2, startAngle: .pi, endAngle: 0, clockwise: true)
+            path.addLine(to: CGPoint(x: stoneW / 2, y: 0))
+            path.closeSubpath()
+            ctx.addPath(path)
+            ctx.fillPath()
+            ctx.restoreGState()
+        }
+    }
+
+    /// A bare, crooked tree on the back hill.
+    private static func drawTree(in ctx: CGContext, size: CGSize, color: CGColor) {
+        let w = size.width, h = size.height
+        let x: CGFloat = 0.27
+        let foot = CGPoint(x: x * w, y: (1 - height(of: backHill, at: x)) * h - w * 0.004)
+        let unit = w * 0.001
+        ctx.setStrokeColor(color)
+        ctx.setLineCap(.round)
+        func branch(from start: CGPoint, angle: CGFloat, length: CGFloat, width: CGFloat, depth: Int) {
+            guard depth > 0 else { return }
+            let end = CGPoint(x: start.x + cos(angle) * length, y: start.y + sin(angle) * length)
+            ctx.setLineWidth(width)
+            ctx.move(to: start)
+            ctx.addQuadCurve(to: end, control: CGPoint(x: (start.x + end.x) / 2 + length * 0.12, y: (start.y + end.y) / 2))
+            ctx.strokePath()
+            branch(from: end, angle: angle + 0.5, length: length * 0.68, width: width * 0.62, depth: depth - 1)
+            branch(from: end, angle: angle - 0.42, length: length * 0.6, width: width * 0.58, depth: depth - 1)
+        }
+        branch(from: foot, angle: .pi / 2 + 0.06, length: 46 * unit, width: 9 * unit, depth: 5)
+    }
+
+    /// Three bats flying past the moon, one right across it.
+    private static func drawBats(in ctx: CGContext, size: CGSize, color: CGColor) {
+        let w = size.width, h = size.height
+        ctx.setFillColor(color)
+        for (x, y, span) in [(0.772, 0.212, 0.022), (0.715, 0.14, 0.016), (0.84, 0.27, 0.013)] as [(CGFloat, CGFloat, CGFloat)] {
+            let c = CGPoint(x: x * w, y: (1 - y) * h), s = span * w
+            let path = CGMutablePath()
+            path.move(to: c)
+            // Each wing: a sweep up to its tip, then scalloped back to the body.
+            for side: CGFloat in [-1, 1] {
+                path.move(to: c)
+                path.addQuadCurve(to: CGPoint(x: c.x + side * s / 2, y: c.y + s * 0.18), control: CGPoint(x: c.x + side * s * 0.22, y: c.y + s * 0.3))
+                path.addQuadCurve(to: CGPoint(x: c.x + side * s * 0.3, y: c.y + s * 0.02), control: CGPoint(x: c.x + side * s * 0.42, y: c.y))
+                path.addQuadCurve(to: CGPoint(x: c.x + side * s * 0.12, y: c.y), control: CGPoint(x: c.x + side * s * 0.2, y: c.y + s * 0.08))
+                path.closeSubpath()
+            }
+            ctx.addPath(path)
+            ctx.fillPath()
+            ctx.fillEllipse(in: CGRect(x: c.x - s * 0.06, y: c.y - s * 0.06, width: s * 0.12, height: s * 0.16))
         }
     }
 

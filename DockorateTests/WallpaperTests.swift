@@ -59,6 +59,26 @@ final class WallpaperTests: SettingsTestCase {
         }
     }
 
+    func testHalloweenPictureHasItsSkyMoonHillsAndBats() {
+        for appearance in [Palette.Appearance.light, .dark] {
+            let look = WallpaperArt.look(for: .halloween, appearance)
+            XCTAssertTrue(look.spooky)
+            let image = try! XCTUnwrap(WallpaperArt.image(look, pixels: CGSize(width: 1600, height: 1000)))
+            XCTAssertColor(color(in: image, x: 0.02, y: 0.01), look.skyTop.rgb255, tolerance: 4, "sky at the top")
+            XCTAssertColor(color(in: image, x: 0.79, y: 0.18), look.orb.rgb255, tolerance: 2, "sun or moon")
+            XCTAssertColor(color(in: image, x: 0.772, y: 0.214), look.frontHill.rgb255, tolerance: 8, "a bat across it")
+            XCTAssertColor(color(in: image, x: 0.5, y: 0.84), look.backHill.rgb255, tolerance: 2, "back hill")
+            XCTAssertColor(color(in: image, x: 0.5, y: 0.98), look.frontHill.rgb255, tolerance: 2, "front hill")
+        }
+        XCTAssertFalse(WallpaperArt.look(for: .fall, .light).spooky, "Fall's pictures stay as they were")
+        XCTAssertFalse(WallpaperArt.look(for: .fall, .dark).spooky)
+    }
+
+    func testEachThemeGetsItsOwnFiles() {
+        let pixels = CGSize(width: 320, height: 200)
+        XCTAssertNotEqual(WallpaperArt.file(for: .fall, .dark, pixels: pixels), WallpaperArt.file(for: .halloween, .dark, pixels: pixels))
+    }
+
     func testPictureIsSavedOnceAndReused() throws {
         let pixels = CGSize(width: 800, height: 500)
         let url = try XCTUnwrap(WallpaperArt.file(for: .fall, .dark, pixels: pixels))

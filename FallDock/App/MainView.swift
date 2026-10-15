@@ -1,19 +1,21 @@
 import AppKit
 import SwiftUI
 
-// The app window, laid out like the Mac App Store: a floating sidebar with Home, Customize,
+// The app window, laid out like the Mac App Store: a floating sidebar with Home, Themes, Customize,
 // Background and Settings, and pages with a big title, a wide banner and plain rounded cards. Home
-// answers "is it on?", Customize picks what grows, Background sets a desktop picture to match, and
-// Settings holds everything else. The building blocks (cards, tiles, the live harvest) and the
-// Customize page are in MainTabs.swift; the Background page is in BackgroundPage.swift.
+// answers "is it on?", Themes picks Fall or Halloween (or the calendar), Customize picks what grows,
+// Background sets a desktop picture to match, and Settings holds everything else. The building blocks
+// (cards, tiles, the live harvest) and the Customize page are in MainTabs.swift; the Themes page is in
+// ThemesPage.swift and the Background page in BackgroundPage.swift.
 
 enum Page: String, CaseIterable, Identifiable {
-    case home, customize, background, settings
+    case home, themes, customize, background, settings
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .home: return "Home"
+        case .themes: return "Themes"
         case .customize: return "Customize"
         case .background: return "Background"
         case .settings: return "Settings"
@@ -23,6 +25,7 @@ enum Page: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .home: return "house"
+        case .themes: return "sparkles"
         case .customize: return "paintbrush"
         case .background: return "photo"
         case .settings: return "gearshape"
@@ -81,10 +84,13 @@ struct MainView: View {
         } detail: {
             Group {
                 switch page {
-                case .home where !model.license.isActive, .customize where !model.license.isActive,
-                     .background where !model.license.isActive:
+                case .home where !model.license.isActive, .themes where !model.license.isActive,
+                     .customize where !model.license.isActive, .background where !model.license.isActive:
                     LicensePage(license: model.license)
-                case .home: HomePage(model: model, state: state) { pageName = Page.customize.rawValue }
+                case .home:
+                    HomePage(model: model, state: state, openCustomize: { pageName = Page.customize.rawValue },
+                             openThemes: { pageName = Page.themes.rawValue })
+                case .themes: ThemesPage(model: model)
                 case .customize: CustomizePage(model: model)
                 case .background: BackgroundPage(model: model)
                 case .settings: SettingsPage(model: model)
@@ -211,12 +217,16 @@ struct HomePage: View {
     @ObservedObject var model: AppModel
     var state: HarvestState
     var openCustomize: () -> Void
+    var openThemes: () -> Void
 
     private let columns = [GridItem(.adaptive(minimum: 280), spacing: 20)]
 
     private var status: String {
         switch state {
-        case .showing: return "Click a pumpkin to smash it. Hay bales, leaf piles and the latte do things too."
+        case .showing:
+            return model.theme == .halloween
+                ? "Click a jack-o'-lantern to smash it. The cat, the cauldron and the candles do things too."
+                : "Click a pumpkin to smash it. Hay bales, leaf piles and the latte do things too."
         case .dockHidden: return "Your Dock is hidden right now. Changes show up when it's back."
         case .paused: return "Paused for an hour, then it comes back by itself."
         case .hidden: return "Switched off. Turn it on to bring the harvest back."
@@ -244,10 +254,21 @@ struct HomePage: View {
                     FeatureCard(eyebrow: "Your harvest", title: smashed,
                                 subtitle: "Smash one on your Dock and another grows in its place.",
                                 image: ExtraArt.pumpkin(), imageBackground: Color.harvestMustard.opacity(0.22))
+                    Button(action: openThemes) {
+                        FeatureCard(eyebrow: "Theme", title: model.theme.title,
+                                    subtitle: ThemeSchedule.summary(model.themeChoice),
+                                    image: model.theme == .halloween ? ExtraArt.jackOLantern() : ExtraArt.pumpkin(),
+                                    imageBackground: Color.harvestNight.opacity(0.2))
+                            .contentShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(PressableStyle())
                     Button(action: openCustomize) {
                         FeatureCard(eyebrow: "Customize", title: "Make It Yours",
-                                    subtitle: "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
-                                    image: ExtraArt.squirrel(), imageBackground: Color.harvestRust.opacity(0.2))
+                                    subtitle: model.theme == .halloween
+                                        ? "Graveyard dirt, bats, tombstones, candy and a friendly ghost."
+                                        : "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
+                                    image: model.theme == .halloween ? ExtraArt.ghost() : ExtraArt.squirrel(),
+                                    imageBackground: Color.harvestRust.opacity(0.2))
                             .contentShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(PressableStyle())

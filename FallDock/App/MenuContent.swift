@@ -20,10 +20,18 @@ struct MenuContent: View {
         } else {
             Button("Pause for 1 Hour") { model.pauseForAnHour() }
         }
+        Menu("Theme") {
+            ForEach(Settings.ThemeChoice.allCases, id: \.self) { choice in
+                Toggle(choice.title, isOn: Binding(get: { model.themeChoice == choice },
+                                                   set: { if $0 { model.themeChoice = choice } }))
+            }
+        }
         if !model.hasAccessibility {
             Button("Fit Pumpkins to Dock Exactly…") { model.askForAccessibility() }
         }
-        Toggle("Full-Screen Leaves", isOn: $model.leavesFillScreen)
+        if model.theme == .fall {
+            Toggle("Full-Screen Leaves", isOn: $model.leavesFillScreen)
+        }
         Toggle("Open at Login", isOn: $model.openAtLogin)
 
         Divider()

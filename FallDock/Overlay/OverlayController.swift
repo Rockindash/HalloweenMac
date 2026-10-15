@@ -449,6 +449,13 @@ final class OverlayController {
         updateStackState()
     }
 
+    /// The theme changed: the old harvest fades away as the new one grows in, left to right.
+    func changeTheme() {
+        // Only while it's showing: a hidden harvest just comes back in the new theme.
+        scene?.crossfadeNextHarvest = panel?.isVisible == true && !isHiding
+        refresh(force: true)
+    }
+
     /// Falling leaves settings changed: the pace applies right away, without regrowing the harvest.
     func updateLeaves() {
         scene?.leafAmountChanged()
@@ -458,7 +465,8 @@ final class OverlayController {
 
     /// Shows the screen-wide leaves while the harvest is showing and the setting is on, and hides them otherwise.
     private func updateScreenLeaves() {
-        guard Settings.leavesFillScreen, Settings.fallingLeaves, !PumpkinScene.reduceMotion,
+        // Leaves fall across the screen in fall only.
+        guard Settings.theme == .fall, Settings.leavesFillScreen, Settings.fallingLeaves, !PumpkinScene.reduceMotion,
               let dock = currentDock, panel?.isVisible == true, !isHiding else {
             hideScreenLeaves()
             return
