@@ -1,19 +1,21 @@
 import AppKit
 import SwiftUI
 
-// The app window, laid out like the Mac App Store: a floating sidebar with Home, Customize and
-// Settings, and pages with a big title, a wide banner and plain rounded cards. Home answers "is it
-// on?", Customize picks what grows, and Settings holds everything else. The building blocks (cards,
-// tiles, the live harvest) and the Customize page are in MainTabs.swift.
+// The app window, laid out like the Mac App Store: a floating sidebar with Home, Customize,
+// Background and Settings, and pages with a big title, a wide banner and plain rounded cards. Home
+// answers "is it on?", Customize picks what grows, Background sets a desktop picture to match, and
+// Settings holds everything else. The building blocks (cards, tiles, the live harvest) and the
+// Customize page are in MainTabs.swift; the Background page is in BackgroundPage.swift.
 
 enum Page: String, CaseIterable, Identifiable {
-    case home, customize, settings
+    case home, customize, background, settings
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .home: return "Home"
         case .customize: return "Customize"
+        case .background: return "Background"
         case .settings: return "Settings"
         }
     }
@@ -22,6 +24,7 @@ enum Page: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "house"
         case .customize: return "paintbrush"
+        case .background: return "photo"
         case .settings: return "gearshape"
         }
     }
@@ -78,10 +81,12 @@ struct MainView: View {
         } detail: {
             Group {
                 switch page {
-                case .home where !model.license.isActive, .customize where !model.license.isActive:
+                case .home where !model.license.isActive, .customize where !model.license.isActive,
+                     .background where !model.license.isActive:
                     LicensePage(license: model.license)
                 case .home: HomePage(model: model, state: state) { pageName = Page.customize.rawValue }
                 case .customize: CustomizePage(model: model)
+                case .background: BackgroundPage(model: model)
                 case .settings: SettingsPage(model: model)
                 }
             }

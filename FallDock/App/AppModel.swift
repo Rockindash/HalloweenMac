@@ -11,6 +11,7 @@ final class AppModel: ObservableObject {
     private let overlay = OverlayController()
     private let welcome = WelcomeWindow()
     private let mainWindow = MainWindow()
+    private let wallpaper = WallpaperController()
     private var activity: NSObjectProtocol?
     private var licenseWatch: AnyCancellable?
 
@@ -54,7 +55,16 @@ final class AppModel: ObservableObject {
     }
 
     @Published var theme: Settings.Theme {
-        didSet { Settings.theme = theme; overlay.refresh(force: true) }
+        didSet { Settings.theme = theme; overlay.refresh(force: true); wallpaper.refresh() }
+    }
+
+    /// The desktop picture goes with the theme (the Background page).
+    @Published var wallpaperEnabled: Bool {
+        didSet { Settings.wallpaperEnabled = wallpaperEnabled; wallpaper.refresh() }
+    }
+
+    @Published var wallpaperMode: Settings.WallpaperMode {
+        didSet { Settings.wallpaperMode = wallpaperMode; wallpaper.refresh() }
     }
 
     @Published var fallingLeaves: Bool {
@@ -94,6 +104,8 @@ final class AppModel: ObservableObject {
         enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
         showMenuBarIcon = Settings.showMenuBarIcon
         theme = Settings.theme
+        wallpaperEnabled = Settings.wallpaperEnabled
+        wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
         leafAmount = Settings.leafAmount
         leavesFillScreen = Settings.leavesFillScreen
@@ -110,6 +122,7 @@ final class AppModel: ObservableObject {
             guard let self else { return }
             self.objectWillChange.send()
             self.overlay.isLicensed = key != nil
+            self.wallpaper.isLicensed = key != nil
         }
         license.start()
         // A menu bar app is never "active", so macOS may put it to sleep (App Nap) and slow
@@ -119,9 +132,15 @@ final class AppModel: ObservableObject {
             reason: "Keeping the pumpkins in step with the Dock"
         )
         overlay.onResume = { [weak self] in self?.isPaused = false }
-        overlay.onAppearanceChange = { [weak self] in self?.appearance = Palette.appearance }
+        overlay.onAppearanceChange = { [weak self] in
+            self?.appearance = Palette.appearance
+            self?.wallpaper.refresh()
+        }
         overlay.start()
         appearance = Palette.appearance
+        // After the overlay, which reads the Mac's Light/Dark setting the pictures follow.
+        wallpaper.isLicensed = license.isActive
+        wallpaper.start()
     }
 
     func stop() {
@@ -166,6 +185,8 @@ final class AppModel: ObservableObject {
         enabledExtras = Set(DecorKind.allCases.filter(Settings.isEnabled))
         showMenuBarIcon = Settings.showMenuBarIcon
         theme = Settings.theme
+        wallpaperEnabled = Settings.wallpaperEnabled
+        wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
         leafAmount = Settings.leafAmount
         leavesFillScreen = Settings.leavesFillScreen

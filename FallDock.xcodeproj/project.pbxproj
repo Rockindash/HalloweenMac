@@ -29,6 +29,9 @@
 		A1C0FFEE00000000000000E1 /* License.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000E2 /* License.swift */; };
 		A1C0FFEE00000000000000E3 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000E4 /* Updater.swift */; };
 		A1C0FFEE00000000000000E5 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0FFEE00000000000000E6 /* Sparkle */; };
+		A1C0FFEE0000000000001001 /* WallpaperArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001011 /* WallpaperArt.swift */; };
+		A1C0FFEE0000000000001002 /* Wallpaper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001012 /* Wallpaper.swift */; };
+		A1C0FFEE0000000000001003 /* BackgroundPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001013 /* BackgroundPage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +57,9 @@
 		A1C0FFEE00000000000000BA /* Icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Icon.icon; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000E2 /* License.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = License.swift; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000E4 /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001011 /* WallpaperArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WallpaperArt.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001012 /* Wallpaper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Wallpaper.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001013 /* BackgroundPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BackgroundPage.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +113,7 @@
 				E7D531E91FA2104CA0FBE350 /* Art.swift */,
 				868266014263B38779531296 /* SmashSound.swift */,
 				A1C0FFEE00000000000000B1 /* CozyArt.swift */,
+				A1C0FFEE0000000000001011 /* WallpaperArt.swift */,
 			);
 			path = Art;
 			sourceTree = "<group>";
@@ -132,6 +139,8 @@
 				A1C0FFEE00000000000000B9 /* MainTabs.swift */,
 				A1C0FFEE00000000000000E2 /* License.swift */,
 				A1C0FFEE00000000000000E4 /* Updater.swift */,
+				A1C0FFEE0000000000001013 /* BackgroundPage.swift */,
+				A1C0FFEE0000000000001012 /* Wallpaper.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -231,6 +240,9 @@
 				A1C0FFEE00000000000000A9 /* MainTabs.swift in Sources */,
 				A1C0FFEE00000000000000E1 /* License.swift in Sources */,
 				A1C0FFEE00000000000000E3 /* Updater.swift in Sources */,
+				A1C0FFEE0000000000001003 /* BackgroundPage.swift in Sources */,
+				A1C0FFEE0000000000001002 /* Wallpaper.swift in Sources */,
+				A1C0FFEE0000000000001001 /* WallpaperArt.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

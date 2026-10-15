@@ -48,6 +48,7 @@ When Dockorate starts by itself at login, the window stays closed.
 - **Customize**: the vine, falling leaves and cozy extras, with a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. With falling leaves on:
   - **Amount**: how many leaves fall, from a few to lots. The mark in the middle is the usual amount, and the slider snaps to it.
   - **Fill the whole screen** (off by default): leaves drift down across the whole screen the Dock is on and settle behind the Dock, instead of only just above it.
+- **Background** (off by default): sets your desktop picture to go with the theme, a soft sky and rolling hills. Each theme has a light and a dark picture. **Switch with Light and Dark** (on by default) shows the light one when the Dock is light and the dark one when it's dark; clicking a picture keeps that one instead. The pictures are drawn at each display's exact size and saved in `~/Library/Application Support/Dockorate/Wallpapers`. Your own picture for each display is saved first and comes back when Background is switched off (or by Reset everything). macOS only changes the desktop of the space you're on, so the picture is set again as you move between spaces, plug in displays or switch Light and Dark.
 - **Settings**:
   - **General**: open at login, the 🎃 in the menu bar, and the smash sound.
   - **Dock**: how full the harvest is, and the Accessibility permission for an exact fit.
@@ -96,6 +97,8 @@ Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transpare
 | `App/MainWindow.swift` | The app window |
 | `App/MainView.swift` | The window's sidebar, and the Home and Settings pages |
 | `App/MainTabs.swift` | The Customize page, the cards and rows the pages are built from, and the live little harvest |
+| `App/BackgroundPage.swift` | The Background page |
+| `App/Wallpaper.swift` | Puts the theme's picture on the desktop, keeps it there across spaces and displays, and puts yours back |
 | `Overlay/DockLocator.swift` | Works out where the Dock is, which display it's on and whether it's showing |
 | `Overlay/OverlayController.swift` | Places the transparent window and lets clicks reach a pumpkin only when the pointer is over one |
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
@@ -104,6 +107,7 @@ Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transpare
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
+| `Art/WallpaperArt.swift` | Draws each theme's light and dark desktop pictures |
 | `Art/SmashSound.swift` | Makes the smash sound from scratch |
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.

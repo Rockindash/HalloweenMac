@@ -1,5 +1,4 @@
-import CoreGraphics
-import Foundation
+import AppKit
 
 /// User preferences, saved between launches.
 enum Settings {
@@ -21,6 +20,9 @@ enum Settings {
         static let squirrel = "squirrel"
         static let showMenuBarIcon = "showMenuBarIcon"
         static let theme = "theme"
+        static let wallpaperEnabled = "wallpaperEnabled"
+        static let wallpaperMode = "wallpaperMode"
+        static let wallpaperOriginals = "wallpaperOriginals"
     }
 
     /// The app was called Fall Dock, with the bundle ID com.amol.falldock, before it shipped. The first
@@ -54,6 +56,8 @@ enum Settings {
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
             Key.smashCount: 0,
+            Key.wallpaperEnabled: false,
+            Key.wallpaperMode: WallpaperMode.matchDock.rawValue,
         ])
     }
 
@@ -62,7 +66,7 @@ enum Settings {
     static func resetAll() {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
-                    Key.squirrel, Key.showMenuBarIcon, Key.theme]
+                    Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.wallpaperEnabled, Key.wallpaperMode]
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -185,5 +189,67 @@ enum Settings {
     static var theme: Theme {
         get { defaults.string(forKey: Key.theme).flatMap(Theme.init(rawValue:)) ?? .fall }
         set { defaults.set(newValue.rawValue, forKey: Key.theme) }
+    }
+
+    // MARK: Background
+
+    /// Whether the desktop picture is set to go with the theme. Off until the person switches it on.
+    static var wallpaperEnabled: Bool {
+        get { defaults.bool(forKey: Key.wallpaperEnabled) }
+        set { defaults.set(newValue, forKey: Key.wallpaperEnabled) }
+    }
+
+    /// Which of the theme's two pictures shows: the one that matches the Dock's Light or Dark look, or always one.
+    enum WallpaperMode: String, CaseIterable {
+        case matchDock, light, dark
+    }
+
+    static var wallpaperMode: WallpaperMode {
+        get { defaults.string(forKey: Key.wallpaperMode).flatMap(WallpaperMode.init(rawValue:)) ?? .matchDock }
+        set { defaults.set(newValue.rawValue, forKey: Key.wallpaperMode) }
+    }
+
+    /// The person's own desktop picture on a display, and how it was fitted to the screen.
+    struct SavedWallpaper {
+        var url: URL
+        var options: [NSWorkspace.DesktopImageOptionKey: Any]
+
+        fileprivate var plist: [String: Any] {
+            var plist: [String: Any] = ["url": url.absoluteString]
+            if let scaling = options[.imageScaling] as? NSNumber { plist["scaling"] = scaling }
+            if let clipping = options[.allowClipping] as? NSNumber { plist["clipping"] = clipping }
+            if let color = options[.fillColor] as? NSColor,
+               let data = try? NSKeyedArchiver.archivedData(withRootObject: color, requiringSecureCoding: true) {
+                plist["fillColor"] = data
+            }
+            return plist
+        }
+
+        init(url: URL, options: [NSWorkspace.DesktopImageOptionKey: Any]) {
+            self.url = url
+            self.options = options
+        }
+
+        fileprivate init?(plist: [String: Any]) {
+            guard let string = plist["url"] as? String, let url = URL(string: string) else { return nil }
+            self.url = url
+            options = [:]
+            if let scaling = plist["scaling"] as? NSNumber { options[.imageScaling] = scaling }
+            if let clipping = plist["clipping"] as? NSNumber { options[.allowClipping] = clipping }
+            if let data = plist["fillColor"] as? Data,
+               let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data) {
+                options[.fillColor] = color
+            }
+        }
+    }
+
+    /// The person's own desktop pictures, by display, to put back when Background is switched off.
+    /// Not cleared by Reset Everything, which switches Background off and needs these to do it.
+    static var wallpaperOriginals: [String: SavedWallpaper] {
+        get {
+            let stored = defaults.dictionary(forKey: Key.wallpaperOriginals) as? [String: [String: Any]] ?? [:]
+            return stored.compactMapValues(SavedWallpaper.init(plist:))
+        }
+        set { defaults.set(newValue.mapValues(\.plist), forKey: Key.wallpaperOriginals) }
     }
 }
