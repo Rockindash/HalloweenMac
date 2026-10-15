@@ -2,7 +2,8 @@ import AppKit
 
 /// User preferences, saved between launches.
 enum Settings {
-    private static let defaults = UserDefaults.standard
+    /// Where choices are kept. The tests swap in a place of their own (see `AppEnvironment`).
+    static var defaults: UserDefaults = AppEnvironment.isUITesting ? AppEnvironment.uiTestDefaults() : .standard
 
     private enum Key {
         static let showPumpkins = "showPumpkins"

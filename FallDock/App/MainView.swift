@@ -201,6 +201,7 @@ private struct SidebarRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("sidebar-\(page.rawValue)")
     }
 }
 
@@ -294,6 +295,7 @@ struct HomePage: View {
                 }
                 .toggleStyle(.switch)
                 .fixedSize()
+                .accessibilityIdentifier("Show on Dock")
             }
             .frame(maxWidth: .infinity)
         }

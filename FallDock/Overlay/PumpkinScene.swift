@@ -366,6 +366,9 @@ final class PumpkinScene: SKScene {
         self.vine = vine
     }
 
+    /// Whether the vine is showing (the tests check it follows the Vine switch).
+    var hasVine: Bool { vine != nil }
+
     /// Height of the middle of the vine at scene x.
     func vineY(atSceneX x: CGFloat) -> CGFloat {
         vineOrigin.y + VineArt.centerY(x: x - vineOrigin.x, unit: unit)

@@ -214,7 +214,9 @@ struct SettingRow<Trailing: View>: View {
                 }
             }
             Spacer(minLength: 12)
+            // The UI tests find the control by its row's title.
             trailing
+                .accessibilityIdentifier(title)
         }
     }
 }

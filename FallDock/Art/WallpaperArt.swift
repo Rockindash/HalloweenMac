@@ -107,11 +107,9 @@ enum WallpaperArt {
 
     // MARK: Files
 
-    /// Where the pictures are saved. The desktop shows them from here.
-    static var directory: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appendingPathComponent("Dockorate/Wallpapers", isDirectory: true)
-    }
+    /// Where the pictures are saved. The desktop shows them from here. (Tests point it somewhere else.)
+    static var directory: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Dockorate/Wallpapers", isDirectory: true)
 
     /// Whether `url` is one of Dockorate's pictures (rather than the person's own).
     static func isOurs(_ url: URL?) -> Bool {

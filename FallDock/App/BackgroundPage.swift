@@ -122,6 +122,7 @@ private struct WallpaperTile: View {
         .buttonStyle(PressableStyle())
         .onHover { hovering = $0 }
         .accessibilityLabel("\(title) picture")
+        .accessibilityIdentifier("wallpaper-\(title.lowercased())")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

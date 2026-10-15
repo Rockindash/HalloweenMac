@@ -79,7 +79,7 @@ final class LicenseManager: ObservableObject {
     /// Asks Gumroad about the key again if it's been a week. Only a definite "no" removes it;
     /// being offline or Gumroad having trouble never does.
     func recheckIfDue() async {
-        guard let key else { return }
+        guard let key, !AppEnvironment.isUITesting else { return }
         #if DEBUG
         if key == Self.developmentKey { return }
         #endif
@@ -150,8 +150,10 @@ final class LicenseManager: ObservableObject {
     }
 }
 
-/// The license key, kept in the login Keychain.
+/// The license key, kept in the login Keychain. During UI tests it's kept in memory instead, starting
+/// out activated unless the test asks otherwise (with `-UITestingUnlicensed`), so the real key is never touched.
 private enum Keychain {
+    private static var uiTestKey: String? = ProcessInfo.processInfo.arguments.contains("-UITestingUnlicensed") ? nil : "UITEST-0000-0000-0000"
     private static let service = "com.amol.dockorate.license"
     private static let account = "license"
 
@@ -162,6 +164,7 @@ private enum Keychain {
     }
 
     static func read() -> String? {
+        if AppEnvironment.isUITesting { return uiTestKey }
         var query = query
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -172,6 +175,7 @@ private enum Keychain {
     }
 
     static func save(_ key: String) {
+        if AppEnvironment.isUITesting { uiTestKey = key; return }
         delete()
         var item = query
         item[kSecValueData as String] = Data(key.utf8)
@@ -179,6 +183,7 @@ private enum Keychain {
     }
 
     static func delete() {
+        if AppEnvironment.isUITesting { uiTestKey = nil; return }
         SecItemDelete(query as CFDictionary)
     }
 }

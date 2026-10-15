@@ -40,6 +40,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Unit tests run inside the app; it stays out of their way.
+        guard !AppEnvironment.isUnitTesting else { return }
         model.start()
         if !Settings.hasSeenWelcome {
             model.showWelcome()

@@ -227,6 +227,8 @@ final class AppModel: ObservableObject {
     }
 
     private func updateLoginItem() {
+        // Tests never add Dockorate to the real login items.
+        guard !AppEnvironment.isUITesting else { return }
         let enabled = SMAppService.mainApp.status == .enabled
         guard openAtLogin != enabled else { return }
         do {

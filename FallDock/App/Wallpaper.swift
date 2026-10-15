@@ -48,6 +48,8 @@ final class WallpaperController {
 
     /// Brings every display in line with the current choices.
     func refresh() {
+        // Tests never change the real desktop.
+        guard !AppEnvironment.isUITesting, !AppEnvironment.isUnitTesting else { return }
         generation += 1
         let on = isOn
         defer { wasOn = on }

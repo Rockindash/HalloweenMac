@@ -112,6 +112,23 @@ Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transpare
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.
 
+## Tests
+
+Run them in Xcode with **⌘U**, or from Terminal:
+
+```sh
+xcodebuild test -project FallDock.xcodeproj -scheme FallDock -destination 'platform=macOS'
+```
+
+They also run on GitHub (see `.github/workflows/tests.yml`) for every pull request and every push to `main`, `version-*` and `dockorate-*` branches, so a new feature can't quietly break an old one.
+
+- **DockorateTests** (unit tests): settings and their defaults, carrying settings over from older versions, Reset Everything, how the harvest is laid out on Docks of different lengths, what each Customize and Settings switch changes, smashing, the Dock's magnification math, the art in light and dark, and the Background pictures.
+- **DockorateUITests** (UI tests): open every page, flip the main switches, check choices survive a relaunch, Background starting off, Reset Everything asking first, and the license page when there's no license.
+
+The tests never touch your own settings, license key, desktop picture or login items. Unit tests keep their settings in a throwaway place. UI tests start the app with `-UITesting` (see `App/AppEnvironment.swift`), which gives it fresh settings of its own and a pretend license, and stops it from changing the desktop or login items. The first UI test run asks to let Xcode control the app (System Settings → Privacy & Security → Accessibility).
+
+When you add a feature, add a test for it next to the others, and give any new switch a `SettingRow` (or an `.accessibilityIdentifier`) so the UI tests can find it.
+
 ## The app icon
 
 The icon is `FallDock/Icon.icon`, an Icon Composer file. Open it in Icon Composer (Xcode > Open Developer Tool) to edit it. Xcode builds every icon size from it, including the older-style icon for macOS 13 to 15.
