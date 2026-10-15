@@ -67,7 +67,6 @@ final class DockorateUITests: XCTestCase {
     /// Scrolls the page until `element` can be clicked.
     private func reveal(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(element.waitForExistence(timeout: 5), "\(element) isn't there", file: file, line: line)
-        guard !element.isHittable else { return }
         // The page's own scroll view (the sidebar is one too).
         let page = app.scrollViews.containing(NSPredicate(format: "identifier == %@", element.identifier)).firstMatch
         for deltaY in [-300.0, 300.0] {
@@ -78,6 +77,14 @@ final class DockorateUITests: XCTestCase {
             }
         }
         XCTAssertTrue(element.isHittable, "can't scroll to \(element)", file: file, line: line)
+        // Hittable can mean only an edge shows; bring all of it into the window.
+        let window = app.windows.firstMatch.frame
+        var deltaY = -120.0
+        for _ in 0..<12 where element.frame.maxY > window.maxY - 12 {
+            let before = element.frame.maxY
+            page.scroll(byDeltaX: 0, deltaY: deltaY)
+            if element.frame.maxY >= before { deltaY = -deltaY }
+        }
     }
 
     private func setSwitch(_ identifier: String, on: Bool, file: StaticString = #filePath, line: UInt = #line) {
@@ -196,13 +203,12 @@ final class DockorateUITests: XCTestCase {
         XCTAssertTrue(isOn(followDock), "switches with Light and Dark by default")
 
         // Picking a picture keeps it, whatever the Dock does.
-        let dark = element("wallpaper-dark")
+        let dark = app.buttons["wallpaper-dark"].firstMatch
         reveal(dark)
-        // The tile is a big button; click the picture in its middle.
-        dark.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).click()
+        dark.click()
         let kept = NSPredicate { _, _ in !self.isOn(followDock) }
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: kept, object: nil)], timeout: 3), .completed,
-                       "picking the dark picture keeps it")
+                       "picking the dark picture keeps it: \(dark.debugDescription)")
         setSwitch("Switch with Light and Dark", on: true)
     }
 
