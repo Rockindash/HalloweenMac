@@ -35,6 +35,21 @@ final class DockorateUITests: XCTestCase {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
+    /// A switch, found by its accessibility identifier. (Other things in its row, like its label,
+    /// can carry the same identifier, so only switches and checkboxes count.)
+    private func toggle(_ identifier: String, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        let switchElement = app.switches[identifier].firstMatch
+        let checkBox = app.checkBoxes[identifier].firstMatch
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if switchElement.exists { return switchElement }
+            if checkBox.exists { return checkBox }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        }
+        XCTFail("no switch called \(identifier)", file: file, line: line)
+        return switchElement
+    }
+
     private func open(_ page: String) {
         let row = element("sidebar-\(page)")
         XCTAssertTrue(row.waitForExistence(timeout: 10), "no \(page) in the sidebar")
@@ -64,10 +79,10 @@ final class DockorateUITests: XCTestCase {
     }
 
     private func setSwitch(_ identifier: String, on: Bool, file: StaticString = #filePath, line: UInt = #line) {
-        let toggle = element(identifier)
-        reveal(toggle, file: file, line: line)
-        if isOn(toggle) != on { toggle.click() }
-        XCTAssertEqual(isOn(toggle), on, "\(identifier) didn't switch", file: file, line: line)
+        let control = toggle(identifier, file: file, line: line)
+        reveal(control, file: file, line: line)
+        if isOn(control) != on { control.click() }
+        XCTAssertEqual(isOn(control), on, "\(identifier) didn't switch", file: file, line: line)
     }
 
     private func text(_ string: String) -> XCUIElement {
@@ -96,15 +111,14 @@ final class DockorateUITests: XCTestCase {
     func testShowOnDockSwitch() {
         launch()
         open("home")
-        let toggle = element("Show on Dock")
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
-        XCTAssertTrue(isOn(toggle))
-        toggle.click()
-        XCTAssertFalse(isOn(toggle))
+        let showOnDock = toggle("Show on Dock")
+        XCTAssertTrue(isOn(showOnDock))
+        showOnDock.click()
+        XCTAssertFalse(isOn(showOnDock))
         XCTAssertTrue(text("Hidden").waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Pause"].exists, "nothing to pause while it's hidden")
-        toggle.click()
-        XCTAssertTrue(isOn(toggle))
+        showOnDock.click()
+        XCTAssertTrue(isOn(showOnDock))
     }
 
     func testPauseAndResume() {
@@ -147,18 +161,17 @@ final class DockorateUITests: XCTestCase {
         launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
         open("customize")
         XCTAssertTrue(element("Vine").waitForExistence(timeout: 5))
-        XCTAssertFalse(isOn(element("Vine")))
+        XCTAssertFalse(isOn(toggle("Vine")))
         open("settings")
         XCTAssertTrue(element("Sounds").waitForExistence(timeout: 5))
-        XCTAssertFalse(isOn(element("Sounds")))
+        XCTAssertFalse(isOn(toggle("Sounds")))
     }
 
     func testBackgroundIsOffUntilSwitchedOn() {
         launch()
         open("background")
-        let match = element("Match my desktop to the Dock")
-        let followDock = element("Switch with Light and Dark")
-        XCTAssertTrue(match.waitForExistence(timeout: 5))
+        let match = toggle("Match my desktop to the Dock")
+        let followDock = toggle("Switch with Light and Dark")
         XCTAssertFalse(isOn(match), "Background must start switched off")
         XCTAssertFalse(followDock.isEnabled, "nothing to pick until it's switched on")
 
@@ -180,14 +193,14 @@ final class DockorateUITests: XCTestCase {
         setSwitch("Vine", on: false)
         open("settings")
 
-        let reset = element("Reset everything")
+        let reset = app.buttons["Reset everything"].firstMatch
         reveal(reset)
         reset.click()
         XCTAssertTrue(text("Reset everything?").waitForExistence(timeout: 5))
         app.buttons["Cancel"].firstMatch.click()
         XCTAssertTrue(text("Reset everything?").waitForNonExistence(timeout: 5))
         open("customize")
-        XCTAssertFalse(isOn(element("Vine")), "cancelling changes nothing")
+        XCTAssertFalse(isOn(toggle("Vine")), "cancelling changes nothing")
 
         open("settings")
         reveal(reset)
@@ -199,7 +212,7 @@ final class DockorateUITests: XCTestCase {
         confirm.firstMatch.click()
         open("customize")
         XCTAssertTrue(element("Vine").waitForExistence(timeout: 5))
-        XCTAssertTrue(isOn(element("Vine")), "back how it started")
+        XCTAssertTrue(isOn(toggle("Vine")), "back how it started")
     }
 
     func testWithoutALicenseTheAppAsksForOne() {
