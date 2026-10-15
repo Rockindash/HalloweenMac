@@ -5,6 +5,8 @@ import SwiftUI
 /// Dockorate is sold on Gumroad. A license key is checked with Gumroad once, when it's entered, and kept
 /// in the Keychain; after that the app works offline. Every week or so, when the Mac is online, the key is
 /// quietly checked again, and only a definite answer from Gumroad (no such key, or a refund) takes it away.
+///
+/// The Mac App Store build is paid for on the App Store, so it's always active and never asks for a key.
 @MainActor
 final class LicenseManager: ObservableObject {
     static let gumroadProductID = "4r29ikg9IO75pyaJF9miEw=="
@@ -25,8 +27,10 @@ final class LicenseManager: ObservableObject {
     @Published var error: String?
 
     private var recheckTimer: Timer?
+    /// Bought on the Mac App Store: nothing to activate.
+    let isAppStore: Bool
 
-    var isActive: Bool { key != nil }
+    var isActive: Bool { isAppStore || key != nil }
 
     /// The key with all but its last four characters hidden.
     var maskedKey: String {
@@ -34,11 +38,13 @@ final class LicenseManager: ObservableObject {
         return "•••• •••• " + key.suffix(4)
     }
 
-    init() {
-        key = Keychain.read()
+    init(appStore: Bool = AppEnvironment.isAppStore) {
+        isAppStore = appStore
+        key = appStore ? nil : Keychain.read()
     }
 
     func start() {
+        guard !isAppStore else { return }
         Task { await recheckIfDue() }
         recheckTimer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) { [weak self] _ in
             Task { @MainActor in await self?.recheckIfDue() }
@@ -48,7 +54,7 @@ final class LicenseManager: ObservableObject {
     /// Checks a newly entered key with Gumroad and, if it's good, keeps it.
     func activate(_ entered: String) async {
         let candidate = entered.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !candidate.isEmpty, !isActivating else { return }
+        guard !candidate.isEmpty, !isActivating, !isAppStore else { return }
         error = nil
         #if DEBUG
         if candidate == Self.developmentKey {

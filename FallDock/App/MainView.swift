@@ -379,25 +379,30 @@ struct SettingsPage: View {
                 }
             }
 
-            Card(title: "License") {
-                if model.license.isActive {
-                    SettingRow(symbol: "checkmark.seal.fill", color: .green, title: "Active",
-                               detail: "License key \(model.license.maskedKey)") {
-                        Button("Remove License") { confirmingLicenseRemoval = true }
+            // The App Store version is paid for on the App Store and updated by it: no license, no updater.
+            if !model.license.isAppStore {
+                Card(title: "License") {
+                    if model.license.isActive {
+                        SettingRow(symbol: "checkmark.seal.fill", color: .green, title: "Active",
+                                   detail: "License key \(model.license.maskedKey)") {
+                            Button("Remove License") { confirmingLicenseRemoval = true }
+                        }
+                    } else {
+                        LicenseCard(license: model.license)
+                            .padding(-18)
                     }
-                } else {
-                    LicenseCard(license: model.license)
-                        .padding(-18)
+                }
+                .alert("Remove the license from this Mac?", isPresented: $confirmingLicenseRemoval) {
+                    Button("Remove License", role: .destructive) { model.license.remove() }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("The harvest leaves your Dock until a license key is entered again. Use this to move Dockorate to another Mac.")
                 }
             }
-            .alert("Remove the license from this Mac?", isPresented: $confirmingLicenseRemoval) {
-                Button("Remove License", role: .destructive) { model.license.remove() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("The harvest leaves your Dock until a license key is entered again. Use this to move Dockorate to another Mac.")
-            }
 
-            UpdatesCard(updater: model.updater)
+            if Updater.isAvailable {
+                UpdatesCard(updater: model.updater)
+            }
 
             Card(title: "Reset") {
                 SettingRow(symbol: "hammer.fill", color: .pumpkin, title: "Smash count",

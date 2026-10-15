@@ -129,6 +129,12 @@ The tests never touch your own settings, license key, desktop picture or login i
 
 Every feature and fix should come with a test (the rule is written down in `CLAUDE.md`, and the pull request template asks for it). When you add a feature, add a test for it next to the others, and give any new switch a `SettingRow` (or an `.accessibilityIdentifier`) so the UI tests can find it.
 
+## The Mac App Store version
+
+Dockorate also comes in a Mac App Store version: the `DockorateAppStore` scheme. It's sandboxed, paid for on the
+App Store instead of with a license key, and updated by the App Store instead of Sparkle. See
+[docs/AppStore.md](docs/AppStore.md) for how it differs, how to upload it, and what to fill in on App Store Connect.
+
 ## The app icon
 
 The icon is `FallDock/Icon.icon`, an Icon Composer file. Open it in Icon Composer (Xcode > Open Developer Tool) to edit it. Xcode builds every icon size from it, including the older-style icon for macOS 13 to 15.

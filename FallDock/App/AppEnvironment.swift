@@ -7,6 +7,14 @@ import Foundation
 /// fresh place, counts as activated, and never changes the desktop picture or the login items, so a
 /// test run can't touch the real settings, license or desktop.
 enum AppEnvironment {
+    /// Whether this is the Mac App Store build (the "Dockorate App Store" target). It's paid for on the
+    /// App Store, so it has no license key, and the App Store updates it, so it has no Sparkle.
+    #if APP_STORE
+    static let isAppStore = true
+    #else
+    static let isAppStore = false
+    #endif
+
     static let isUITesting = ProcessInfo.processInfo.arguments.contains("-UITesting")
 
     static let isUnitTesting = !isUITesting && ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil

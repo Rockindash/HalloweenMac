@@ -1,4 +1,4 @@
-# Runs the unit and UI tests on a Mac whenever code is pushed or a pull request is opened, so a new
+# Runs the unit and UI tests, and checks the Mac App Store build, on a Mac whenever code is pushed or a pull request is opened, so a new
 # feature can't quietly break one that's already there.
 name: Tests
 
@@ -41,6 +41,11 @@ jobs:
           xcodebuild test -project FallDock.xcodeproj -scheme FallDock -destination 'platform=macOS' \
             -only-testing:DockorateUITests -resultBundlePath build/UITests.xcresult \
             -quiet CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+
+      - name: App Store build
+        # Builds the Mac App Store version and checks it's sandboxed, has no Sparkle, and starts.
+        if: ${{ !cancelled() }}
+        run: scripts/check-appstore-build.sh
 
       - name: Show what failed
         if: failure()

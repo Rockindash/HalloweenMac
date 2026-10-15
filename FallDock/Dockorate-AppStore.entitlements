@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Every Mac App Store app runs in the App Sandbox. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- Read-only access to the Dock's own settings (its size, magnification, position and the items
+	     on it), which the harvest needs to sit on the Dock. Also the settings of Fall Dock, the app's
+	     name before it shipped, to bring them over once. Explained to App Review in docs/AppStore.md. -->
+	<key>com.apple.security.temporary-exception.shared-preference.read-only</key>
+	<array>
+		<string>com.apple.dock</string>
+		<string>com.amol.falldock</string>
+	</array>
+</dict>
+</plist>

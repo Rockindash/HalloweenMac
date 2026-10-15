@@ -28,7 +28,9 @@ struct MenuContent: View {
 
         Divider()
 
-        Button("Check for Updates") { model.updater.checkForUpdates() }
+        if Updater.isAvailable {
+            Button("Check for Updates") { model.updater.checkForUpdates() }
+        }
         Button("Quit Dockorate") { NSApplication.shared.terminate(nil) }
             .keyboardShortcut("q")
     }
