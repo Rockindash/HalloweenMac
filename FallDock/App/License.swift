@@ -9,10 +9,16 @@ import SwiftUI
 /// The Mac App Store build is paid for on the App Store, so it's always active and never asks for a key.
 @MainActor
 final class LicenseManager: ObservableObject {
+    // None of Gumroad is in the App Store build: Apple doesn't allow buying it anywhere else.
+    #if !APP_STORE
     static let gumroadProductID = "4r29ikg9IO75pyaJF9miEw=="
     static let buyURL = URL(string: "https://rockindash.gumroad.com/l/dockorate")!
 
     private static let verifyURL = URL(string: "https://api.gumroad.com/v2/licenses/verify")!
+    private static let unreachableMessage = "Can't reach Gumroad. Check your internet connection and try again."
+    #else
+    private static let unreachableMessage = ""
+    #endif
     private static let recheckInterval: TimeInterval = 7 * 24 * 60 * 60
     private static let lastVerifiedKey = "licenseLastVerified"
     #if DEBUG
@@ -70,7 +76,7 @@ final class LicenseManager: ObservableObject {
         case .invalid(let message):
             error = message
         case .unreachable:
-            error = "Can't reach Gumroad. Check your internet connection and try again."
+            error = Self.unreachableMessage
         }
     }
 
@@ -116,6 +122,9 @@ final class LicenseManager: ObservableObject {
         case unreachable
     }
 
+    #if APP_STORE
+    private static func verify(_ key: String, countActivation: Bool) async -> Verdict { .unreachable }
+    #else
     private struct Response: Decodable {
         struct Purchase: Decodable {
             var refunded: Bool?
@@ -154,6 +163,7 @@ final class LicenseManager: ObservableObject {
         }
         return .valid
     }
+    #endif
 }
 
 /// The license key, kept in the login Keychain. During UI tests it's kept in memory instead, starting
@@ -196,6 +206,19 @@ private enum Keychain {
 
 // MARK: - Views
 
+#if APP_STORE
+/// Never shown: the App Store version is always active.
+struct LicenseCard: View {
+    @ObservedObject var license: LicenseManager
+    var body: some View { EmptyView() }
+}
+
+/// Never shown: the App Store version is always active.
+struct LicensePage: View {
+    @ObservedObject var license: LicenseManager
+    var body: some View { EmptyView() }
+}
+#else
 /// "Enter your license key": shown in the welcome window and the app window until Dockorate is activated.
 struct LicenseCard: View {
     @ObservedObject var license: LicenseManager
@@ -271,3 +294,4 @@ struct LicensePage: View {
         }
     }
 }
+#endif
