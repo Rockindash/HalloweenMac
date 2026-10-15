@@ -251,7 +251,9 @@ final class DockorateUITests: XCTestCase {
         open("customize")
         let menu = app.popUpButtons["customize-theme"].firstMatch
         XCTAssertTrue(menu.waitForExistence(timeout: 5), "a drop-down menu of themes")
-        menu.click()
+        // A plain click at its middle: XCUITest's own click on a pop-up waits for a menu notification
+        // that a SwiftUI menu doesn't always send.
+        menu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         let halloween = app.menuItems["Halloween"].firstMatch
         XCTAssertTrue(halloween.waitForExistence(timeout: 3))
         halloween.click()
