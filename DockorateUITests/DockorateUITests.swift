@@ -92,6 +92,15 @@ final class DockorateUITests: XCTestCase {
         XCTAssertEqual(isOn(control), on, "\(identifier) didn't switch: \(control.debugDescription)", file: file, line: line)
     }
 
+    /// A button in an alert. (The Touch Bar can show the same button, which can't be clicked.)
+    private func alertButton(_ title: String) -> XCUIElement {
+        for container in [app.sheets, app.dialogs, app.windows] {
+            let button = container.buttons[title].firstMatch
+            if button.exists { return button }
+        }
+        return app.windows.buttons[title].firstMatch
+    }
+
     private func text(_ string: String) -> XCUIElement {
         app.staticTexts[string].firstMatch
     }
@@ -189,8 +198,11 @@ final class DockorateUITests: XCTestCase {
         // Picking a picture keeps it, whatever the Dock does.
         let dark = element("wallpaper-dark")
         reveal(dark)
-        dark.click()
-        XCTAssertFalse(isOn(followDock), "picking the dark picture keeps it")
+        // The tile is a big button; click the picture in its middle.
+        dark.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).click()
+        let kept = NSPredicate { _, _ in !self.isOn(followDock) }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: kept, object: nil)], timeout: 3), .completed,
+                       "picking the dark picture keeps it")
         setSwitch("Switch with Light and Dark", on: true)
     }
 
@@ -204,7 +216,7 @@ final class DockorateUITests: XCTestCase {
         reveal(reset)
         reset.click()
         XCTAssertTrue(text("Reset everything?").waitForExistence(timeout: 5))
-        app.buttons["Cancel"].firstMatch.click()
+        alertButton("Cancel").click()
         XCTAssertTrue(text("Reset everything?").waitForNonExistence(timeout: 5))
         open("customize")
         XCTAssertFalse(isOn(toggle("Vine")), "cancelling changes nothing")
@@ -214,9 +226,7 @@ final class DockorateUITests: XCTestCase {
         reset.click()
         XCTAssertTrue(text("Reset everything?").waitForExistence(timeout: 5))
         // The alert's own button, not the one on the page behind it.
-        let confirm = app.sheets.buttons["Reset Everything"].exists
-            ? app.sheets.buttons["Reset Everything"] : app.dialogs.buttons["Reset Everything"]
-        confirm.firstMatch.click()
+        alertButton("Reset Everything").click()
         open("customize")
         XCTAssertTrue(element("Vine").waitForExistence(timeout: 5))
         XCTAssertTrue(isOn(toggle("Vine")), "back how it started")

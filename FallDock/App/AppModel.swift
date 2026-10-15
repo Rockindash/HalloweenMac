@@ -136,7 +136,9 @@ final class AppModel: ObservableObject {
             self?.appearance = Palette.appearance
             self?.wallpaper.refresh()
         }
-        overlay.start()
+        // In UI tests the harvest stays off the Dock: a pumpkin sitting under the app window's
+        // lower edge would catch the tests' clicks. (The harvest itself has unit tests.)
+        if !AppEnvironment.isUITesting { overlay.start() }
         appearance = Palette.appearance
         // After the overlay, which reads the Mac's Light/Dark setting the pictures follow.
         wallpaper.isLicensed = license.isActive
