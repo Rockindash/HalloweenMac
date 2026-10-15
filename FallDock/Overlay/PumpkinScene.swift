@@ -490,6 +490,12 @@ final class PumpkinScene: SKScene {
 
     private func place(_ sprite: DockSprite) {
         let d = sprite.restX - pointerX
+        guard sprite.risesWithIcons else {
+            sprite.position = CGPoint(x: sprite.restX + magnifier.shift(at: d, strength: magnifyStrength), y: sprite.restY + sprite.bounce)
+            sprite.xScale = sprite.popScale * sprite.facing
+            sprite.yScale = sprite.popScale
+            return
+        }
         let s = magnifier.scale(at: d, strength: magnifyStrength)
         sprite.position = CGPoint(x: sprite.restX + magnifier.shift(at: d, strength: magnifyStrength),
                                   y: sprite.restY + magnifier.lift(at: d, strength: magnifyStrength) + sprite.perch * s + sprite.bounce)

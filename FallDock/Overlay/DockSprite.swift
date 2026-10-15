@@ -72,6 +72,9 @@ class DockSprite: SKSpriteNode {
     var isLeaving = false
     /// Whether clicking it does something, so the pointer turns into a hand over it.
     var isInteractive: Bool { true }
+    /// Whether it grows and rises with the icons under the pointer. Things beside the Dock only move
+    /// aside as the magnified Dock gets wider.
+    var risesWithIcons: Bool { true }
 
     /// An action that animates one of the properties above, from its value when the action starts.
     static func animate(_ property: ReferenceWritableKeyPath<DockSprite, CGFloat>, to target: CGFloat,
@@ -139,8 +142,10 @@ final class GhostNode: DockSprite {
 }
 
 /// A cobweb at one end of the Dock (it just sits there).
+/// A cobweb in the corner beside each end of the Dock, at Halloween.
 final class WebNode: DockSprite {
     override var isInteractive: Bool { false }
+    override var risesWithIcons: Bool { false }
 }
 
 /// A zombie hand reaching up out of the dirt at Halloween.

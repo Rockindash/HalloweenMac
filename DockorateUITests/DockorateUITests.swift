@@ -216,15 +216,52 @@ final class DockorateUITests: XCTestCase {
         XCTAssertTrue(element("Falling leaves").exists)
     }
 
-    func testChangeWithTheCalendarIsKept() {
+    func testChangeAutomaticallyIsKept() {
         launch()
         open("themes")
-        XCTAssertFalse(isOn(toggle("Change with the calendar")), "Fall stays on until something else is picked")
-        setSwitch("Change with the calendar", on: true)
+        XCTAssertFalse(isOn(toggle("Change automatically")), "Fall stays on until something else is picked")
+        setSwitch("Change automatically", on: true)
         launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
         open("themes")
-        XCTAssertTrue(isOn(toggle("Change with the calendar")))
-        setSwitch("Change with the calendar", on: false)
+        XCTAssertTrue(isOn(toggle("Change automatically")))
+        // Picking a theme keeps it, which switches changing automatically off.
+        let halloween = app.buttons["theme-halloween"].firstMatch
+        reveal(halloween)
+        halloween.click()
+        let automatic = toggle("Change automatically")
+        let off = NSPredicate { _, _ in !self.isOn(automatic) }
+        wait(for: [expectation(for: off, evaluatedWith: nil)], timeout: 5)
+    }
+
+    func testThemesPageShowsChangeAutomaticallyFirstAndThemesTwoToARow() {
+        launch()
+        open("themes")
+        let automatic = toggle("Change automatically")
+        let fall = app.buttons["theme-fall"].firstMatch, halloween = app.buttons["theme-halloween"].firstMatch
+        XCTAssertTrue(fall.waitForExistence(timeout: 5))
+        XCTAssertTrue(element("theme-year").exists, "the year at a glance")
+        XCTAssertLessThan(automatic.frame.minY, fall.frame.minY, "Change Automatically comes before the themes")
+        XCTAssertEqual(fall.frame.minY, halloween.frame.minY, accuracy: 2, "side by side")
+        XCTAssertLessThan(fall.frame.maxX, halloween.frame.minX)
+        XCTAssertLessThan(fall.frame.width, app.windows.firstMatch.frame.width / 2, "about half the page each")
+    }
+
+    func testCustomizeHasAThemeMenu() {
+        launch()
+        open("customize")
+        let menu = app.popUpButtons["customize-theme"].firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 5), "a drop-down menu of themes")
+        menu.click()
+        let halloween = app.menuItems["Halloween"].firstMatch
+        XCTAssertTrue(halloween.waitForExistence(timeout: 3))
+        halloween.click()
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5), "Halloween's options, to set up ahead of time")
+        let show = app.buttons["Show Halloween"].firstMatch
+        XCTAssertTrue(show.exists, "Halloween isn't on the Dock yet")
+        show.click()
+        let gone = NSPredicate { _, _ in !show.exists }
+        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
+        XCTAssertTrue(element("Bats").exists)
     }
 
     func testBackgroundIsOffUntilSwitchedOn() {

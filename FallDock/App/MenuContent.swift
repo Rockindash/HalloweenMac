@@ -21,9 +21,15 @@ struct MenuContent: View {
             Button("Pause for 1 Hour") { model.pauseForAnHour() }
         }
         Menu("Theme") {
-            ForEach(Settings.ThemeChoice.allCases, id: \.self) { choice in
-                Toggle(choice.title, isOn: Binding(get: { model.themeChoice == choice },
-                                                   set: { if $0 { model.themeChoice = choice } }))
+            Toggle("Change Automatically", isOn: Binding(get: { model.themeChoice == .automatic },
+                                                         set: { model.themeChoice = $0 ? .automatic : .keep(model.theme) }))
+            ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
+                Section(kind.title) {
+                    ForEach(Settings.Theme.allCases.filter { $0.kind == kind }, id: \.self) { theme in
+                        Toggle(theme.title, isOn: Binding(get: { model.themeChoice == .keep(theme) },
+                                                          set: { if $0 { model.themeChoice = .keep(theme) } }))
+                    }
+                }
             }
         }
         if !model.hasAccessibility {

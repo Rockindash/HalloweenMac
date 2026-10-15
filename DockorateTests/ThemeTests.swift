@@ -41,7 +41,7 @@ final class ThemeTests: SettingsTestCase {
             XCTAssertEqual(Settings.ThemeChoice(rawValue: choice.rawValue), choice)
             XCTAssertFalse(choice.title.isEmpty)
         }
-        XCTAssertEqual(Settings.ThemeChoice(rawValue: "automatic"), .calendar, "what the Halloween branch saved")
+        XCTAssertEqual(Settings.ThemeChoice(rawValue: "automatic"), .automatic, "what the Halloween branch saved too")
         defaults.set("spring-that-does-not-exist", forKey: "theme")
         XCTAssertEqual(Settings.themeChoice, .keep(.fall))
     }
@@ -54,31 +54,89 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertNil(Settings.ThemeChoice.keep(.halloween).next(after: date(10, 1)))
     }
 
-    func testTheCalendarBringsHalloweenFromOctober15ToNovember1() {
-        let calendar = Settings.ThemeChoice.calendar
-        XCTAssertEqual(calendar.theme(on: date(10, 14)), .fall)
-        XCTAssertEqual(calendar.theme(on: date(10, 15)), .halloween)
-        XCTAssertEqual(calendar.theme(on: date(10, 31)), .halloween)
-        XCTAssertEqual(calendar.theme(on: date(11, 1)), .halloween)
-        XCTAssertEqual(calendar.theme(on: date(11, 2)), .fall)
-        XCTAssertEqual(calendar.theme(on: date(3, 3)), .fall, "Fall the rest of the year")
-        XCTAssertEqual(calendar.theme(on: date(10, 20, year: 2028)), .halloween, "every year, leap years too")
+    private func monthDay(_ date: Date) -> DateComponents {
+        Calendar.current.dateComponents([.month, .day], from: date)
     }
 
-    func testTheCalendarKnowsWhatComesNext() throws {
-        let calendar = Settings.ThemeChoice.calendar
-        let toHalloween = try XCTUnwrap(calendar.next(after: date(10, 1)))
+    func testFestivalsGoOnAWeekBeforeTheirDay() {
+        let automatic = Settings.ThemeChoice.automatic
+        for year in [2026, 2027, 2028, 2031] {
+            XCTAssertEqual(automatic.theme(on: date(10, 23, year: year)), .fall, "\(year)")
+            XCTAssertEqual(automatic.theme(on: date(10, 24, year: year)), .halloween, "a week before Halloween, \(year)")
+            XCTAssertEqual(automatic.theme(on: date(10, 31, year: year)), .halloween, "Halloween itself, \(year)")
+            XCTAssertEqual(automatic.theme(on: date(11, 1, year: year)), .fall, "the season again the day after, \(year)")
+        }
+    }
+
+    func testTheSeasonStaysOnBetweenFestivals() {
+        // Fall is the only season so far, so it stays on until the next season is added.
+        for (month, day) in [(1, 10), (3, 3), (7, 4), (9, 1), (10, 15), (12, 25)] {
+            XCTAssertEqual(Settings.ThemeChoice.automatic.theme(on: date(month, day)), .fall, "\(month)/\(day)")
+            XCTAssertEqual(Settings.Theme.season(on: date(month, day)), .fall)
+        }
+    }
+
+    func testEveryThemeHasAPlaceInTheYear() {
+        XCTAssertFalse(Settings.Theme.seasons.isEmpty)
+        XCTAssertEqual(Settings.Theme.seasons.first, .fall, "Fall, the original, comes first")
+        for theme in Settings.Theme.allCases {
+            switch theme.kind {
+            case .season:
+                XCTAssertNotNil(theme.seasonStart, "\(theme)")
+                XCTAssertNil(theme.festivalDay(in: 2026))
+            case .festival:
+                XCTAssertNil(theme.seasonStart, "\(theme)")
+                for year in 2026...2040 {
+                    let week = try! XCTUnwrap(theme.festivalWeek(in: year), "\(theme) \(year)")
+                    let days = Calendar.current.dateComponents([.day], from: week.lowerBound, to: week.upperBound).day
+                    XCTAssertEqual(days, Settings.Theme.festivalLead, "\(theme) \(year)")
+                }
+            }
+        }
+        XCTAssertEqual(Settings.Theme.halloween.kind, .festival)
+        XCTAssertEqual(Settings.Theme.fall.kind, .season)
+    }
+
+    func testChangingAutomaticallyKnowsWhatComesNext() throws {
+        let automatic = Settings.ThemeChoice.automatic
+        let toHalloween = try XCTUnwrap(automatic.next(after: date(10, 15)))
         XCTAssertEqual(toHalloween.theme, .halloween)
-        XCTAssertEqual(Calendar.current.dateComponents([.month, .day], from: toHalloween.date), DateComponents(month: 10, day: 15))
-        let backToFall = try XCTUnwrap(calendar.next(after: date(10, 20)))
+        XCTAssertEqual(monthDay(toHalloween.date), DateComponents(month: 10, day: 24))
+        let backToFall = try XCTUnwrap(automatic.next(after: date(10, 26)))
         XCTAssertEqual(backToFall.theme, .fall)
-        XCTAssertEqual(Calendar.current.dateComponents([.month, .day], from: backToFall.date), DateComponents(month: 11, day: 2))
+        XCTAssertEqual(monthDay(backToFall.date), DateComponents(month: 11, day: 1))
+
+        let changes = automatic.changes(after: date(10, 15), count: 3)
+        XCTAssertEqual(changes.map { $0.theme }, [.halloween, .fall, .halloween])
+        XCTAssertEqual(changes.map { monthDay($0.date) },
+                       [DateComponents(month: 10, day: 24), DateComponents(month: 11, day: 1), DateComponents(month: 10, day: 24)])
+        XCTAssertEqual(Calendar.current.component(.year, from: changes[2].date), 2027)
+        XCTAssertTrue(Settings.ThemeChoice.keep(.fall).changes(after: date(10, 15), count: 3).isEmpty)
+    }
+
+    @MainActor func testTheYearShowsEachThemeInTurn() {
+        let year = ThemeYear.stretches(in: 2026)
+        XCTAssertEqual(year.days, 365)
+        XCTAssertEqual(year.stretches.map(\.theme), [.fall, .halloween, .fall])
+        XCTAssertEqual(year.stretches.first?.first, 0)
+        XCTAssertEqual(year.stretches.last?.last, 364)
+        for (a, b) in zip(year.stretches, year.stretches.dropFirst()) {
+            XCTAssertEqual(a.last + 1, b.first, "no gaps")
+        }
+        XCTAssertEqual(year.stretches[1].last - year.stretches[1].first, Settings.Theme.festivalLead, "a week, and the day")
+        XCTAssertEqual(ThemeYear.stretches(in: 2028).days, 366)
     }
 
     func testScheduleWords() {
         XCTAssertEqual(ThemeSchedule.summary(.keep(.fall)), "Fall stays on your Dock all year.")
-        XCTAssertTrue(ThemeSchedule.summary(.calendar, now: date(10, 1)).hasPrefix("Fall now, then Halloween on"))
+        XCTAssertTrue(ThemeSchedule.summary(.automatic, now: date(10, 15)).hasPrefix("Fall now, then Halloween on"))
         XCTAssertTrue(ThemeSchedule.window(.halloween).contains(" to "))
+        XCTAssertEqual(ThemeSchedule.when(.fall), "Season")
+        XCTAssertTrue(ThemeSchedule.when(.halloween).hasPrefix("Festival, "))
+        XCTAssertEqual(ThemeSchedule.countdown(to: date(10, 16), now: date(10, 15)), "Tomorrow")
+        XCTAssertEqual(ThemeSchedule.countdown(to: date(10, 24), now: date(10, 15)), "In 9 days")
+        XCTAssertTrue(ThemeSchedule.upcoming(.halloween, start: date(10, 24), end: date(11, 1)).contains(" to "))
+        XCTAssertTrue(ThemeSchedule.upcoming(.fall, start: date(11, 1), end: date(10, 24, year: 2027)).hasPrefix("From "))
     }
 
     func testResetEverythingGoesBackToFall() {
@@ -151,6 +209,36 @@ final class ThemeTests: SettingsTestCase {
         scene.smash(lantern)
         XCTAssertEqual(smashes, 1)
         XCTAssertNotNil(scene.action(forKey: "respawn-\(lantern.slot)"))
+    }
+
+    @MainActor func testCobwebsSitBesideEachEndOfTheDock() {
+        Settings.themeChoice = .keep(.halloween)
+        let dock = CGRect(x: 120, y: 0, width: 1200, height: 70)
+        let scene = PumpkinScene(size: CGSize(width: 1440, height: 220))
+        scene.configure(dockRect: dock, pixelScale: 1, magnifier: DockMagnifier(), regrow: true)
+        let webs = scene.pumpkinLayer.children.compactMap { $0 as? WebNode }.sorted { $0.restX < $1.restX }
+        XCTAssertEqual(webs.count, 2)
+        let left = webs[0], right = webs[1]
+        // Each tucked into the corner between the end of the Dock and the bottom of the screen, opening outward.
+        XCTAssertEqual(left.restX, dock.minX)
+        XCTAssertEqual(right.restX, dock.maxX)
+        XCTAssertEqual(left.restY, dock.minY)
+        XCTAssertEqual(right.restY, dock.minY)
+        XCTAssertLessThan(left.facing, 0, "the left web opens to the left, away from the Dock")
+        XCTAssertGreaterThan(right.facing, 0, "the right web opens to the right")
+        XCTAssertLessThanOrEqual(left.size.height, dock.height, "no taller than the Dock")
+        XCTAssertFalse(left.risesWithIcons, "it stays put beside the Dock when the icons magnify")
+
+        // Placed, they sit outside the Dock.
+        scene.update(1)
+        scene.update(1.1)
+        let leftFrame = left.calculateAccumulatedFrame(), rightFrame = right.calculateAccumulatedFrame()
+        XCTAssertLessThanOrEqual(leftFrame.maxX, dock.minX + 1)
+        XCTAssertGreaterThanOrEqual(rightFrame.minX, dock.maxX - 1)
+
+        Settings.themeChoice = .keep(.fall)
+        scene.configure(dockRect: dock, pixelScale: 1, magnifier: DockMagnifier(), regrow: true)
+        XCTAssertTrue(scene.pumpkinLayer.children.compactMap { $0 as? WebNode }.isEmpty, "no cobwebs in fall")
     }
 
     // MARK: Changing theme

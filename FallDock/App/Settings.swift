@@ -255,7 +255,7 @@ enum Settings {
 
         var vineTitle: String { self == .halloween ? "Graveyard dirt" : "Vine" }
         var vineDetail: String {
-            self == .halloween ? "Purple dirt along the top of the Dock, with cobwebs at both ends."
+            self == .halloween ? "Purple dirt along the top of the Dock, with a cobweb beside each end."
                                : "Curling along the top of the Dock, behind the pumpkins."
         }
         var extrasTitle: String { self == .halloween ? "Spooky extras" : "Cozy extras" }
@@ -265,63 +265,106 @@ enum Settings {
         }
         var visitorTitle: String { self == .halloween ? "Ghost" : "Squirrel" }
 
-        /// When the calendar puts it on the Dock, as (month, day) pairs, both days included. Halloween
-        /// takes over for its fortnight; Fall is on the rest of the time.
-        var window: (start: (month: Int, day: Int), end: (month: Int, day: Int))? {
+        /// Seasons take turns through the year; a festival takes over for the week before its day.
+        enum Kind: CaseIterable {
+            case season, festival
+
+            var title: String { self == .season ? "Seasons" : "Festivals" }
+        }
+
+        var kind: Kind { self == .halloween ? .festival : .season }
+
+        /// The day a season starts each year, as (month, day). It stays on until the next season starts,
+        /// so with Fall the only season so far, Fall is on all year between festivals.
+        var seasonStart: (month: Int, day: Int)? {
             switch self {
-            case .fall: return nil
-            case .halloween: return ((10, 15), (11, 1))
+            case .fall: return (9, 1)
+            case .halloween: return nil
             }
         }
 
-        func isOn(_ date: Date, calendar: Calendar = .current) -> Bool {
-            guard let window else { return false }
-            let day = calendar.dateComponents([.month, .day], from: date)
-            let today = (day.month ?? 1) * 100 + (day.day ?? 1)
-            let start = window.start.month * 100 + window.start.day, end = window.end.month * 100 + window.end.day
-            return start <= end ? (start...end).contains(today) : today >= start || today <= end
+        /// A festival's day in `year`. (Some festivals move from year to year, so it's worked out per year.)
+        func festivalDay(in year: Int, calendar: Calendar = .current) -> Date? {
+            switch self {
+            case .fall: return nil
+            case .halloween: return calendar.date(from: DateComponents(year: year, month: 10, day: 31))
+            }
+        }
+
+        /// How many days before its day a festival goes on the Dock.
+        static let festivalLead = 7
+
+        /// The days a festival is on the Dock in `year`: from a week before its day, through the day itself.
+        func festivalWeek(in year: Int, calendar: Calendar = .current) -> ClosedRange<Date>? {
+            guard let day = festivalDay(in: year, calendar: calendar),
+                  let start = calendar.date(byAdding: .day, value: -Self.festivalLead, to: day) else { return nil }
+            return calendar.startOfDay(for: start)...calendar.startOfDay(for: day)
+        }
+
+        static var seasons: [Theme] { allCases.filter { $0.kind == .season } }
+        static var festivals: [Theme] { allCases.filter { $0.kind == .festival } }
+
+        /// The festival whose week `date` falls in, if any. If two weeks overlap, the festival that comes first wins.
+        static func festival(on date: Date, calendar: Calendar = .current) -> Theme? {
+            let day = calendar.startOfDay(for: date)
+            let year = calendar.component(.year, from: date)
+            // A festival early in January starts showing in the last days of December.
+            let weeks = festivals.flatMap { theme in
+                [year, year + 1].compactMap { theme.festivalWeek(in: $0, calendar: calendar) }.map { (theme, $0) }
+            }
+            return weeks.filter { $0.1.contains(day) }.min { $0.1.upperBound < $1.1.upperBound }?.0
+        }
+
+        /// The season on `date`: the one that started most recently.
+        static func season(on date: Date, calendar: Calendar = .current) -> Theme {
+            let parts = calendar.dateComponents([.month, .day], from: date)
+            let today = (parts.month ?? 1) * 100 + (parts.day ?? 1)
+            let starts = seasons.compactMap { theme in theme.seasonStart.map { (theme, $0.month * 100 + $0.day) } }
+                .sorted { $0.1 < $1.1 }
+            // Before the first season of the year starts, last year's last season is still on.
+            return (starts.last { $0.1 <= today } ?? starts.last)?.0 ?? .fall
         }
     }
 
-    /// How the Dock picks its theme: keeping one all year, or changing with the calendar.
+    /// How the Dock picks its theme: keeping one all year, or changing automatically.
     enum ThemeChoice: Hashable {
         case keep(Theme)
-        /// Halloween while it's on, Fall the rest of the year.
-        case calendar
+        /// The season, with each festival taking over for the week before its day.
+        case automatic
 
-        static var allCases: [ThemeChoice] { Theme.allCases.map(keep) + [.calendar] }
+        static var allCases: [ThemeChoice] { Theme.allCases.map(keep) + [.automatic] }
 
-        /// Saved as the theme's name, or "automatic" (what the Halloween branch called the calendar).
+        /// Saved as the theme's name, or "automatic".
         var rawValue: String {
             switch self {
             case let .keep(theme): return theme.rawValue
-            case .calendar: return "automatic"
+            case .automatic: return "automatic"
             }
         }
 
         init?(rawValue: String) {
             if let theme = Theme(rawValue: rawValue) { self = .keep(theme) }
-            else if rawValue == "automatic" { self = .calendar }
+            else if rawValue == "automatic" { self = .automatic }
             else { return nil }
         }
 
         var title: String {
             switch self {
             case let .keep(theme): return theme.title
-            case .calendar: return "Change with the Calendar"
+            case .automatic: return "Change Automatically"
             }
         }
 
         func theme(on date: Date, calendar: Calendar = .current) -> Theme {
             switch self {
             case let .keep(theme): return theme
-            case .calendar: return Theme.allCases.first { $0.isOn(date, calendar: calendar) } ?? .fall
+            case .automatic: return Theme.festival(on: date, calendar: calendar) ?? Theme.season(on: date, calendar: calendar)
             }
         }
 
-        /// The next time the calendar changes the theme, and to what (nil when it never changes).
+        /// The next time the theme changes by itself, and to what (nil when it never changes).
         func next(after date: Date, calendar: Calendar = .current) -> (theme: Theme, date: Date)? {
-            guard self == .calendar else { return nil }
+            guard self == .automatic else { return nil }
             let now = theme(on: date, calendar: calendar)
             for days in 1...366 {
                 guard let day = calendar.date(byAdding: .day, value: days, to: date) else { break }
@@ -329,6 +372,17 @@ enum Settings {
                 if theme != now { return (theme, calendar.startOfDay(for: day)) }
             }
             return nil
+        }
+
+        /// The next `count` changes, in order (none when one theme is kept).
+        func changes(after date: Date, count: Int, calendar: Calendar = .current) -> [(theme: Theme, date: Date)] {
+            var changes: [(theme: Theme, date: Date)] = []
+            var from = date
+            while changes.count < count, let change = next(after: from, calendar: calendar) {
+                changes.append(change)
+                from = change.date
+            }
+            return changes
         }
     }
 

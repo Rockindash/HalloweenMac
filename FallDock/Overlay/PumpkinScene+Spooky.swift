@@ -407,14 +407,16 @@ extension PumpkinScene {
     func layoutCobwebs() {
         for case let web as WebNode in pumpkinLayer.children { web.removeFromParent() }
         guard Settings.theme == .halloween, Settings.showVines, dockRect.width > 200 else { return }
-        let s = (pumpkinHeight * 0.8).rounded()
+        // In the corner between each end of the Dock and the bottom of the screen, opening outward,
+        // a little shorter than the Dock.
+        let s = (dockRect.height * 0.8).rounded()
         for left in [true, false] {
             let web = WebNode(texture: SpookyArt.cobwebTexture(size: CGSize(width: s, height: s), scale: pixelScale),
                               color: .clear, size: CGSize(width: s, height: s))
             web.anchorPoint = .zero
-            web.restX = left ? dockRect.minX + 2 : dockRect.maxX - 2
-            web.restY = dockRect.maxY - 3
-            web.facing = left ? 1 : -1
+            web.restX = left ? dockRect.minX : dockRect.maxX
+            web.restY = dockRect.minY
+            web.facing = left ? -1 : 1
             web.zPosition = 0.3
             pumpkinLayer.addChild(web)
             if left { hangSpider(from: web, size: s) }

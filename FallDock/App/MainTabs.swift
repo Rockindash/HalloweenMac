@@ -427,11 +427,19 @@ struct CustomizePage: View {
     var body: some View {
         PageLayout(title: "Customize") {
             if Settings.Theme.allCases.count > 1 {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
+                    Text("Theme").foregroundStyle(.secondary)
+                    // A drop-down menu, with room for many seasons and festivals.
                     Picker("Theme", selection: Binding(get: { theme }, set: { new in withAnimation(.easeInOut(duration: 0.25)) { picked = new } })) {
-                        ForEach(Settings.Theme.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                        ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
+                            Section(kind.title) {
+                                ForEach(Settings.Theme.allCases.filter { $0.kind == kind }, id: \.self) {
+                                    Label($0.title, systemImage: $0.symbol).tag($0)
+                                }
+                            }
+                        }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.menu)
                     .labelsHidden()
                     .fixedSize()
                     .accessibilityIdentifier("customize-theme")
@@ -704,6 +712,14 @@ enum ThemePreview {
         return image
     }
 
+    /// The flat sky at the top of a theme's preview, to give the picture more room above.
+    static func sky(for theme: Settings.Theme) -> Color {
+        switch theme {
+        case .fall: return Color(cgColor: Palette.plum.mixed(with: Palette.rust, 0.18))
+        case .halloween: return Color(cgColor: Palette.night)
+        }
+    }
+
     private static func fall() -> NSImage {
         let size = CGSize(width: 520, height: 170)
         let scale: CGFloat = 2
@@ -793,21 +809,29 @@ enum ThemePreview {
                 ctx.draw(SpookyArt.batTexture(frame: frame, unit: h * 0.7, scale: scale).cgImage(),
                          in: CGRect(x: CGFloat(x), y: CGFloat(y), width: bat.width, height: bat.height))
             }
+            // A Dock that stops short of the edges, with a cobweb in the corner beside each end.
             let shelf: CGFloat = 24
+            let dock = CGRect(x: 30, y: 0, width: size.width - 60, height: shelf)
             ctx.setFillColor(Palette.soot.mixed(with: Palette.plum, 0.4))
-            ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: shelf))
+            ctx.fill(dock)
+            let web = CGSize(width: 30, height: 30)
+            let webTexture = SpookyArt.cobwebTexture(size: web, scale: scale).cgImage()
+            ctx.draw(webTexture, in: CGRect(origin: CGPoint(x: dock.maxX, y: 0), size: web))
+            ctx.saveGState()
+            ctx.translateBy(x: dock.minX, y: 0)
+            ctx.scaleBy(x: -1, y: 1)
+            ctx.draw(webTexture, in: CGRect(origin: .zero, size: web))
+            ctx.restoreGState()
 
             let k = h / 60
             let dirtHeight = (h * 0.3).rounded()
-            ctx.draw(SpookyArt.dirtTexture(width: size.width, height: dirtHeight, seed: 11, unit: k, scale: scale).cgImage(),
-                     in: CGRect(x: 0, y: shelf - 6, width: size.width, height: dirtHeight))
-            let web = CGSize(width: h * 0.7, height: h * 0.7)
-            ctx.draw(SpookyArt.cobwebTexture(size: web, scale: scale).cgImage(), in: CGRect(origin: CGPoint(x: 2, y: shelf - 3), size: web))
+            ctx.draw(SpookyArt.dirtTexture(width: dock.width, height: dirtHeight, seed: 11, unit: k, scale: scale).cgImage(),
+                     in: CGRect(x: dock.minX, y: shelf - 6, width: dock.width, height: dirtHeight))
 
             enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), crypt(PumpkinKind) }
             let items: [Item] = [.lantern(.roundOrange, 1, 0), .decor(.tombstone), .pumpkin(.ghostWhite, 0.8), .decor(.cauldron),
                                  .crypt(.squatOrange), .decor(.skull), .lantern(.tallOrange, 0.95, 3), .decor(.candles),
-                                 .lantern(.roundOrange, 0.86, 1), .decor(.candy)]
+                                 .lantern(.roundOrange, 0.86, 1)]
             let decorUnit = (h * 0.75).rounded()
             func width(_ item: Item) -> CGFloat {
                 switch item {
@@ -831,8 +855,8 @@ enum ThemePreview {
                 }
             }
             let used = items.map(width).reduce(0, +)
-            let space = (size.width - used) / CGFloat(items.count + 1)
-            var x = space
+            let space = max(2, (dock.width - used) / CGFloat(items.count + 1))
+            var x = dock.minX + space
             for item in items {
                 let w = width(item)
                 let center = x + w / 2
