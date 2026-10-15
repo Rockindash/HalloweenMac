@@ -408,9 +408,15 @@ private struct RotationPicker: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 2)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 10)], alignment: .leading, spacing: 10) {
-                        ForEach(themes, id: \.self) { theme in
-                            RotationRow(theme: theme, model: model)
+                    // Two to a row. (Not a lazy grid: those leave out rows that aren't on screen yet.)
+                    VStack(spacing: 10) {
+                        ForEach(stride(from: 0, to: themes.count, by: 2).map { Array(themes[$0..<min($0 + 2, themes.count)]) }, id: \.self) { row in
+                            HStack(spacing: 10) {
+                                ForEach(row, id: \.self) { theme in
+                                    RotationRow(theme: theme, model: model)
+                                }
+                                if row.count == 1 { Color.clear.frame(maxWidth: .infinity, maxHeight: 1) }
+                            }
                         }
                     }
                 }
@@ -455,6 +461,7 @@ private struct RotationRow: View {
             .accessibilityIdentifier("rotation-\(theme.rawValue)")
         }
         .padding(10)
+        .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.primary.opacity(0.04)))
         .help(locked ? "At least one season stays in, for the days between festivals." : "")
     }
