@@ -72,6 +72,14 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// How many days before its day each festival goes on the Dock.
+    @Published var festivalLead: Int {
+        didSet {
+            Settings.festivalLead = festivalLead
+            themeMayHaveChanged()
+        }
+    }
+
     /// Whether `theme` can leave the rotation: any festival can, and any season but the last one left.
     func canLeaveRotation(_ theme: Settings.Theme) -> Bool { Settings.canLeave(theme, rotation) }
 
@@ -148,6 +156,7 @@ final class AppModel: ObservableObject {
         showMenuBarIcon = Settings.showMenuBarIcon
         themeChoice = Settings.themeChoice
         rotation = Settings.rotation
+        festivalLead = Settings.festivalLead
         theme = Settings.theme
         bats = Settings.bats
         ghost = Settings.ghost
@@ -243,6 +252,7 @@ final class AppModel: ObservableObject {
         showMenuBarIcon = Settings.showMenuBarIcon
         themeChoice = Settings.themeChoice
         rotation = Settings.rotation
+        festivalLead = Settings.festivalLead
         bats = Settings.bats
         ghost = Settings.ghost
         wallpaperEnabled = Settings.wallpaperEnabled

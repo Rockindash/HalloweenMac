@@ -22,6 +22,7 @@ enum Settings {
         static let showMenuBarIcon = "showMenuBarIcon"
         static let theme = "theme"
         static let themesLeftOut = "themesLeftOut"
+        static let festivalLead = "festivalLead"
         static let bats = "bats"
         static let ghost = "ghost"
         static let wallpaperEnabled = "wallpaperEnabled"
@@ -75,7 +76,7 @@ enum Settings {
     static func resetAll() {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
-                    Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.wallpaperEnabled, Key.wallpaperMode,
+                    Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.festivalLead, Key.wallpaperEnabled, Key.wallpaperMode,
                     Key.bats, Key.ghost]
         keys.forEach(defaults.removeObject(forKey:))
     }
@@ -292,27 +293,26 @@ enum Settings {
             }
         }
 
-        /// How many days before its day a festival goes on the Dock.
-        static let festivalLead = 7
-
-        /// The days a festival is on the Dock in `year`: from a week before its day, through the day itself.
-        func festivalWeek(in year: Int, calendar: Calendar = .current) -> ClosedRange<Date>? {
+        /// The days a festival is on the Dock in `year`: from `lead` days before its day (the person's
+        /// pick, a week to start with), through the day itself.
+        func festivalDays(in year: Int, lead: Int = Settings.festivalLead, calendar: Calendar = .current) -> ClosedRange<Date>? {
             guard let day = festivalDay(in: year, calendar: calendar),
-                  let start = calendar.date(byAdding: .day, value: -Self.festivalLead, to: day) else { return nil }
+                  let start = calendar.date(byAdding: .day, value: -lead, to: day) else { return nil }
             return calendar.startOfDay(for: start)...calendar.startOfDay(for: day)
         }
 
         static var seasons: [Theme] { allCases.filter { $0.kind == .season } }
         static var festivals: [Theme] { allCases.filter { $0.kind == .festival } }
 
-        /// The festival whose week `date` falls in, if any, out of `themes`. If two weeks overlap, the
-        /// festival that comes first wins.
-        static func festival(on date: Date, among themes: Set<Theme> = Set(allCases), calendar: Calendar = .current) -> Theme? {
+        /// The festival whose days `date` falls in, if any, out of `themes`, each going on `lead` days
+        /// before its day. If two overlap, the festival that comes first wins.
+        static func festival(on date: Date, among themes: Set<Theme> = Set(allCases), lead: Int = Settings.festivalLead,
+                             calendar: Calendar = .current) -> Theme? {
             let day = calendar.startOfDay(for: date)
             let year = calendar.component(.year, from: date)
             // A festival early in January starts showing in the last days of December.
             let weeks = festivals.filter(themes.contains).flatMap { theme in
-                [year, year + 1].compactMap { theme.festivalWeek(in: $0, calendar: calendar) }.map { (theme, $0) }
+                [year, year + 1].compactMap { theme.festivalDays(in: $0, lead: lead, calendar: calendar) }.map { (theme, $0) }
             }
             return weeks.filter { $0.1.contains(day) }.min { $0.1.upperBound < $1.1.upperBound }?.0
         }
@@ -358,34 +358,37 @@ enum Settings {
             }
         }
 
-        /// The theme on `date`. Changing automatically, it picks from the themes in `rotation`.
-        func theme(on date: Date, rotation: Set<Theme> = Settings.rotation, calendar: Calendar = .current) -> Theme {
+        /// The theme on `date`. Changing automatically, it picks from the themes in `rotation`, each
+        /// festival going on `lead` days before its day.
+        func theme(on date: Date, rotation: Set<Theme> = Settings.rotation, lead: Int = Settings.festivalLead,
+                   calendar: Calendar = .current) -> Theme {
             switch self {
             case let .keep(theme): return theme
             case .automatic:
-                return Theme.festival(on: date, among: rotation, calendar: calendar)
+                return Theme.festival(on: date, among: rotation, lead: lead, calendar: calendar)
                     ?? Theme.season(on: date, among: rotation, calendar: calendar)
             }
         }
 
         /// The next time the theme changes by itself, and to what (nil when it never changes).
-        func next(after date: Date, rotation: Set<Theme> = Settings.rotation, calendar: Calendar = .current) -> (theme: Theme, date: Date)? {
+        func next(after date: Date, rotation: Set<Theme> = Settings.rotation, lead: Int = Settings.festivalLead,
+                  calendar: Calendar = .current) -> (theme: Theme, date: Date)? {
             guard self == .automatic else { return nil }
-            let now = theme(on: date, rotation: rotation, calendar: calendar)
+            let now = theme(on: date, rotation: rotation, lead: lead, calendar: calendar)
             for days in 1...366 {
                 guard let day = calendar.date(byAdding: .day, value: days, to: date) else { break }
-                let theme = theme(on: day, rotation: rotation, calendar: calendar)
+                let theme = theme(on: day, rotation: rotation, lead: lead, calendar: calendar)
                 if theme != now { return (theme, calendar.startOfDay(for: day)) }
             }
             return nil
         }
 
         /// The next `count` changes, in order (none when one theme is kept).
-        func changes(after date: Date, count: Int, rotation: Set<Theme> = Settings.rotation,
+        func changes(after date: Date, count: Int, rotation: Set<Theme> = Settings.rotation, lead: Int = Settings.festivalLead,
                      calendar: Calendar = .current) -> [(theme: Theme, date: Date)] {
             var changes: [(theme: Theme, date: Date)] = []
             var from = date
-            while changes.count < count, let change = next(after: from, rotation: rotation, calendar: calendar) {
+            while changes.count < count, let change = next(after: from, rotation: rotation, lead: lead, calendar: calendar) {
                 changes.append(change)
                 from = change.date
             }
@@ -412,6 +415,19 @@ enum Settings {
             return themes
         }
         set { defaults.set(Theme.allCases.filter { !newValue.contains($0) }.map(\.rawValue), forKey: Key.themesLeftOut) }
+    }
+
+    /// The choices for how many days before its day each festival goes on the Dock.
+    static let festivalLeads = [3, 7, 14, 21, 30]
+
+    /// How many days before its day each festival goes on the Dock: a week, unless the person picks
+    /// another of `festivalLeads`.
+    static var festivalLead: Int {
+        get {
+            let days = defaults.object(forKey: Key.festivalLead) as? Int ?? 7
+            return (0...60).contains(days) ? days : 7
+        }
+        set { defaults.set(newValue, forKey: Key.festivalLead) }
     }
 
     /// Whether `theme` can leave `rotation`: any festival can, and any season but the last one in it.

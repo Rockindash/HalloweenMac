@@ -36,14 +36,18 @@ struct ThemesPage: View {
 
             Card(title: "Change Automatically") {
                 SettingRow(symbol: "calendar.badge.clock", color: .pumpkin, title: "Change automatically",
-                           detail: "Follows the seasons, and puts each festival on your Dock a week before its day.") {
+                           detail: "Follows the seasons, and puts each festival on your Dock \(ThemeSchedule.lead(model.festivalLead)) before its day.") {
                     Toggle("", isOn: automatic).labelsHidden().toggleStyle(.switch)
                 }
                 // The year, what's next and which themes take turns, only while it's on.
                 if isAutomatic {
                     VStack(alignment: .leading, spacing: 22) {
-                        ThemeYear(now: Date(), rotation: model.rotation)
-                        ComingUp(changes: model.themeChoice.changes(after: Date(), count: 2, rotation: model.rotation))
+                        VStack(alignment: .leading, spacing: 14) {
+                            ThemeYear(now: Date(), rotation: model.rotation, lead: model.festivalLead)
+                            FestivalLeadPicker(model: model)
+                        }
+                        ComingUp(changes: model.themeChoice.changes(after: Date(), count: 2, rotation: model.rotation,
+                                                                    lead: model.festivalLead))
                         RotationPicker(model: model)
                     }
                     .padding(.top, 8)
@@ -86,12 +90,14 @@ extension Settings.Theme {
     }
 }
 
-/// The year at a glance: a ribbon with a band for each season and each festival's week picked out (only
-/// the themes in the rotation), the months, and where today is. Pointing at a festival's week, or
-/// clicking it, shows its name and dates.
+/// The year at a glance: a ribbon with a band for each season and each festival's days picked out (only
+/// the themes in the rotation), the months, and where today is. Pointing at a festival's days, or
+/// clicking them, shows its name and dates.
 struct ThemeYear: View {
     var now: Date
     var rotation: Set<Settings.Theme>
+    /// How many days before its day each festival goes on.
+    var lead: Int
     private let calendar = Calendar.current
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
@@ -108,17 +114,18 @@ struct ThemeYear: View {
 
     private static var cache: [String: (days: Int, stretches: [Stretch])] = [:]
 
-    /// The year's stretches with the themes in `rotation`, worked out once per year and rotation.
-    static func stretches(in year: Int, rotation: Set<Settings.Theme> = Settings.rotation,
+    /// The year's stretches with the themes in `rotation`, each festival going on `lead` days before its
+    /// day, worked out once per year, rotation and lead.
+    static func stretches(in year: Int, rotation: Set<Settings.Theme> = Settings.rotation, lead: Int = Settings.festivalLead,
                           calendar: Calendar = .current) -> (days: Int, stretches: [Stretch]) {
-        let key = "\(year) " + rotation.map(\.rawValue).sorted().joined(separator: ",")
+        let key = "\(year) \(lead) " + rotation.map(\.rawValue).sorted().joined(separator: ",")
         if let cached = cache[key] { return cached }
         guard let start = calendar.date(from: DateComponents(year: year, month: 1, day: 1)),
               let days = calendar.range(of: .day, in: .year, for: start)?.count else { return (365, []) }
         var stretches: [Stretch] = []
         for day in 0..<days {
             guard let date = calendar.date(byAdding: .day, value: day, to: start) else { continue }
-            let theme = Settings.ThemeChoice.automatic.theme(on: date, rotation: rotation, calendar: calendar)
+            let theme = Settings.ThemeChoice.automatic.theme(on: date, rotation: rotation, lead: lead, calendar: calendar)
             if let lastStretch = stretches.last, lastStretch.theme == theme {
                 stretches[stretches.count - 1].last = day
             } else {
@@ -138,7 +145,7 @@ struct ThemeYear: View {
 
     var body: some View {
         let year = calendar.component(.year, from: now)
-        let info = Self.stretches(in: year, rotation: rotation, calendar: calendar)
+        let info = Self.stretches(in: year, rotation: rotation, lead: lead, calendar: calendar)
         let festivals = info.stretches.filter { $0.theme.kind == .festival }
         let today = (calendar.ordinality(of: .day, in: .year, for: now) ?? 1) - 1
         let thisMonth = calendar.component(.month, from: now)
@@ -154,8 +161,7 @@ struct ThemeYear: View {
             let x = { (day: Int) -> CGFloat in width * CGFloat(day) / CGFloat(info.days) }
             let todayX = x(today) + x(1) / 2
             ZStack(alignment: .topLeading) {
-                ribbon(info.stretches, months: months, today: today, year: year, x: x)
-                    .frame(width: width, height: Self.ribbonHeight)
+                ribbon(info.stretches, months: months, today: today, width: width, x: x)
                     .offset(y: top)
 
                 // The months, with this one picked out.
@@ -168,7 +174,7 @@ struct ThemeYear: View {
                         .position(x: (start + end) / 2, y: top + Self.ribbonHeight + Self.monthRow / 2 + 1)
                 }
 
-                // Each festival's week, picked out on the ribbon. Its details show only while it's
+                // Each festival's days, picked out on the ribbon. Its details show only while it's
                 // pointed at, or after a click (until clicked again).
                 ForEach(festivals, id: \.self) { stretch in
                     let left = x(stretch.first), right = x(stretch.last + 1)
@@ -211,7 +217,7 @@ struct ThemeYear: View {
 
                 if let shown = hovered ?? pinned {
                     let center = (x(shown.first) + x(shown.last + 1)) / 2
-                    // A zero-size point just above the festival's week, with the tip sitting on it.
+                    // A zero-size point just above the festival's days, with the tip sitting on it.
                     Color.clear
                         .frame(width: 1, height: 1)
                         .overlay(alignment: .bottom) {
@@ -238,8 +244,9 @@ struct ThemeYear: View {
         .accessibilityIdentifier("theme-year")
     }
 
-    /// The bands for the seasons and festivals, with faint month lines and the past a little dimmer.
-    private func ribbon(_ stretches: [Stretch], months: [Int], today: Int, year: Int,
+    /// The bands for the seasons and festivals, with faint month lines and the past a little dimmer,
+    /// `width` wide: January 1st at the left edge and December 31st at the right.
+    private func ribbon(_ stretches: [Stretch], months: [Int], today: Int, width: CGFloat,
                         x: @escaping (Int) -> CGFloat) -> some View {
         ZStack(alignment: .topLeading) {
             ForEach(stretches, id: \.self) { stretch in
@@ -260,8 +267,14 @@ struct ThemeYear: View {
                 .frame(width: x(today), height: Self.ribbonHeight)
                 .allowsHitTesting(false)
         }
+        // The whole width before clipping: left to itself the stack is only as wide as its widest band,
+        // so the clip would cut off the rest of the year and the frame would then center what's left.
+        .frame(width: width, height: Self.ribbonHeight, alignment: .topLeading)
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color.primary.opacity(0.1)))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("January to December")
+        .accessibilityIdentifier("theme-ribbon")
     }
 }
 
@@ -382,6 +395,59 @@ private struct Triangle: Shape {
     }
 }
 
+/// How long before its day each festival goes on the Dock: a week to start with, or another of
+/// `Settings.festivalLeads`. Picking one stretches or shrinks each festival's days on the ribbon above.
+private struct FestivalLeadPicker: View {
+    @ObservedObject var model: AppModel
+    @Namespace private var picked
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Eyebrow(text: "Festivals show up")
+                Spacer()
+                Text("\(ThemeSchedule.lead(model.festivalLead).capitalizingFirstLetter) before the day")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 2) {
+                ForEach(Settings.festivalLeads, id: \.self) { days in
+                    let isPicked = model.festivalLead == days
+                    Button {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { model.festivalLead = days }
+                    } label: {
+                        Text(ThemeSchedule.leadChoice(days))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(isPicked ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background {
+                                if isPicked {
+                                    Capsule()
+                                        .fill(Color.pumpkin.gradient)
+                                        .shadow(color: Color.pumpkin.opacity(0.35), radius: 3, y: 1)
+                                        .matchedGeometryEffect(id: "picked", in: picked)
+                                }
+                            }
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Put each festival on your Dock \(ThemeSchedule.lead(days)) before its day")
+                    .accessibilityLabel("\(ThemeSchedule.leadChoice(days)) before")
+                    .accessibilityAddTraits(isPicked ? .isSelected : [])
+                    .accessibilityIdentifier("festival-lead-\(days)")
+                }
+            }
+            .padding(3)
+            .background(Capsule().fill(Color.primary.opacity(0.06)))
+        }
+    }
+}
+
+private extension String {
+    var capitalizingFirstLetter: String { prefix(1).uppercased() + dropFirst() }
+}
+
 /// The next changes, side by side: which theme, when, and how long until then.
 private struct ComingUp: View {
     var changes: [(theme: Settings.Theme, date: Date)]
@@ -469,7 +535,7 @@ private struct RotationPicker: View {
                     }
                 }
             }
-            Text("Switch a theme off to skip it. The season before it stays on longer, and a festival's week stays with the season.")
+            Text("Switch a theme off to skip it. The season before it stays on longer, and a festival's days stay with the season.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -490,7 +556,7 @@ private struct RotationRow: View {
                 Badge(symbol: theme.symbol, color: theme.color)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(theme.title).font(.system(size: 13, weight: .semibold))
-                    Text(ThemeSchedule.dates(theme, rotation: model.rotation))
+                    Text(ThemeSchedule.dates(theme, rotation: model.rotation, lead: model.festivalLead))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -615,10 +681,32 @@ enum ThemeSchedule {
     }
 
     /// When the calendar puts a festival on the Dock this year, like "Oct 24 to Oct 31".
-    static func window(_ theme: Settings.Theme, now: Date = Date()) -> String {
+    static func window(_ theme: Settings.Theme, lead: Int = Settings.festivalLead, now: Date = Date()) -> String {
         let year = Calendar.current.component(.year, from: now)
-        guard let week = theme.festivalWeek(in: year) else { return "between festivals" }
-        return "\(day(week.lowerBound)) to \(day(week.upperBound))"
+        guard let days = theme.festivalDays(in: year, lead: lead) else { return "between festivals" }
+        return "\(day(days.lowerBound)) to \(day(days.upperBound))"
+    }
+
+    /// How long before its day a festival goes on, `days` of them, in a sentence: "a week", "2 weeks",
+    /// "a month" or "3 days".
+    static func lead(_ days: Int) -> String {
+        switch days {
+        case 7: return "a week"
+        case 30: return "a month"
+        case 1: return "a day"
+        case let days where days % 7 == 0: return "\(days / 7) weeks"
+        default: return "\(days) days"
+        }
+    }
+
+    /// The same on its own, for a choice: "1 week", "2 weeks", "1 month" or "3 days".
+    static func leadChoice(_ days: Int) -> String {
+        switch days {
+        case 7: return "1 week"
+        case 30: return "1 month"
+        case 1: return "1 day"
+        default: return lead(days)
+        }
     }
 
     /// A stretch of the year in words, like "Oct 24 to Oct 31".
@@ -629,10 +717,11 @@ enum ThemeSchedule {
         return "\(day(first)) to \(day(last))"
     }
 
-    /// When a theme is on in the rotation: a festival's week ("Oct 24 to Oct 31"), a season's start
+    /// When a theme is on in the rotation: a festival's days ("Oct 24 to Oct 31"), a season's start
     /// ("From Sep 1"), or "All year, between festivals" for the only season.
-    static func dates(_ theme: Settings.Theme, rotation: Set<Settings.Theme>, now: Date = Date(), calendar: Calendar = .current) -> String {
-        if theme.kind == .festival { return window(theme, now: now) }
+    static func dates(_ theme: Settings.Theme, rotation: Set<Settings.Theme>, lead: Int = Settings.festivalLead,
+                      now: Date = Date(), calendar: Calendar = .current) -> String {
+        if theme.kind == .festival { return window(theme, lead: lead, now: now) }
         let otherSeasons = rotation.filter { $0 != theme && $0.kind == .season }
         guard let start = theme.seasonStart, !otherSeasons.isEmpty,
               let date = calendar.date(from: DateComponents(year: calendar.component(.year, from: now), month: start.month, day: start.day))
@@ -640,7 +729,7 @@ enum ThemeSchedule {
         return "From \(day(date))"
     }
 
-    /// A coming change in words: "Oct 24 to Oct 31" for a festival's week, or "From Nov 1".
+    /// A coming change in words: "Oct 24 to Oct 31" for a festival's days, or "From Nov 1".
     static func upcoming(_ theme: Settings.Theme, start: Date, end: Date?, calendar: Calendar = .current) -> String {
         if theme.kind == .festival, let end, let last = calendar.date(byAdding: .day, value: -1, to: end) {
             return "\(day(start)) to \(day(last))"
@@ -648,7 +737,7 @@ enum ThemeSchedule {
         return "From \(day(start))"
     }
 
-    /// When a festival's week (in this year's ribbon) is on, from day of the year `today`: "On your Dock
+    /// When a festival's days (in this year's ribbon) are on, from day of the year `today`: "On your Dock
     /// now", "In 9 days", or "Back next year".
     static func festivalCountdown(_ stretch: ThemeYear.Stretch, today: Int) -> String {
         if (stretch.first...stretch.last).contains(today) { return "On your Dock now" }

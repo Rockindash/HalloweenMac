@@ -68,6 +68,40 @@ final class ThemeTests: SettingsTestCase {
         }
     }
 
+    func testFestivalsCanGoOnEarlierOrLater() throws {
+        XCTAssertEqual(Settings.festivalLead, 7, "a week to start with")
+        XCTAssertEqual(Settings.festivalLeads, [3, 7, 14, 21, 30])
+        let automatic = Settings.ThemeChoice.automatic
+
+        Settings.festivalLead = 14
+        XCTAssertEqual(Settings.festivalLead, 14, "saved and read back")
+        XCTAssertEqual(automatic.theme(on: date(10, 16)), .fall)
+        XCTAssertEqual(automatic.theme(on: date(10, 17)), .halloween, "two weeks before Halloween")
+        let next = try XCTUnwrap(automatic.next(after: date(10, 1)))
+        XCTAssertEqual(next.theme, .halloween)
+        XCTAssertEqual(monthDay(next.date), DateComponents(month: 10, day: 17))
+        XCTAssertEqual(ThemeSchedule.window(.halloween, now: date(10, 1)),
+                       "\(ThemeSchedule.day(date(10, 17))) to \(ThemeSchedule.day(date(10, 31)))")
+
+        Settings.festivalLead = 30
+        XCTAssertEqual(automatic.theme(on: date(9, 30)), .fall)
+        XCTAssertEqual(automatic.theme(on: date(10, 1)), .halloween, "a month before")
+
+        Settings.festivalLead = 3
+        XCTAssertEqual(automatic.theme(on: date(10, 27)), .fall)
+        XCTAssertEqual(automatic.theme(on: date(10, 28)), .halloween, "three days before")
+        XCTAssertEqual(automatic.theme(on: date(11, 1)), .fall, "the season again the day after")
+        XCTAssertEqual(automatic.theme(on: date(10, 24), lead: 7), .halloween, "a lead can also be passed in")
+
+        defaults.set(-4, forKey: "festivalLead")
+        XCTAssertEqual(Settings.festivalLead, 7, "a value from nowhere goes back to a week")
+    }
+
+    func testTheLeadInWords() {
+        XCTAssertEqual(Settings.festivalLeads.map(ThemeSchedule.lead), ["3 days", "a week", "2 weeks", "3 weeks", "a month"])
+        XCTAssertEqual(Settings.festivalLeads.map(ThemeSchedule.leadChoice), ["3 days", "1 week", "2 weeks", "3 weeks", "1 month"])
+    }
+
     func testTheSeasonStaysOnBetweenFestivals() {
         // Fall is the only season so far, so it stays on until the next season is added.
         for (month, day) in [(1, 10), (3, 3), (7, 4), (9, 1), (10, 15), (12, 25)] {
@@ -87,9 +121,12 @@ final class ThemeTests: SettingsTestCase {
             case .festival:
                 XCTAssertNil(theme.seasonStart, "\(theme)")
                 for year in 2026...2040 {
-                    let week = try! XCTUnwrap(theme.festivalWeek(in: year), "\(theme) \(year)")
-                    let days = Calendar.current.dateComponents([.day], from: week.lowerBound, to: week.upperBound).day
-                    XCTAssertEqual(days, Settings.Theme.festivalLead, "\(theme) \(year)")
+                    for lead in Settings.festivalLeads {
+                        let on = try! XCTUnwrap(theme.festivalDays(in: year, lead: lead), "\(theme) \(year)")
+                        let days = Calendar.current.dateComponents([.day], from: on.lowerBound, to: on.upperBound).day
+                        XCTAssertEqual(days, lead, "\(theme) \(year), \(lead) days before")
+                        XCTAssertEqual(on.upperBound, Calendar.current.startOfDay(for: theme.festivalDay(in: year)!), "through the day itself")
+                    }
                 }
             }
         }
@@ -123,8 +160,13 @@ final class ThemeTests: SettingsTestCase {
         for (a, b) in zip(year.stretches, year.stretches.dropFirst()) {
             XCTAssertEqual(a.last + 1, b.first, "no gaps")
         }
-        XCTAssertEqual(year.stretches[1].last - year.stretches[1].first, Settings.Theme.festivalLead, "a week, and the day")
+        XCTAssertEqual(year.stretches[1].last - year.stretches[1].first, 7, "a week, and the day")
         XCTAssertEqual(ThemeYear.stretches(in: 2028).days, 366)
+        // Picking another lead stretches the festival's days on the ribbon.
+        let earlier = ThemeYear.stretches(in: 2026, lead: 30).stretches
+        XCTAssertEqual(earlier.map(\.theme), [.fall, .halloween, .fall])
+        XCTAssertEqual(earlier[1].last - earlier[1].first, 30)
+        XCTAssertEqual(earlier[1].last, year.stretches[1].last, "still ending on Halloween")
     }
 
     // MARK: The rotation
@@ -185,12 +227,14 @@ final class ThemeTests: SettingsTestCase {
     func testResetEverythingGoesBackToFall() {
         Settings.themeChoice = .keep(.halloween)
         Settings.rotation = [.fall]
+        Settings.festivalLead = 21
         Settings.bats = false
         Settings.ghost = false
         Settings.resetAll()
         Settings.registerDefaults()
         XCTAssertEqual(Settings.themeChoice, .keep(.fall))
         XCTAssertEqual(Settings.rotation, Set(Settings.Theme.allCases), "every theme back in the rotation")
+        XCTAssertEqual(Settings.festivalLead, 7, "festivals a week before again")
         XCTAssertTrue(Settings.bats)
         XCTAssertTrue(Settings.ghost)
     }

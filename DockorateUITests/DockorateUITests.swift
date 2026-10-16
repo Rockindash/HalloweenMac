@@ -271,6 +271,43 @@ final class DockorateUITests: XCTestCase {
         wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
     }
 
+    func testTheYearRunsFromJanuaryThroughDecember() {
+        launch()
+        open("themes")
+        setSwitch("Change automatically", on: true)
+        let year = element("theme-year"), ribbon = element("theme-ribbon")
+        XCTAssertTrue(ribbon.waitForExistence(timeout: 5), "the ribbon of the year's themes")
+        XCTAssertGreaterThan(year.frame.width, 100)
+        XCTAssertEqual(ribbon.frame.minX, year.frame.minX, accuracy: 2, "January 1st at the left edge: \(ribbon.frame) in \(year.frame)")
+        XCTAssertEqual(ribbon.frame.maxX, year.frame.maxX, accuracy: 2, "December 31st at the right edge: \(ribbon.frame) in \(year.frame)")
+    }
+
+    func testFestivalsCanShowUpEarlier() {
+        launch()
+        open("themes")
+        setSwitch("Change automatically", on: true)
+        // Halloween's days, as the app writes them: "Oct 24 to Oct 31".
+        let halloween = { (from: Int) -> String in
+            let day = { (day: Int) in
+                Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: day))!
+                    .formatted(.dateTime.month(.abbreviated).day())
+            }
+            return "\(day(from)) to \(day(31))"
+        }
+        XCTAssertTrue(text(halloween(24)).waitForExistence(timeout: 5), "a week before its day to start with")
+
+        let twoWeeks = app.buttons["festival-lead-14"].firstMatch
+        reveal(twoWeeks)
+        twoWeeks.click()
+        XCTAssertTrue(text(halloween(17)).waitForExistence(timeout: 5), "two weeks before")
+        XCTAssertFalse(text(halloween(24)).exists)
+
+        // And it's kept.
+        launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
+        open("themes")
+        XCTAssertTrue(text(halloween(17)).waitForExistence(timeout: 5), "still two weeks before after a relaunch")
+    }
+
     func testAFestivalsDetailsShowOnlyWhenPointedAtOrClicked() {
         launch()
         open("themes")
