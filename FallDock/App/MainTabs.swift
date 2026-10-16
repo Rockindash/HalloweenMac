@@ -809,7 +809,7 @@ enum ThemePreview {
                 ctx.draw(SpookyArt.batTexture(frame: frame, unit: h * 0.7, scale: scale).cgImage(),
                          in: CGRect(x: CGFloat(x), y: CGFloat(y), width: bat.width, height: bat.height))
             }
-            // A Dock that stops short of the edges, with a cobweb over each top corner.
+            // A Dock that stops short of the edges, with a cobweb in each top corner.
             let shelf: CGFloat = 24
             let dock = CGRect(x: 30, y: 0, width: size.width - 60, height: shelf)
             ctx.setFillColor(Palette.soot.mixed(with: Palette.plum, 0.4))
@@ -820,14 +820,14 @@ enum ThemePreview {
             ctx.draw(SpookyArt.dirtTexture(width: dock.width, height: dirtHeight, seed: 11, unit: k, scale: scale).cgImage(),
                      in: CGRect(x: dock.minX, y: shelf - 6, width: dock.width, height: dirtHeight))
 
-            let web = CGSize(width: 30, height: 30)
-            let overlap = SpookyArt.cobwebOverlap(size: web.width)
+            // Hanging from each top corner, fanning down and in across the end of the Dock.
+            let web = CGSize(width: shelf, height: shelf)
             let webTexture = SpookyArt.cobwebTexture(size: web, scale: scale).cgImage()
-            ctx.draw(webTexture, in: CGRect(origin: CGPoint(x: dock.maxX - overlap, y: shelf - overlap), size: web))
+            ctx.draw(webTexture, in: CGRect(origin: CGPoint(x: dock.minX, y: shelf - web.height), size: web))
             ctx.saveGState()
-            ctx.translateBy(x: dock.minX + overlap, y: shelf - overlap)
+            ctx.translateBy(x: dock.maxX, y: 0)
             ctx.scaleBy(x: -1, y: 1)
-            ctx.draw(webTexture, in: CGRect(origin: .zero, size: web))
+            ctx.draw(webTexture, in: CGRect(origin: CGPoint(x: 0, y: shelf - web.height), size: web))
             ctx.restoreGState()
 
             enum Item { case lantern(PumpkinKind, CGFloat, Int), pumpkin(PumpkinKind, CGFloat), decor(DecorKind), crypt(PumpkinKind) }

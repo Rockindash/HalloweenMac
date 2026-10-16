@@ -271,6 +271,28 @@ final class DockorateUITests: XCTestCase {
         wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
     }
 
+    func testAFestivalsDetailsShowOnlyWhenPointedAtOrClicked() {
+        launch()
+        open("themes")
+        setSwitch("Change automatically", on: true)
+        let halloween = element("festival-halloween")
+        reveal(halloween)
+        let tip = element("festival-tip")
+        XCTAssertFalse(tip.exists, "Halloween's week is picked out, with no details until asked")
+
+        halloween.hover()
+        XCTAssertTrue(tip.waitForExistence(timeout: 3), "pointing at Halloween's week shows its details")
+        toggle("Change automatically").hover()
+        let gone = NSPredicate { _, _ in !tip.exists }
+        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 3)
+
+        halloween.click()
+        XCTAssertTrue(tip.waitForExistence(timeout: 3))
+        toggle("Change automatically").hover()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        XCTAssertTrue(tip.exists, "after a click they stay until clicked again")
+    }
+
     func testCustomizeHasAThemeMenu() {
         launch()
         open("customize")

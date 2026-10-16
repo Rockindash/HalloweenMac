@@ -256,7 +256,7 @@ enum Settings {
 
         var vineTitle: String { self == .halloween ? "Graveyard dirt" : "Vine" }
         var vineDetail: String {
-            self == .halloween ? "Purple dirt along the top of the Dock, with a cobweb over each top corner."
+            self == .halloween ? "Purple dirt along the top of the Dock, with a cobweb in each top corner."
                                : "Curling along the top of the Dock, behind the pumpkins."
         }
         var extrasTitle: String { self == .halloween ? "Spooky extras" : "Cozy extras" }

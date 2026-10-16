@@ -86,14 +86,18 @@ extension Settings.Theme {
     }
 }
 
-/// The year at a glance: a ribbon with a band for each season and each festival's week (only the themes
-/// in the rotation), a pin over each festival, the months, and where today is.
+/// The year at a glance: a ribbon with a band for each season and each festival's week picked out (only
+/// the themes in the rotation), the months, and where today is. Pointing at a festival's week, or
+/// clicking it, shows its name and dates.
 struct ThemeYear: View {
     var now: Date
     var rotation: Set<Settings.Theme>
     private let calendar = Calendar.current
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
+    /// The festival the pointer is over, and the one clicked to keep its details showing.
+    @State private var hovered: Stretch?
+    @State private var pinned: Stretch?
 
     /// A stretch of days with the same theme, as day numbers in the year (0-based, both included).
     struct Stretch: Hashable {
@@ -125,8 +129,9 @@ struct ThemeYear: View {
         return (days, stretches)
     }
 
-    // The rows, from the top: festival pins, the ribbon, the months, and today's tag.
-    private static let pinRow: CGFloat = 32
+    // The rows, from the top: room for a festival's highlight to stand out, the ribbon, the months,
+    // and today's tag.
+    private static let headroom: CGFloat = 8
     private static let ribbonHeight: CGFloat = 30
     private static let monthRow: CGFloat = 22
     private static let todayRow: CGFloat = 26
@@ -142,31 +147,16 @@ struct ThemeYear: View {
             calendar.date(from: DateComponents(year: year, month: month, day: 1))
                 .flatMap { calendar.ordinality(of: .day, in: .year, for: $0) }.map { $0 - 1 } ?? 0
         }
-        let top = festivals.isEmpty ? 0 : Self.pinRow
+        let top = Self.headroom
         let height = top + Self.ribbonHeight + Self.monthRow + Self.todayRow
         GeometryReader { geometry in
             let width = geometry.size.width
             let x = { (day: Int) -> CGFloat in width * CGFloat(day) / CGFloat(info.days) }
             let todayX = x(today) + x(1) / 2
             ZStack(alignment: .topLeading) {
-                ribbon(info.stretches, festivals: festivals, months: months, today: today, year: year, x: x)
+                ribbon(info.stretches, months: months, today: today, year: year, x: x)
                     .frame(width: width, height: Self.ribbonHeight)
                     .offset(y: top)
-
-                // A pin over each festival's week, with its name when there's room.
-                ForEach(Array(festivals.enumerated()), id: \.element) { index, stretch in
-                    let center = (x(stretch.first) + x(stretch.last + 1)) / 2
-                    let roomy = festivals.indices.allSatisfy { other in
-                        other == index || abs((x(festivals[other].first) + x(festivals[other].last + 1)) / 2 - center) > 170
-                    }
-                    let half = roomy ? FestivalPin.estimatedWidth(stretch.theme, dates: ThemeSchedule.span(stretch, year: year)) / 2 : 11
-                    FestivalPin(theme: stretch.theme, dates: ThemeSchedule.span(stretch, year: year), showsName: roomy)
-                        .position(x: min(max(center, half), width - half), y: 11)
-                    Triangle(pointsDown: true)
-                        .fill(stretch.theme.color)
-                        .frame(width: 10, height: 6)
-                        .position(x: center, y: top - 6)
-                }
 
                 // The months, with this one picked out.
                 ForEach(0..<12, id: \.self) { month in
@@ -178,12 +168,32 @@ struct ThemeYear: View {
                         .position(x: (start + end) / 2, y: top + Self.ribbonHeight + Self.monthRow / 2 + 1)
                 }
 
+                // Each festival's week, picked out on the ribbon. Its details show only while it's
+                // pointed at, or after a click (until clicked again).
+                ForEach(festivals, id: \.self) { stretch in
+                    let left = x(stretch.first), right = x(stretch.last + 1)
+                    let isShown = (hovered ?? pinned) == stretch
+                    FestivalWeek(theme: stretch.theme, width: right - left, isShown: isShown)
+                        .frame(width: max(26, right - left + 10), height: Self.ribbonHeight + 16)
+                        .contentShape(Rectangle())
+                        .onHover { inside in
+                            if inside { hovered = stretch } else if hovered == stretch { hovered = nil }
+                        }
+                        .onTapGesture { pinned = pinned == stretch ? nil : stretch }
+                        .accessibilityElement()
+                        .accessibilityLabel("\(stretch.theme.title), \(ThemeSchedule.span(stretch, year: year))")
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { pinned = pinned == stretch ? nil : stretch }
+                        .accessibilityIdentifier("festival-\(stretch.theme.rawValue)")
+                        .position(x: (left + right) / 2, y: top + Self.ribbonHeight / 2)
+                }
                 // Today: a line across the ribbon, and a tag under the months with a dot that gently pulses.
                 Capsule()
                     .fill(Color.primary)
                     .overlay(Capsule().stroke(Color.pageBackground.opacity(0.9), lineWidth: 1))
                     .frame(width: 3, height: Self.ribbonHeight + 8)
                     .position(x: todayX, y: top + Self.ribbonHeight / 2)
+                    .allowsHitTesting(false)
                 HStack(spacing: 5) {
                     Circle()
                         .fill(Color.pumpkin)
@@ -197,8 +207,25 @@ struct ThemeYear: View {
                 .background(Capsule().fill(Color.primary.opacity(0.08)))
                 .fixedSize()
                 .position(x: min(max(todayX, 52), width - 52), y: height - Self.todayRow / 2)
+                .allowsHitTesting(false)
+
+                if let shown = hovered ?? pinned {
+                    let center = (x(shown.first) + x(shown.last + 1)) / 2
+                    // A zero-size point just above the festival's week, with the tip sitting on it.
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .overlay(alignment: .bottom) {
+                            FestivalTip(theme: shown.theme, dates: ThemeSchedule.span(shown, year: year),
+                                        when: ThemeSchedule.festivalCountdown(shown, today: today))
+                                .fixedSize()
+                        }
+                        .position(x: center, y: top - 6)
+                        .allowsHitTesting(false)
+                        .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+                }
             }
             .frame(width: width, height: height, alignment: .topLeading)
+            .animation(.easeOut(duration: 0.15), value: hovered ?? pinned)
         }
         .frame(height: height)
         .onAppear {
@@ -206,14 +233,13 @@ struct ThemeYear: View {
             guard !reduceMotion, !AppEnvironment.isUITesting else { return }
             withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { pulse = true }
         }
-        .accessibilityElement(children: .ignore)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("The year's themes")
-        .accessibilityValue(ThemeSchedule.summary(.automatic, now: now))
         .accessibilityIdentifier("theme-year")
     }
 
     /// The bands for the seasons and festivals, with faint month lines and the past a little dimmer.
-    private func ribbon(_ stretches: [Stretch], festivals: [Stretch], months: [Int], today: Int, year: Int,
+    private func ribbon(_ stretches: [Stretch], months: [Int], today: Int, year: Int,
                         x: @escaping (Int) -> CGFloat) -> some View {
         ZStack(alignment: .topLeading) {
             ForEach(stretches, id: \.self) { stretch in
@@ -221,21 +247,12 @@ struct ThemeYear: View {
                 SeasonBand(theme: stretch.theme, width: right - left, showsName: stretch.theme.kind == .season)
                     .frame(width: max(2, right - left), height: Self.ribbonHeight)
                     .offset(x: left)
-                    .help("\(stretch.theme.title): \(ThemeSchedule.span(stretch, year: year))")
             }
             ForEach(months.dropFirst(), id: \.self) { day in
                 Rectangle()
                     .fill(Color.white.opacity(0.18))
                     .frame(width: 1, height: Self.ribbonHeight)
                     .offset(x: x(day))
-                    .allowsHitTesting(false)
-            }
-            // A bright edge each side of a festival's week.
-            ForEach(festivals, id: \.self) { stretch in
-                Rectangle()
-                    .strokeBorder(Color.white.opacity(0.75), lineWidth: 1.5)
-                    .frame(width: max(4, x(stretch.last + 1) - x(stretch.first)) + 3, height: Self.ribbonHeight + 4)
-                    .offset(x: x(stretch.first) - 1.5, y: -2)
                     .allowsHitTesting(false)
             }
             Rectangle()
@@ -286,36 +303,67 @@ private struct SeasonBand: View {
     }
 }
 
-/// A festival's tag over the ribbon: its symbol, and its name and dates when there's room.
-private struct FestivalPin: View {
+/// A festival's week, picked out on the ribbon: a little taller than it, in the festival's color with a
+/// bright edge and its symbol, glowing more while its details show.
+private struct FestivalWeek: View {
     var theme: Settings.Theme
-    var dates: String
-    var showsName: Bool
-    @State private var hovering = false
-
-    /// About how wide the tag is with its name, for keeping it inside the ribbon's ends.
-    static func estimatedWidth(_ theme: Settings.Theme, dates: String) -> CGFloat {
-        CGFloat(theme.title.count + dates.count) * 6.2 + 46
-    }
+    var width: CGFloat
+    var isShown: Bool
 
     var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: theme.symbol).font(.system(size: 10, weight: .bold))
-            if showsName {
-                Text(theme.title).font(.system(size: 11, weight: .bold))
-                Text(dates).font(.system(size: 10.5, weight: .medium)).opacity(0.85)
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .fill(theme.color.gradient)
+            .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5))
+            .overlay {
+                if width >= 13 {
+                    Image(systemName: theme.symbol)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                }
             }
+            .frame(width: max(8, width), height: 38)
+            .shadow(color: theme.color.opacity(isShown ? 0.8 : 0.45), radius: isShown ? 7 : 3)
+            .scaleEffect(isShown ? 1.1 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isShown)
+    }
+}
+
+/// A festival's details over its week: its name, dates and when it's next on the Dock.
+private struct FestivalTip: View {
+    var theme: Settings.Theme
+    var dates: String
+    var when: String
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: theme.symbol)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+                    .background(Circle().fill(theme.color.gradient))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(theme.title).font(.system(size: 12, weight: .bold))
+                    Text(dates).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                Text(when)
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundStyle(theme.color)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(theme.color.opacity(0.15)))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.regularMaterial))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.primary.opacity(0.12)))
+            .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
+            Triangle(pointsDown: true)
+                .fill(Color.primary.opacity(0.25))
+                .frame(width: 12, height: 6)
         }
-        .foregroundStyle(.white)
-        .padding(.horizontal, showsName ? 9 : 5)
-        .frame(height: 22)
-        .background(Capsule().fill(theme.color.gradient))
-        .shadow(color: theme.color.opacity(0.35), radius: hovering ? 5 : 2, y: 1)
-        .fixedSize()
-        .scaleEffect(hovering ? 1.08 : 1)
-        .animation(.spring(response: 0.3, dampingFraction: 0.55), value: hovering)
-        .onHover { hovering = $0 }
-        .help("\(theme.title): \(dates)")
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("festival-tip")
     }
 }
 
@@ -598,6 +646,15 @@ enum ThemeSchedule {
             return "\(day(start)) to \(day(last))"
         }
         return "From \(day(start))"
+    }
+
+    /// When a festival's week (in this year's ribbon) is on, from day of the year `today`: "On your Dock
+    /// now", "In 9 days", or "Back next year".
+    static func festivalCountdown(_ stretch: ThemeYear.Stretch, today: Int) -> String {
+        if (stretch.first...stretch.last).contains(today) { return "On your Dock now" }
+        if stretch.first < today { return "Back next year" }
+        let days = stretch.first - today
+        return days == 1 ? "Tomorrow" : "In \(days) days"
     }
 
     /// "Tomorrow", or "In 9 days".

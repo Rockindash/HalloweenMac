@@ -402,22 +402,21 @@ extension PumpkinScene {
 
     // MARK: Cobwebs
 
-    /// Cobwebs over both top corners of the Dock at Halloween (with the vine), and a spider
+    /// Cobwebs strung in both top corners of the Dock at Halloween (with the vine), and a spider
     /// dangling from the left one.
     func layoutCobwebs() {
         for case let web as WebNode in pumpkinLayer.children { web.removeFromParent() }
         guard Settings.theme == .halloween, Settings.showVines, dockRect.width > 200 else { return }
-        // Each fans up and outward from a little inside the Dock's top corner, so it reaches over the
-        // corner's edge, a little shorter than the Dock.
-        let s = (dockRect.height * 0.8).rounded()
-        let overlap = SpookyArt.cobwebOverlap(size: s)
+        // Each hangs from the Dock's top corner and fans down and in across the end of the Dock, as
+        // tall as the Dock.
+        let s = dockRect.height.rounded()
         for left in [true, false] {
             let web = WebNode(texture: SpookyArt.cobwebTexture(size: CGSize(width: s, height: s), scale: pixelScale),
                               color: .clear, size: CGSize(width: s, height: s))
-            web.anchorPoint = .zero
-            web.restX = left ? dockRect.minX + overlap : dockRect.maxX - overlap
-            web.restY = dockRect.maxY - overlap
-            web.facing = left ? -1 : 1
+            web.anchorPoint = CGPoint(x: 0, y: 1)
+            web.restX = left ? dockRect.minX : dockRect.maxX
+            web.restY = dockRect.maxY
+            web.facing = left ? 1 : -1
             web.zPosition = 0.3
             pumpkinLayer.addChild(web)
             if left { hangSpider(from: web, size: s) }
@@ -425,8 +424,10 @@ extension PumpkinScene {
     }
 
     private func hangSpider(from web: WebNode, size s: CGFloat) {
-        let anchor = CGPoint(x: s * 0.62, y: s * 0.7)
-        let thread = SKSpriteNode(color: NSColor(cgColor: SpookyArt.webColor) ?? .white, size: CGSize(width: 1, height: s * 0.3))
+        // From a thread of the web near the corner (the web's top-left corner is its origin), down
+        // over the end of the Dock.
+        let anchor = CGPoint(x: s * 0.3, y: -s * 0.3)
+        let thread = SKSpriteNode(color: NSColor(cgColor: SpookyArt.webColor) ?? .white, size: CGSize(width: 1, height: s * 0.15))
         thread.anchorPoint = CGPoint(x: 0.5, y: 1)
         thread.position = anchor
         thread.zPosition = 0.1
@@ -434,13 +435,13 @@ extension PumpkinScene {
         let spiderSize = (pumpkinHeight * 0.16).rounded()
         let spider = SKSpriteNode(texture: SpookyArt.spiderTexture(size: spiderSize, scale: pixelScale), size: CGSize(width: spiderSize, height: spiderSize))
         spider.anchorPoint = CGPoint(x: 0.5, y: 0.65)
-        spider.position = CGPoint(x: anchor.x, y: anchor.y - s * 0.3)
+        spider.position = CGPoint(x: anchor.x, y: anchor.y - s * 0.15)
         spider.zPosition = 0.2
         web.addChild(spider)
         guard !Self.reduceMotion else { return }
-        // Slowly lowering and climbing back up.
-        thread.run(.repeatForever(.sequence([.resize(toHeight: s * 0.5, duration: 2.4), .wait(forDuration: 1), .resize(toHeight: s * 0.18, duration: 2.4), .wait(forDuration: 1.5)])))
-        spider.run(.repeatForever(.sequence([.moveTo(y: anchor.y - s * 0.5, duration: 2.4), .wait(forDuration: 1),
-                                             .moveTo(y: anchor.y - s * 0.18, duration: 2.4), .wait(forDuration: 1.5)])))
+        // Slowly lowering and climbing back up, staying on the Dock.
+        thread.run(.repeatForever(.sequence([.resize(toHeight: s * 0.4, duration: 2.4), .wait(forDuration: 1), .resize(toHeight: s * 0.12, duration: 2.4), .wait(forDuration: 1.5)])))
+        spider.run(.repeatForever(.sequence([.moveTo(y: anchor.y - s * 0.4, duration: 2.4), .wait(forDuration: 1),
+                                             .moveTo(y: anchor.y - s * 0.12, duration: 2.4), .wait(forDuration: 1.5)])))
     }
 }

@@ -152,6 +152,15 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertEqual(automatic.theme(on: date(10, 28)), .halloween)
     }
 
+    @MainActor func testAFestivalsDetailsSayWhenItsOn() {
+        let halloween = ThemeYear.Stretch(theme: .halloween, first: 296, last: 303)
+        XCTAssertEqual(ThemeSchedule.festivalCountdown(halloween, today: 288), "In 8 days")
+        XCTAssertEqual(ThemeSchedule.festivalCountdown(halloween, today: 295), "Tomorrow")
+        XCTAssertEqual(ThemeSchedule.festivalCountdown(halloween, today: 296), "On your Dock now")
+        XCTAssertEqual(ThemeSchedule.festivalCountdown(halloween, today: 303), "On your Dock now")
+        XCTAssertEqual(ThemeSchedule.festivalCountdown(halloween, today: 310), "Back next year")
+    }
+
     func testTheLastSeasonStaysInTheRotation() {
         XCTAssertTrue(Settings.canLeave(.halloween, [.fall, .halloween]), "festivals can all be left out")
         XCTAssertFalse(Settings.canLeave(.fall, [.fall, .halloween]), "the only season stays, for the days between festivals")
@@ -247,7 +256,7 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertNotNil(scene.action(forKey: "respawn-\(lantern.slot)"))
     }
 
-    @MainActor func testCobwebsSitOverEachTopCornerOfTheDock() {
+    @MainActor func testCobwebsHangInEachTopCornerOfTheDock() {
         Settings.themeChoice = .keep(.halloween)
         let dock = CGRect(x: 120, y: 0, width: 1200, height: 70)
         let scene = PumpkinScene(size: CGSize(width: 1440, height: 220))
@@ -255,25 +264,24 @@ final class ThemeTests: SettingsTestCase {
         let webs = scene.pumpkinLayer.children.compactMap { $0 as? WebNode }.sorted { $0.restX < $1.restX }
         XCTAssertEqual(webs.count, 2)
         let left = webs[0], right = webs[1]
-        // Each fans up and outward from a little inside the Dock's top corner.
-        XCTAssertGreaterThan(left.restX, dock.minX)
-        XCTAssertLessThan(right.restX, dock.maxX)
-        XCTAssertLessThan(left.restY, dock.maxY)
-        XCTAssertEqual(left.restY, right.restY)
-        XCTAssertLessThan(left.facing, 0, "the left web opens to the left, away from the Dock")
-        XCTAssertGreaterThan(right.facing, 0, "the right web opens to the right")
+        // Each hangs from the Dock's top corner and fans down and in.
+        XCTAssertEqual(left.restX, dock.minX)
+        XCTAssertEqual(right.restX, dock.maxX)
+        XCTAssertEqual(left.restY, dock.maxY)
+        XCTAssertEqual(right.restY, dock.maxY)
+        XCTAssertGreaterThan(left.facing, 0, "the left web fans to the right, into the Dock")
+        XCTAssertLessThan(right.facing, 0, "the right web fans to the left")
         XCTAssertLessThanOrEqual(left.size.height, dock.height, "no taller than the Dock")
-        XCTAssertFalse(left.risesWithIcons, "it stays put on the Dock when the icons magnify")
+        XCTAssertFalse(left.risesWithIcons, "it stays put in the corner when the icons magnify")
 
-        // Placed, each reaches over the Dock's end and its top edge, and is mostly above the Dock.
+        // Placed, each sits in its corner of the Dock, spider and all.
         scene.update(1)
         scene.update(1.1)
-        for (web, end) in [(left, dock.minX), (right, dock.maxX)] {
+        for (web, corner) in [(left, CGPoint(x: dock.minX, y: dock.maxY)), (right, CGPoint(x: dock.maxX, y: dock.maxY))] {
             let frame = web.calculateAccumulatedFrame()
-            XCTAssertLessThan(frame.minX, end, "\(frame) crosses the end of the Dock")
-            XCTAssertGreaterThan(frame.maxX, end, "\(frame) crosses the end of the Dock")
-            XCTAssertLessThan(frame.minY, dock.maxY, "\(frame) overlaps the top of the Dock")
-            XCTAssertGreaterThan(frame.midY, dock.maxY, "\(frame) sits on top of the Dock")
+            XCTAssertTrue(dock.insetBy(dx: -1, dy: -1).contains(frame), "\(frame) is on the Dock")
+            XCTAssertEqual(frame.maxY, corner.y, accuracy: 1, "\(frame) hangs from the top")
+            XCTAssertEqual(web == left ? frame.minX : frame.maxX, corner.x, accuracy: 1, "\(frame) is in the corner")
         }
 
         Settings.themeChoice = .keep(.fall)
