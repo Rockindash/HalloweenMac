@@ -55,6 +55,8 @@ Diwali follows the moon, so its day moves between mid October and mid November (
 - With Background on, a town at night: rooftops with lit windows and strings of lights, a temple with its spire and flag, and a wall of diyas in front. The light picture is a plum, coral and saffron dusk with a low sun; the dark one is a moonless, starry indigo night with a firework where the moon would be.
 - Religious symbols are left out on purpose, so the theme is about the lights, the sweets and the celebration.
 
+![Diwali on the Dock](docs/diwali-preview.png)
+
 ## What you need
 
 - A Mac running macOS 13 Ventura or newer.
