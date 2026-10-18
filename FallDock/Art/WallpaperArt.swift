@@ -6,8 +6,8 @@ import UniformTypeIdentifiers
 // minimal and quiet, so the Dock is the star: every theme has the same small sun or moon in the same
 // spot, and nothing big or bright pulls the eye. Fall's is a soft sky and two rolling hills along the bottom.
 // Halloween's is its own scene: a haunted house on a hill, a few bats by the moon, a gnarled tree and
-// a graveyard. Diwali's is a town at dusk or on its dark new-moon night: a temple and rooftops with lit
-// windows and strings of lights, a row of diyas along a wall in front, and a few faint fireworks.
+// a graveyard. Diwali's is a quiet town at dusk or on a starry night: rooftops and a temple in silhouette
+// with a few lit windows, and a few faint fireworks.
 // Every theme has a light and a dark picture, to go with a light or dark Dock. They're
 // drawn at each display's exact size, so they stay sharp on any screen.
 
@@ -27,17 +27,17 @@ enum WallpaperArt {
         var festive: Festive?
     }
 
-    /// The extra colors of Diwali's scene. The town is drawn in `backHill` and the wall in front in `frontHill`.
+    /// The extra colors of Diwali's scene. The town is drawn in `backHill` and the ground in front in `frontHill`.
     struct Festive {
         /// The sky between the top and the horizon.
         var skyMiddle: CGColor
-        /// Lit windows and the diyas' flames.
+        /// Lit windows.
         var light: CGColor
-        /// The strings of lights and the fireworks.
+        /// The fireworks.
         var sparks: [CGColor]
         var stars: Bool
-        /// The orb is a firework's bright heart rather than the sun (Diwali's night has no moon).
-        var firework: Bool
+        /// How strongly the faint fireworks show.
+        var fireworkAlpha: CGFloat
     }
 
     /// The extra colors of Halloween's scene.
@@ -86,14 +86,14 @@ enum WallpaperArt {
             return Look(skyTop: .hex(0x7A3E7E), skyBottom: .hex(0xFBC46A), orb: .hex(0xFFF0C8),
                         glow: .hex(0xFFE2A8, alpha: 0.32), backHill: .hex(0x3E2352), frontHill: .hex(0x24132F),
                         festive: Festive(skyMiddle: .hex(0xE57A6E), light: .hex(0xFFC857),
-                                         sparks: [.hex(0xFFD36E), .hex(0xF27BB0), .hex(0x7FE0D2)], stars: false, firework: false))
+                                         sparks: [.hex(0xFFD36E), .hex(0xF27BB0), .hex(0x7FE0D2)], stars: false, fireworkAlpha: 0.3))
         case (.diwali, .dark):
-            // Diwali night: the new moon, so a deep indigo starry sky glowing magenta over the town from all its
-            // lights, and a firework bursting where the moon would be.
+            // Diwali night: a deep indigo starry sky glowing magenta over the town, with a soft gold glow where
+            // the moon would be.
             return Look(skyTop: .hex(0x1A1240), skyBottom: .hex(0x7A2E52), orb: .hex(0xFFE09A),
                         glow: .hex(0xFFC870, alpha: 0.16), backHill: .hex(0x170E24), frontHill: .hex(0x0B0712),
                         festive: Festive(skyMiddle: .hex(0x3D1E5C), light: .hex(0xFFB847),
-                                         sparks: [.hex(0xF2A11F), .hex(0xDB4F93), .hex(0x2EA3A3)], stars: true, firework: true))
+                                         sparks: [.hex(0xF2A11F), .hex(0xDB4F93), .hex(0x2EA3A3)], stars: true, fireworkAlpha: 0.45))
         }
     }
 
@@ -401,12 +401,12 @@ enum WallpaperArt {
 
     // MARK: Diwali
 
-    /// Where the temple stands among the rooftops, and the top of the wall in front (fractions, y from the top).
-    private static let templeX: CGFloat = 0.34
-    private static let wallTop: CGFloat = 0.905
+    /// Where the temple stands among the rooftops, and the top of the ground in front (fractions, y from the top).
+    static let templeX: CGFloat = 0.34
+    static let groundTop: CGFloat = 0.905
 
     private static func drawDiwali(_ look: Look, _ festive: Festive, in ctx: CGContext, size: CGSize) {
-        let w = size.width, h = size.height, u = w * 0.001
+        let w = size.width, h = size.height
         func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: (1 - y) * h) }
         ctx.setShouldAntialias(true)
 
@@ -432,7 +432,7 @@ enum WallpaperArt {
 
         // A few faint fireworks, far from the orb.
         ctx.saveGState()
-        ctx.setAlpha(festive.firework ? 0.55 : 0.35)
+        ctx.setAlpha(festive.fireworkAlpha)
         let bursts: [(x: CGFloat, y: CGFloat, r: CGFloat)] = [(0.16, 0.2, 0.03), (0.47, 0.12, 0.022), (0.58, 0.3, 0.018)]
         for (i, (x, y, r)) in bursts.enumerated() {
             let colors = [festive.sparks[i % festive.sparks.count], festive.sparks[(i + 1) % festive.sparks.count]]
@@ -440,51 +440,27 @@ enum WallpaperArt {
         }
         ctx.restoreGState()
 
-        // The sun, or on Diwali's moonless night a firework bursting in the same spot, just as big.
+        // The sun or moon, like every theme's.
         let center = point(orbCenter.x, orbCenter.y)
         let radius = w * orbSize / 2
         if let glow = CGGradient(colorsSpace: nil, colors: [look.glow, look.glow.withAlpha(0)] as CFArray, locations: [0, 1]) {
             ctx.drawRadialGradient(glow, startCenter: center, startRadius: 0, endCenter: center, endRadius: w * glowSize, options: [])
         }
-        if festive.firework {
-            let rays = 18
-            for i in 0..<rays {
-                let a = CGFloat(i) / CGFloat(rays) * .pi * 2 + 0.1
-                let color = festive.sparks[i % festive.sparks.count]
-                let from = CGPoint(x: center.x + cos(a) * radius * 1.25, y: center.y + sin(a) * radius * 1.25)
-                let tip = CGPoint(x: center.x + cos(a) * radius * 2.4, y: center.y + sin(a) * radius * 2.4 - radius * 0.15)
-                Brush.trail(ctx, [tip, CGPoint(x: (tip.x + from.x) / 2, y: (tip.y + from.y) / 2), from], maxWidth: radius * 0.16,
-                            color: color.withAlpha(0.8), minF: 0.15)
-                ctx.setFillColor(color)
-                ctx.fillEllipse(in: CGRect(x: tip.x - radius * 0.1, y: tip.y - radius * 0.1, width: radius * 0.2, height: radius * 0.2))
-            }
-            ctx.setFillColor(look.orb)
-            let core = radius * 0.86
-            ctx.fillEllipse(in: CGRect(x: center.x - core, y: center.y - core, width: core * 2, height: core * 2))
-        } else {
-            ctx.setFillColor(look.orb)
-            ctx.fillEllipse(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
-        }
+        ctx.setFillColor(look.orb)
+        ctx.fillEllipse(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
 
         drawTown(look, festive, in: ctx, size: size)
 
-        // The wall in front, with a row of lit diyas along its top.
-        let wallY = (1 - wallTop) * h
+        // Plain ground in front.
         ctx.setFillColor(look.frontHill)
-        ctx.fill(CGRect(x: 0, y: 0, width: w, height: wallY))
-        var x = w * 0.02
-        while x < w {
-            drawWallDiya(at: CGPoint(x: x, y: wallY), unit: u, color: look.frontHill, light: festive.light, in: ctx)
-            x += w * 0.034
-        }
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: (1 - groundTop) * h))
     }
 
-    /// The town's rooftops, with the temple among them: lit windows, and strings of lights between the roofs.
+    /// The town's rooftops, with the temple among them, and a few lit windows.
     private static func drawTown(_ look: Look, _ festive: Festive, in ctx: CGContext, size: CGSize) {
         let w = size.width, h = size.height, u = w * 0.001
-        let ground = (1 - wallTop) * h - 2 * u
+        let ground = (1 - groundTop) * h - 2 * u
         var rng = SeededRandom(seed: 2026)
-        var roofs: [CGPoint] = []
         var x: CGFloat = -0.01
         let templeHalf: CGFloat = 0.05
         while x < 1.01 {
@@ -519,13 +495,11 @@ enum WallpaperArt {
             default:
                 ctx.fill(CGRect(x: rect.minX - 1.5 * u, y: rect.maxY, width: rect.width + 3 * u, height: 3 * u))
             }
-            roofs.append(CGPoint(x: rect.minX, y: rect.maxY))
-            roofs.append(CGPoint(x: rect.maxX, y: rect.maxY))
             // A few lit windows.
             ctx.setFillColor(festive.light)
             let columns = max(1, Int(rect.width / (16 * u)))
             for c in 0..<columns {
-                for row in 0..<2 where rng.float(0...1) < 0.55 {
+                for row in 0..<2 where rng.float(0...1) < 0.4 {
                     let wx = rect.minX + (CGFloat(c) + 0.5) * rect.width / CGFloat(columns) - 3 * u
                     let wy = rect.maxY - (14 + CGFloat(row) * 15) * u
                     if wy > ground + 6 * u { ctx.fill(CGRect(x: wx, y: wy, width: 6 * u, height: 8 * u)) }
@@ -534,23 +508,6 @@ enum WallpaperArt {
             x += width + rng.float(0...0.006)
         }
         drawTemple(at: templeX * w, ground: ground, unit: u, look: look, light: festive.light, in: ctx)
-
-        // Strings of lights draped between neighboring roofs.
-        var i = 1
-        while i + 1 < roofs.count {
-            let a = roofs[i], b = roofs[i + 1]
-            if b.x - a.x < 90 * u && rng.float(0...1) < 0.7 {
-                let sag = 9 * u
-                let count = max(3, Int((b.x - a.x) / (7 * u)))
-                for k in 0...count {
-                    let t = CGFloat(k) / CGFloat(count)
-                    let p = CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t - sin(.pi * t) * sag)
-                    ctx.setFillColor(festive.sparks[k % festive.sparks.count])
-                    ctx.fillEllipse(in: CGRect(x: p.x - 1.5 * u, y: p.y - 1.5 * u, width: 3 * u, height: 3 * u))
-                }
-            }
-            i += 2
-        }
     }
 
     /// A temple: a hall with a small dome, and the tall curved spire (shikhara) with its crown and a flag.
@@ -599,29 +556,6 @@ enum WallpaperArt {
         for wx in [-54, -42, -30] as [CGFloat] {
             ctx.fill(CGRect(x: x + wx * u, y: base + 28 * u, width: 6 * u, height: 10 * u))
         }
-    }
-
-    /// One little diya on the wall: a dark bowl, a flame and a soft glow.
-    private static func drawWallDiya(at p: CGPoint, unit u: CGFloat, color: CGColor, light: CGColor, in ctx: CGContext) {
-        if let glow = CGGradient(colorsSpace: nil, colors: [light.withAlpha(0.35), light.withAlpha(0)] as CFArray, locations: [0, 1]) {
-            let c = CGPoint(x: p.x, y: p.y + 9 * u)
-            ctx.drawRadialGradient(glow, startCenter: c, startRadius: 0, endCenter: c, endRadius: 16 * u, options: [])
-        }
-        ctx.setFillColor(color)
-        let bowl = CGMutablePath()
-        bowl.move(to: CGPoint(x: p.x - 7 * u, y: p.y + 4 * u))
-        bowl.addQuadCurve(to: CGPoint(x: p.x + 8 * u, y: p.y + 5 * u), control: CGPoint(x: p.x, y: p.y - 4 * u))
-        bowl.closeSubpath()
-        ctx.addPath(bowl)
-        ctx.fillPath()
-        ctx.setFillColor(light)
-        let flame = CGMutablePath()
-        flame.move(to: CGPoint(x: p.x + 5 * u, y: p.y + 15 * u))
-        flame.addQuadCurve(to: CGPoint(x: p.x + 5 * u, y: p.y + 5 * u), control: CGPoint(x: p.x + 9 * u, y: p.y + 7 * u))
-        flame.addQuadCurve(to: CGPoint(x: p.x + 5 * u, y: p.y + 15 * u), control: CGPoint(x: p.x + 1 * u, y: p.y + 7 * u))
-        flame.closeSubpath()
-        ctx.addPath(flame)
-        ctx.fillPath()
     }
 
     /// A smooth curve through every point (Catmull-Rom, as Bézier curves), starting with a line to the first.

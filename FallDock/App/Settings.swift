@@ -30,6 +30,9 @@ enum Settings {
         static let wallpaperEnabled = "wallpaperEnabled"
         static let wallpaperMode = "wallpaperMode"
         static let wallpaperOriginals = "wallpaperOriginals"
+
+        /// Each theme's own count. Fall's is the original smash count, which every smash went to before.
+        static func count(_ theme: Theme) -> String { theme == .fall ? smashCount : "\(theme.rawValue)Count" }
     }
 
     /// The app was called Fall Dock, with the bundle ID com.amol.falldock, before it shipped. The first
@@ -75,13 +78,13 @@ enum Settings {
         ])
     }
 
-    /// Puts every option back the way it was on first launch and clears the smash count.
+    /// Puts every option back the way it was on first launch and clears every theme's count.
     /// The welcome isn't shown again.
     static func resetAll() {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
                     Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.festivalLead, Key.wallpaperEnabled, Key.wallpaperMode,
-                    Key.bats, Key.ghost, Key.fireworks, Key.peacock]
+                    Key.bats, Key.ghost, Key.fireworks, Key.peacock] + Theme.allCases.map(Key.count)
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -153,9 +156,28 @@ enum Settings {
         set { defaults.set(newValue.rawValue, forKey: Key.fullness) }
     }
 
+    /// Fall's count of smashed pumpkins. (Before each theme kept its own count, every smash counted here.)
     static var smashCount: Int {
         get { defaults.integer(forKey: Key.smashCount) }
         set { defaults.set(newValue, forKey: Key.smashCount) }
+    }
+
+    /// How many of a theme's main thing have been clicked, on the Dock or in the app window: pumpkins
+    /// smashed at Fall, jack-o'-lanterns smashed at Halloween, diyas lit at Diwali.
+    static func count(_ theme: Theme) -> Int {
+        defaults.integer(forKey: Key.count(theme))
+    }
+
+    static func setCount(_ count: Int, for theme: Theme) {
+        defaults.set(count, forKey: Key.count(theme))
+    }
+
+    /// One more for `theme`'s count. Returns the new count.
+    @discardableResult
+    static func addToCount(_ theme: Theme) -> Int {
+        let total = count(theme) + 1
+        setCount(total, for: theme)
+        return total
     }
 
     static var hasSeenWelcome: Bool {
@@ -247,6 +269,31 @@ enum Settings {
             case .halloween: return "Jack-o'-Lanterns, Candy and a Friendly Ghost"
             case .diwali: return "Diyas, Rangoli, Sweets and Fireworks"
             }
+        }
+
+        /// The main thing on the Dock, which the Home page counts, and what clicking one does to it.
+        private var counted: (one: String, many: String, done: String) {
+            switch self {
+            case .fall: return ("Pumpkin", "Pumpkins", "Smashed")
+            case .halloween: return ("Jack-o'-Lantern", "Jack-o'-Lanterns", "Smashed")
+            case .diwali: return ("Diya", "Diyas", "Lit")
+            }
+        }
+
+        /// The Home page's count: "No Pumpkins Smashed Yet", "1 Diya Lit", "12 Jack-o'-Lanterns Smashed".
+        func countTitle(_ count: Int) -> String {
+            let (one, many, done) = counted
+            switch count {
+            case 0: return "No \(many) \(done) Yet"
+            case 1: return "1 \(one) \(done)"
+            default: return "\(count) \(many) \(done)"
+            }
+        }
+
+        /// What the count is, as a setting's name: "Pumpkins smashed", "Jack-o'-lanterns smashed", "Diyas lit".
+        var countName: String {
+            let (_, many, done) = counted
+            return String(many.prefix(1)) + many.dropFirst().lowercased() + " " + done.lowercased()
         }
 
         var subtitle: String {

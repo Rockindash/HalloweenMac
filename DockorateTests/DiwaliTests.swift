@@ -145,13 +145,15 @@ final class DiwaliTests: SettingsTestCase {
         Settings.themeChoice = .keep(.diwali)
         Settings.sound = false
         let scene = harvest()
-        var smashes = 0
+        var smashes = 0, lightUps = 0
         scene.onSmash = { smashes += 1 }
+        scene.onLightUp = { lightUps += 1 }
         let lamp = try XCTUnwrap(lamps(in: scene).first)
         XCTAssertTrue(scene.effectsLayer.children.isEmpty)
 
         scene.lightUp(lamp)
-        XCTAssertEqual(smashes, 0, "lamps aren't smashed or counted")
+        XCTAssertEqual(smashes, 0, "lamps aren't smashed")
+        XCTAssertEqual(lightUps, 1, "it counts as a diya lit")
         XCTAssertFalse(lamp.isSmashing)
         XCTAssertTrue(lamp.parent === scene.pumpkinLayer, "still on the Dock")
         XCTAssertTrue(lamp.isInteractive)
@@ -161,6 +163,7 @@ final class DiwaliTests: SettingsTestCase {
 
         scene.lightUp(lamp)
         XCTAssertEqual(scene.effectsLayer.children.count, 1, "one at a time from each lamp")
+        XCTAssertEqual(lightUps, 1, "and a click while it's going off isn't counted again")
     }
 
     @MainActor func testAFireworkBurstsIntoStreaksAndSparks() {

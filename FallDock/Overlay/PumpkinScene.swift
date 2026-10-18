@@ -31,8 +31,10 @@ final class PumpkinNode: DockSprite {
 /// Scene coordinates match the window: (0, 0) is the window's bottom-left corner.
 @MainActor
 final class PumpkinScene: SKScene {
-    /// Called after every smash (used for the counter in the menu).
+    /// Called after every smash (for the theme's count on the Home page).
     var onSmash: (() -> Void)?
+    /// Called when a diya is clicked and sends up a firework (Diwali's count).
+    var onLightUp: (() -> Void)?
     /// True for the scene over the real Dock, false for the little harvest in the app window.
     var isOnDock = false
 

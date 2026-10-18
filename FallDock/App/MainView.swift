@@ -244,11 +244,11 @@ struct HomePage: View {
         }
     }
 
-    private var smashed: String {
-        switch model.smashCount {
-        case 0: return "No Pumpkins Smashed Yet"
-        case 1: return "1 Pumpkin Smashed"
-        default: return "\(model.smashCount) Pumpkins Smashed"
+    /// Under the theme's count: what clicking its main thing does.
+    private var countSummary: String {
+        switch model.theme {
+        case .fall, .halloween: return "Smash one on your Dock and another grows in its place."
+        case .diwali: return "Click one on your Dock and it sends a firework into the sky."
         }
     }
 
@@ -261,9 +261,10 @@ struct HomePage: View {
                 controls
 
                 LazyVGrid(columns: columns, spacing: 20) {
-                    FeatureCard(eyebrow: "Your harvest", title: smashed,
-                                subtitle: "Smash one on your Dock and another grows in its place.",
-                                image: ExtraArt.pumpkin(), imageBackground: Color.harvestMustard.opacity(0.22))
+                    // Only the count for the theme that's on; each theme keeps its own.
+                    FeatureCard(eyebrow: "Your harvest", title: model.theme.countTitle(model.themeCount),
+                                subtitle: countSummary,
+                                image: ExtraArt.themeImage(model.theme), imageBackground: Color.harvestMustard.opacity(0.22))
                     Button(action: openThemes) {
                         FeatureCard(eyebrow: "Theme", title: model.theme.title,
                                     subtitle: ThemeSchedule.summary(model.themeChoice),
@@ -340,7 +341,7 @@ struct SettingsPage: View {
     @ObservedObject var model: AppModel
     @State private var hasAccessibility = DockLocator.hasAccessibility
     @State private var dockAtBottom = SettingsPage.isDockAtBottom
-    @State private var confirmingSmashReset = false
+    @State private var confirmingCountReset = false
     @State private var confirmingResetAll = false
     @State private var confirmingLicenseRemoval = false
     private let tick = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
@@ -434,29 +435,30 @@ struct SettingsPage: View {
             }
 
             Card(title: "Reset") {
-                SettingRow(symbol: "hammer.fill", color: .pumpkin, title: "Smash count",
-                           detail: model.smashCount == 1 ? "1 pumpkin smashed so far." : "\(model.smashCount) pumpkins smashed so far.") {
-                    Button("Reset Smash Count") { confirmingSmashReset = true }
-                        .disabled(model.smashCount == 0)
+                // The count for the theme that's on, like the one on Home.
+                SettingRow(symbol: model.theme == .diwali ? "sparkles" : "hammer.fill", color: .pumpkin, title: model.theme.countName,
+                           detail: "\(model.themeCount) so far. Each theme keeps its own count.") {
+                    Button("Reset Count") { confirmingCountReset = true }
+                        .disabled(model.themeCount == 0)
                 }
                 Divider()
                 SettingRow(symbol: "arrow.counterclockwise", color: .red, title: "Reset everything",
-                           detail: "Puts every option back how it started, clears the smash count and grows a fresh harvest.") {
+                           detail: "Puts every option back how it started, clears every theme's count and grows a fresh harvest.") {
                     Button("Reset Everything", role: .destructive) { confirmingResetAll = true }
                         .tint(.red)
                 }
             }
-            .alert("Reset the smash count?", isPresented: $confirmingSmashReset) {
-                Button("Reset", role: .destructive) { model.resetSmashCount() }
+            .alert("Reset the \(model.theme.title) count?", isPresented: $confirmingCountReset) {
+                Button("Reset", role: .destructive) { model.resetCount() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("The count of \(model.smashCount) smashed pumpkins goes back to zero. This can't be undone.")
+                Text("The \(model.theme.title) count of \(model.themeCount) goes back to zero. The other themes keep theirs. This can't be undone.")
             }
             .alert("Reset everything?", isPresented: $confirmingResetAll) {
                 Button("Reset Everything", role: .destructive) { model.resetEverything() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("All of Dockorate's options go back to how they started, the smash count goes back to zero, and a fresh harvest grows. Open at login stays as it is. This can't be undone.")
+                Text("All of Dockorate's options go back to how they started, every theme's count goes back to zero, and a fresh harvest grows. Open at login stays as it is. This can't be undone.")
             }
 
             Card(title: "About") {

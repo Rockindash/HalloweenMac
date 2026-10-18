@@ -75,8 +75,8 @@ extension PumpkinScene {
         }
     }
 
-    /// Clicked: the lamp's flames leap up and it sends a firework into the sky. Lamps never smash, and
-    /// aren't counted with the smashed pumpkins.
+    /// Clicked: the lamp's flames leap up and it sends a firework into the sky. Lamps never smash; they're
+    /// counted as lit instead.
     func lightUp(_ lamp: PumpkinNode) {
         guard lamp.isLit, lamp.action(forKey: "light-up") == nil else { return }
         // One firework at a time from each lamp.
@@ -85,6 +85,7 @@ extension PumpkinScene {
         leap(lamp)
         lamp.run(DockSprite.hop(height: pumpkinHeight * 0.05, duration: 0.2), withKey: "hop")
         if Settings.sound { fireworkSound.play() }
+        onLightUp?()
         // Up from the flame (the middle one on the tall lamp).
         let spots = DiwaliArt.flameSpots(lamp.kind.look.shape)
         let spot = spots[spots.count / 2]

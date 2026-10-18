@@ -111,13 +111,42 @@ final class WallpaperTests: SettingsTestCase {
             let image = try XCTUnwrap(WallpaperArt.image(look, pixels: CGSize(width: 1600, height: 1000)))
             // Places worked out from where the scene puts things on a 1600 by 1000 picture.
             XCTAssertColor(color(in: image, x: 0.015, y: 0.004), look.skyTop.rgb255, tolerance: 4, "sky at the top")
-            XCTAssertColor(color(in: image, x: 0.78, y: 0.205), look.orb.rgb255, tolerance: 2, "the sun, or a firework's heart")
+            XCTAssertColor(color(in: image, x: 0.78, y: 0.205), look.orb.rgb255, tolerance: 2, "the sun or moon")
             XCTAssertColor(color(in: image, x: 0.34, y: 0.70), look.backHill.rgb255, tolerance: 2, "the temple's spire")
-            XCTAssertColor(color(in: image, x: 0.5, y: 0.98), look.frontHill.rgb255, tolerance: 2, "the wall in front")
-            XCTAssertGreaterThan(count(festive.light.rgb255, in: pixels(of: image)), 500, "\(appearance): lit windows and diyas")
+            XCTAssertColor(color(in: image, x: 0.5, y: 0.98), look.frontHill.rgb255, tolerance: 2, "the ground in front")
+            XCTAssertGreaterThan(count(festive.light.rgb255, in: pixels(of: image)), 500, "\(appearance): lit windows")
         }
         XCTAssertNil(WallpaperArt.look(for: .fall, .dark).festive, "Fall's pictures stay as they were")
         XCTAssertNil(WallpaperArt.look(for: .halloween, .dark).festive)
+    }
+
+    /// Diwali's picture stays minimal: no row of diyas along the ground, no strings of lights between the
+    /// roofs, and nothing bursting around the sun or moon.
+    func testDiwalisPictureHasNoDiyasOrStringsOfLights() throws {
+        let size = CGSize(width: 1600, height: 1000)
+        let width = Int(size.width)
+        for appearance in [Palette.Appearance.light, .dark] {
+            let look = WallpaperArt.look(for: .diwali, appearance)
+            let festive = try XCTUnwrap(look.festive)
+            let bytes = pixels(of: try XCTUnwrap(WallpaperArt.image(look, pixels: size)))
+            // Just above the ground and below every window there's only rooftops, sky between them, and the
+            // temple's lit doorway. A diya's bowl, flame or glow would show here.
+            let row = Int((WallpaperArt.groundTop - 0.004) * size.height)
+            let door = Int((WallpaperArt.templeX - 0.012) * size.width)...Int((WallpaperArt.templeX + 0.012) * size.width)
+            let expected = [look.backHill.rgb255, look.skyBottom.rgb255, festive.light.rgb255]
+            let stray = (0..<width).filter { x in
+                guard !door.contains(x) else { return false }
+                let i = (row * width + x) * 4
+                return !expected.contains { color in (0..<3).allSatisfy { abs(Int(bytes[i + $0]) - color[$0]) <= 6 } }
+            }.count
+            // A rooftop's edge can fall partway across a pixel.
+            XCTAssertLessThan(stray, 80, "\(appearance): \(stray) pixels just above the ground aren't rooftop, sky or doorway")
+            // The strings of lights and the burst around the moon were drawn in the fireworks' own colors; the
+            // faint fireworks left are see-through, so they never match them.
+            for spark in festive.sparks {
+                XCTAssertLessThan(count(spark.rgb255, in: bytes, tolerance: 6), 20, "\(appearance): no lights in \(spark.rgb255)")
+            }
+        }
     }
 
     func testDiwaliLooksNothingLikeFallOrHalloween() throws {

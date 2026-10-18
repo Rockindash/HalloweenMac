@@ -87,6 +87,20 @@ final class DockorateUITests: XCTestCase {
         }
     }
 
+    /// Waits for `element` on the page that holds `anchor`, scrolling the page if need be: a grid only
+    /// draws what's on screen.
+    private func find(_ element: XCUIElement, onPageWith anchor: String) -> Bool {
+        if element.waitForExistence(timeout: 3) { return true }
+        let page = app.scrollViews.containing(NSPredicate(format: "identifier == %@", anchor)).firstMatch
+        for deltaY in [-300.0, 300.0] {
+            for _ in 0..<6 {
+                page.scroll(byDeltaX: 0, deltaY: deltaY)
+                if element.exists { return true }
+            }
+        }
+        return false
+    }
+
     private func setSwitch(_ identifier: String, on: Bool, file: StaticString = #filePath, line: UInt = #line) {
         let control = toggle(identifier, file: file, line: line)
         reveal(control, file: file, line: line)
@@ -228,6 +242,22 @@ final class DockorateUITests: XCTestCase {
         XCTAssertTrue(element("Fireworks").exists)
         XCTAssertTrue(element("Festive extras").exists)
         XCTAssertFalse(element("Graveyard dirt").exists)
+    }
+
+    func testHomeShowsOnlyTheCountForTheThemeThatsOn() {
+        launch()
+        open("home")
+        XCTAssertTrue(find(text("No Pumpkins Smashed Yet"), onPageWith: "Show on Dock"), "Fall counts its smashed pumpkins")
+        open("themes")
+        let diwali = app.buttons["theme-diwali"].firstMatch
+        reveal(diwali)
+        diwali.click()
+        open("home")
+        XCTAssertTrue(find(text("No Diyas Lit Yet"), onPageWith: "Show on Dock"), "Diwali counts its own diyas")
+        XCTAssertFalse(text("No Pumpkins Smashed Yet").exists, "Fall's count stays out of sight")
+        open("settings")
+        XCTAssertTrue(element("Diyas lit").waitForExistence(timeout: 5), "Settings resets Diwali's count")
+        XCTAssertFalse(element("Pumpkins smashed").exists)
     }
 
     func testChangeAutomaticallyIsKept() {

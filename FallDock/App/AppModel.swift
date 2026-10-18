@@ -20,7 +20,8 @@ final class AppModel: ObservableObject {
     let license = LicenseManager()
     let updater = Updater()
 
-    @Published private(set) var smashCount: Int
+    /// How many of each theme's main thing have been clicked (see `Settings.count`).
+    @Published private(set) var counts: [Settings.Theme: Int]
     /// The app's window is in full screen (its pages then start below the toolbar).
     @Published var isFullScreen = false
     @Published private(set) var isPaused = false
@@ -157,7 +158,7 @@ final class AppModel: ObservableObject {
 
     private init() {
         Settings.registerDefaults()
-        smashCount = Settings.smashCount
+        counts = AppModel.savedCounts()
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras
@@ -183,7 +184,8 @@ final class AppModel: ObservableObject {
     }
 
     func start() {
-        overlay.onSmash = { [weak self] in self?.recordSmash() }
+        overlay.onSmash = { [weak self] in self?.addToCount() }
+        overlay.onLightUp = { [weak self] in self?.addToCount() }
         overlay.isLicensed = license.isActive
         // The harvest comes and goes with the license, and the window and menu follow it too.
         licenseWatch = license.$key.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] key in
@@ -240,22 +242,30 @@ final class AppModel: ObservableObject {
         overlay.refresh()
     }
 
-    /// A pumpkin was smashed, on the Dock or in the app window's little harvest.
-    func recordSmash() {
-        Settings.smashCount += 1
-        smashCount = Settings.smashCount
+    private static func savedCounts() -> [Settings.Theme: Int] {
+        Dictionary(uniqueKeysWithValues: Settings.Theme.allCases.map { ($0, Settings.count($0)) })
     }
 
-    func resetSmashCount() {
-        Settings.smashCount = 0
-        smashCount = 0
+    /// The count for the theme on the Dock now, which Home and Settings show.
+    var themeCount: Int { counts[theme] ?? 0 }
+
+    /// A pumpkin was smashed (or at Diwali, a diya lit), on the Dock or in the app window's little harvest:
+    /// one more for the theme that's showing.
+    func addToCount() {
+        counts[theme] = Settings.addToCount(theme)
     }
 
-    /// Every option back to how it started, the smash count back to zero, and a fresh harvest.
+    /// The count for the theme that's showing goes back to zero; the other themes keep theirs.
+    func resetCount() {
+        Settings.setCount(0, for: theme)
+        counts[theme] = 0
+    }
+
+    /// Every option back to how it started, every theme's count back to zero, and a fresh harvest.
     /// Open at login is left alone: it's a Mac setting the person chose in System Settings too.
     func resetEverything() {
         Settings.resetAll()
-        smashCount = Settings.smashCount
+        counts = AppModel.savedCounts()
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras

@@ -278,14 +278,16 @@ struct PressableStyle: ButtonStyle {
 
 // MARK: - A live little harvest
 
-/// The real Dock scene, running on a pretend Dock inside the window. Its pumpkins can be smashed.
+/// The real Dock scene, running on a pretend Dock inside the window. Its pumpkins can be smashed (and
+/// its diyas lit), and they count.
 @MainActor
 final class LiveHarvest: ObservableObject {
     let scene: PumpkinScene
 
     init() {
         scene = PumpkinScene(size: CGSize(width: 512, height: 210))
-        scene.onSmash = { AppModel.shared.recordSmash() }
+        scene.onSmash = { AppModel.shared.addToCount() }
+        scene.onLightUp = { AppModel.shared.addToCount() }
     }
 
     /// Where the pretend Dock's top edge is, from the bottom of the view.

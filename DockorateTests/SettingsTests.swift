@@ -167,4 +167,46 @@ final class SettingsTests: SettingsTestCase {
             XCTAssertNotNil(NSImage(systemSymbolName: theme.symbol, accessibilityDescription: nil), "\(theme.symbol) isn't an SF Symbol")
         }
     }
+
+    func testEachThemeKeepsItsOwnCount() {
+        for theme in Settings.Theme.allCases {
+            XCTAssertEqual(Settings.count(theme), 0, "\(theme) starts at zero")
+        }
+        // Fall's count is the smash count from before, so smashes people already made stay counted.
+        Settings.smashCount = 5
+        XCTAssertEqual(Settings.count(.fall), 5)
+
+        XCTAssertEqual(Settings.addToCount(.diwali), 1)
+        Settings.addToCount(.diwali)
+        Settings.addToCount(.halloween)
+        XCTAssertEqual(Settings.count(.diwali), 2)
+        XCTAssertEqual(Settings.count(.halloween), 1)
+        XCTAssertEqual(Settings.count(.fall), 5, "the other themes' counts stay as they are")
+
+        Settings.setCount(0, for: .diwali)
+        XCTAssertEqual(Settings.count(.diwali), 0)
+        XCTAssertEqual(Settings.count(.halloween), 1, "resetting one theme's count leaves the others")
+        XCTAssertEqual(Settings.count(.fall), 5)
+
+        Settings.addToCount(.diwali)
+        Settings.resetAll()
+        for theme in Settings.Theme.allCases {
+            XCTAssertEqual(Settings.count(theme), 0, "Reset Everything clears \(theme)'s count")
+        }
+    }
+
+    func testEachThemesCountNamesItsOwnThing() {
+        XCTAssertEqual(Settings.Theme.fall.countTitle(0), "No Pumpkins Smashed Yet")
+        XCTAssertEqual(Settings.Theme.fall.countTitle(1), "1 Pumpkin Smashed")
+        XCTAssertEqual(Settings.Theme.fall.countTitle(12), "12 Pumpkins Smashed")
+        XCTAssertEqual(Settings.Theme.halloween.countTitle(0), "No Jack-o'-Lanterns Smashed Yet")
+        XCTAssertEqual(Settings.Theme.halloween.countTitle(3), "3 Jack-o'-Lanterns Smashed")
+        XCTAssertEqual(Settings.Theme.diwali.countTitle(0), "No Diyas Lit Yet")
+        XCTAssertEqual(Settings.Theme.diwali.countTitle(1), "1 Diya Lit")
+        XCTAssertEqual(Settings.Theme.diwali.countTitle(40), "40 Diyas Lit")
+
+        XCTAssertEqual(Settings.Theme.fall.countName, "Pumpkins smashed")
+        XCTAssertEqual(Settings.Theme.halloween.countName, "Jack-o'-lanterns smashed")
+        XCTAssertEqual(Settings.Theme.diwali.countName, "Diyas lit")
+    }
 }
