@@ -54,7 +54,8 @@ enum WallpaperArt {
     }
 
     /// Bump this when the pictures change, so Macs that already have the old files draw them again.
-    static let version = 3
+    /// (4: Diwali's picture lost its diyas, strings of lights and the burst around the moon.)
+    static let version = 4
 
     static func look(for theme: Settings.Theme, _ appearance: Palette.Appearance) -> Look {
         switch (theme, appearance) {

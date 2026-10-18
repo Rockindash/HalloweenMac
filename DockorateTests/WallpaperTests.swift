@@ -192,6 +192,21 @@ final class WallpaperTests: SettingsTestCase {
         XCTAssertEqual(Set(files).count, Settings.Theme.allCases.count, "Diwali too")
     }
 
+    /// A Mac that saved Diwali's picture before it lost its diyas and the burst around the moon draws it
+    /// again, rather than keeping the old one.
+    func testAPictureSavedBeforeItChangedIsDrawnAgain() throws {
+        let pixels = CGSize(width: 320, height: 200)
+        try FileManager.default.createDirectory(at: WallpaperArt.directory, withIntermediateDirectories: true)
+        // Where version 3 saved it, with the diyas.
+        let old = WallpaperArt.directory.appendingPathComponent("diwali-dark-v3-320x200.png")
+        try Data("the old picture".utf8).write(to: old)
+
+        let url = try XCTUnwrap(WallpaperArt.file(for: .diwali, .dark, pixels: pixels))
+        XCTAssertNotEqual(url.standardizedFileURL, old.standardizedFileURL, "the old picture isn't used")
+        let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
+        XCTAssertNotNil(CGImageSourceCreateImageAtIndex(source, 0, nil), "the new picture is drawn and saved")
+    }
+
     func testPictureIsSavedOnceAndReused() throws {
         let pixels = CGSize(width: 800, height: 500)
         let url = try XCTUnwrap(WallpaperArt.file(for: .fall, .dark, pixels: pixels))
