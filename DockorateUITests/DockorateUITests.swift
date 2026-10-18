@@ -258,6 +258,7 @@ final class DockorateUITests: XCTestCase {
         open("settings")
         XCTAssertTrue(element("Diyas lit").waitForExistence(timeout: 5), "Settings resets Diwali's count")
         XCTAssertFalse(element("Pumpkins smashed").exists)
+        XCTAssertTrue(element("Show the diya in the menu bar").exists, "the menu bar switch names Diwali's icon")
     }
 
     func testChangeAutomaticallyIsKept() {

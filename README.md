@@ -91,12 +91,14 @@ When Dockorate starts by itself at login, the window stays closed.
   For Diwali: the marigold garland, fireworks and festive extras, with a tile for each (gift boxes, rangoli, laddoos, the mithai box, the anar, the rocket, the chakri, the kandil, the flower bowl and the peacock).
 - **Background** (off by default): sets your desktop picture to go with the theme. The pictures stay minimal so the Dock is the star: every theme's sun or moon is small and in the same spot, with nothing big or bright to pull the eye. Each theme has a light and a dark picture. **Switch with Light and Dark** (on by default) shows the light one when the Dock is light and the dark one when it's dark; clicking a picture keeps that one instead. The pictures are drawn at each display's exact size and saved in `~/Library/Application Support/Dockorate/Wallpapers`. Your own picture for each display is saved first and comes back when Background is switched off (or by Reset everything). macOS only changes the desktop of the space you're on, so the picture is set again as you move between spaces, plug in displays or switch Light and Dark.
 - **Settings**:
-  - **General**: open at login, the 🎃 in the menu bar, and the smash sound.
+  - **General**: open at login, the theme's icon in the menu bar, and the smash sound.
   - **Dock**: how full the harvest is, and the Accessibility permission for an exact fit.
   - **Reset**: reset the count for the theme that's on, or reset everything (every option back to how it started, every theme's count back to zero, and a fresh harvest; open at login stays as it is). Both ask first.
   - **About**: the version, the welcome window again, and Quit.
 
 ## The 🎃 menu
+
+Its icon follows the theme: a pumpkin for Fall, a jack-o'-lantern for Halloween and a diya for Diwali, each drawn plainly like the system's own menu bar icons.
 
 - **Open Dockorate…**: the app window.
 - **Show Pumpkins**: hides or shows everything.

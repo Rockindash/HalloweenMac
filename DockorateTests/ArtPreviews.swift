@@ -28,6 +28,7 @@ final class ArtPreviews: SettingsTestCase {
             }
             save(diwaliSheet(appearance), "diwali-art-\(look)")
             save(themeCards(appearance), "theme-cards-\(look)")
+            save(menuBarIcons(appearance), "menu-bar-\(look)")
             for theme in Settings.Theme.allCases {
                 if let picture = WallpaperArt.image(WallpaperArt.look(for: theme, appearance), pixels: CGSize(width: 1440, height: 900)) {
                     save(picture, "background-\(theme.rawValue)-\(look)")
@@ -212,6 +213,33 @@ final class ArtPreviews: SettingsTestCase {
     }
 
     /// Every theme's card on the Themes page.
+    /// Each theme's menu bar icon on a menu bar of this look, four times as big and at its real size,
+    /// colored the way macOS colors a template image.
+    @MainActor private func menuBarIcons(_ appearance: Palette.Appearance) -> CGImage {
+        let themes = Settings.Theme.allCases
+        let size = CGSize(width: 140 * CGFloat(themes.count) + 20, height: 150)
+        let ink = appearance == .dark ? CGColor.white : CGColor.black
+        return canvas(size) { ctx in
+            ctx.setFillColor(appearance == .dark ? CGColor.hex(0x2B2A33) : CGColor.hex(0xE8E6EA))
+            ctx.fill(CGRect(origin: .zero, size: size))
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+            for (i, theme) in themes.enumerated() {
+                let x = 20 + CGFloat(i) * 140
+                for rect in [CGRect(x: x + 10, y: 50, width: 80, height: 72), CGRect(x: x + 40, y: 14, width: 20, height: 18)] {
+                    ctx.beginTransparencyLayer(auxiliaryInfo: nil)
+                    ExtraArt.menuBarIcon(theme).draw(in: rect)
+                    ctx.setBlendMode(.sourceIn)
+                    ctx.setFillColor(ink)
+                    ctx.fill(rect)
+                    ctx.endTransparencyLayer()
+                    ctx.setBlendMode(.normal)
+                }
+            }
+            NSGraphicsContext.restoreGraphicsState()
+        }
+    }
+
     private func themeCards(_ appearance: Palette.Appearance) -> CGImage {
         let card = CGSize(width: 520, height: 170)
         let size = CGSize(width: card.width + 40, height: (card.height + 20) * CGFloat(Settings.Theme.allCases.count) + 20)

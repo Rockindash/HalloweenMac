@@ -735,25 +735,50 @@ enum ExtraArt {
         return image
     }
 
-    /// A plain pumpkin silhouette for the menu bar. It's a template image, so macOS draws it white
+    /// The menu bar icon for a theme: Fall's pumpkin, Halloween's jack-o'-lantern or Diwali's diya.
+    static func menuBarIcon(_ theme: Settings.Theme) -> NSImage {
+        switch theme {
+        case .fall: return menuBarPumpkin()
+        case .halloween: return menuBarJackOLantern()
+        case .diwali: return menuBarDiya()
+        }
+    }
+
+    /// A menu bar icon, 20 by 18 points, drawn in black. It's a template image, so macOS draws it white
     /// on a dark menu bar (and dark on a light one), like the system's own menu bar icons.
-    static func menuBarPumpkin() -> NSImage {
-        if let image = cache["menuBarPumpkin"] { return image }
+    private static func menuBarTemplate(_ key: String, draw: @escaping (CGContext) -> Void) -> NSImage {
+        if let image = cache[key] { return image }
         let image = NSImage(size: CGSize(width: 20, height: 18), flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             ctx.setFillColor(.black)
-            // Three overlapping lobes for the body.
-            ctx.fillEllipse(in: CGRect(x: 1, y: 1, width: 10.5, height: 13))
-            ctx.fillEllipse(in: CGRect(x: 8.5, y: 1, width: 10.5, height: 13))
-            ctx.fillEllipse(in: CGRect(x: 5, y: 0.5, width: 10, height: 14))
-            // A chunky stem leaning a little to the right.
-            ctx.beginPath()
-            ctx.move(to: CGPoint(x: 9, y: 13))
-            ctx.addLine(to: CGPoint(x: 11.2, y: 13))
-            ctx.addLine(to: CGPoint(x: 12.4, y: 17.2))
-            ctx.addLine(to: CGPoint(x: 10.4, y: 17.6))
-            ctx.closePath()
-            ctx.fillPath()
+            draw(ctx)
+            return true
+        }
+        image.isTemplate = true
+        cache[key] = image
+        return image
+    }
+
+    /// The menu bar pumpkin's body and stem.
+    private static func fillMenuBarPumpkin(_ ctx: CGContext) {
+        // Three overlapping lobes for the body.
+        ctx.fillEllipse(in: CGRect(x: 1, y: 1, width: 10.5, height: 13))
+        ctx.fillEllipse(in: CGRect(x: 8.5, y: 1, width: 10.5, height: 13))
+        ctx.fillEllipse(in: CGRect(x: 5, y: 0.5, width: 10, height: 14))
+        // A chunky stem leaning a little to the right.
+        ctx.beginPath()
+        ctx.move(to: CGPoint(x: 9, y: 13))
+        ctx.addLine(to: CGPoint(x: 11.2, y: 13))
+        ctx.addLine(to: CGPoint(x: 12.4, y: 17.2))
+        ctx.addLine(to: CGPoint(x: 10.4, y: 17.6))
+        ctx.closePath()
+        ctx.fillPath()
+    }
+
+    /// A plain pumpkin silhouette for the menu bar, for Fall.
+    static func menuBarPumpkin() -> NSImage {
+        menuBarTemplate("menuBarPumpkin") { ctx in
+            ExtraArt.fillMenuBarPumpkin(ctx)
             // Rib lines cut out of the body, so they show as gaps.
             ctx.setBlendMode(.clear)
             ctx.setLineWidth(1.2)
@@ -764,11 +789,55 @@ enum ExtraArt {
                 ctx.addQuadCurve(to: CGPoint(x: x, y: 2), control: CGPoint(x: x + bulge, y: 7.1))
                 ctx.strokePath()
             }
-            return true
         }
-        image.isTemplate = true
-        cache["menuBarPumpkin"] = image
-        return image
+    }
+
+    /// The same pumpkin with a carved face, for Halloween.
+    static func menuBarJackOLantern() -> NSImage {
+        menuBarTemplate("menuBarJackOLantern") { ctx in
+            ExtraArt.fillMenuBarPumpkin(ctx)
+            // The face is cut out of it: pointed eyes, a little nose and a wide grin.
+            ctx.setBlendMode(.clear)
+            func triangle(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint) {
+                ctx.beginPath()
+                ctx.addLines(between: [a, b, c])
+                ctx.closePath()
+                ctx.fillPath()
+            }
+            for x in [4.8, 11.8] as [CGFloat] {
+                triangle(CGPoint(x: x, y: 8.4), CGPoint(x: x + 3.4, y: 8.4), CGPoint(x: x + 1.7, y: 11.4))
+            }
+            triangle(CGPoint(x: 9.1, y: 6.5), CGPoint(x: 10.9, y: 6.5), CGPoint(x: 10, y: 7.9))
+            ctx.beginPath()
+            ctx.move(to: CGPoint(x: 4.2, y: 5.6))
+            ctx.addQuadCurve(to: CGPoint(x: 15.8, y: 5.6), control: CGPoint(x: 10, y: 3.4))
+            ctx.addQuadCurve(to: CGPoint(x: 4.2, y: 5.6), control: CGPoint(x: 10, y: -0.6))
+            ctx.fillPath()
+            // Two teeth left in the grin, one up and one down.
+            ctx.setBlendMode(.normal)
+            ctx.fill(CGRect(x: 7.4, y: 3.7, width: 1.4, height: 1.6))
+            ctx.fill(CGRect(x: 11.2, y: 2, width: 1.4, height: 1.6))
+        }
+    }
+
+    /// A lit diya, for Diwali: a shallow lamp with its spout up to the right and a flame above it.
+    static func menuBarDiya() -> NSImage {
+        menuBarTemplate("menuBarDiya") { ctx in
+            // The bowl: its rim rising to the spout's tip, and a rounded underside.
+            ctx.beginPath()
+            ctx.move(to: CGPoint(x: 1, y: 8.4))
+            ctx.addLine(to: CGPoint(x: 18.6, y: 9.6))
+            ctx.addQuadCurve(to: CGPoint(x: 1, y: 8.4), control: CGPoint(x: 8, y: -3.2))
+            ctx.fillPath()
+            // Its little foot.
+            ctx.fillEllipse(in: CGRect(x: 6.2, y: 0.4, width: 5.6, height: 2.2))
+            // The flame, just clear of the spout.
+            ctx.beginPath()
+            ctx.move(to: CGPoint(x: 16.6, y: 17.6))
+            ctx.addQuadCurve(to: CGPoint(x: 16.8, y: 10.8), control: CGPoint(x: 20.2, y: 12.4))
+            ctx.addQuadCurve(to: CGPoint(x: 16.6, y: 17.6), control: CGPoint(x: 13.4, y: 12.4))
+            ctx.fillPath()
+        }
     }
 
     static func squirrel() -> NSImage {

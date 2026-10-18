@@ -208,5 +208,10 @@ final class SettingsTests: SettingsTestCase {
         XCTAssertEqual(Settings.Theme.fall.countName, "Pumpkins smashed")
         XCTAssertEqual(Settings.Theme.halloween.countName, "Jack-o'-lanterns smashed")
         XCTAssertEqual(Settings.Theme.diwali.countName, "Diyas lit")
+
+        // The menu bar switch names the icon that's there.
+        XCTAssertEqual(Settings.Theme.fall.thing, "pumpkin")
+        XCTAssertEqual(Settings.Theme.halloween.thing, "jack-o'-lantern")
+        XCTAssertEqual(Settings.Theme.diwali.thing, "diya")
     }
 }

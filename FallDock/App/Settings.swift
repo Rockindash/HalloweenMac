@@ -290,6 +290,9 @@ enum Settings {
             }
         }
 
+        /// The theme's main thing in a sentence, which its menu bar icon shows: "pumpkin", "jack-o'-lantern", "diya".
+        var thing: String { counted.one.lowercased() }
+
         /// What the count is, as a setting's name: "Pumpkins smashed", "Jack-o'-lanterns smashed", "Diyas lit".
         var countName: String {
             let (_, many, done) = counted
