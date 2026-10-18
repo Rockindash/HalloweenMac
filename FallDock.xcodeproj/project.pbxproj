@@ -79,6 +79,7 @@
 		A1C0FFEE0000000000005002 /* PumpkinScene+Diwali.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005022 /* PumpkinScene+Diwali.swift */; };
 		A1C0FFEE0000000000005012 /* PumpkinScene+Diwali.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005022 /* PumpkinScene+Diwali.swift */; };
 		A1C0FFEE0000000000002027 /* DiwaliTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002037 /* DiwaliTests.swift */; };
+		A1C0FFEE0000000000002028 /* ArtPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002038 /* ArtPreviews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -145,6 +146,7 @@
 		A1C0FFEE0000000000005021 /* DiwaliArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DiwaliArt.swift"; sourceTree = "<group>"; };
 		A1C0FFEE0000000000005022 /* PumpkinScene+Diwali.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Diwali.swift"; sourceTree = "<group>"; };
 		A1C0FFEE0000000000002037 /* DiwaliTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiwaliTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002038 /* ArtPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtPreviews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -276,6 +278,7 @@
 				A1C0FFEE0000000000002035 /* AppStoreTests.swift */,
 				A1C0FFEE0000000000002036 /* ThemeTests.swift */,
 				A1C0FFEE0000000000002037 /* DiwaliTests.swift */,
+				A1C0FFEE0000000000002038 /* ArtPreviews.swift */,
 			);
 			path = DockorateTests;
 			sourceTree = "<group>";
@@ -497,6 +500,7 @@
 				A1C0FFEE0000000000002025 /* AppStoreTests.swift in Sources */,
 				A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */,
 				A1C0FFEE0000000000002027 /* DiwaliTests.swift in Sources */,
+				A1C0FFEE0000000000002028 /* ArtPreviews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

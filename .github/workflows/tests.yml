@@ -60,3 +60,37 @@ jobs:
         with:
           name: test-results
           path: build/*.xcresult
+
+  previews:
+    # Only when the workflow is run by hand (Run workflow): draws the art into pictures to look at (see
+    # DockorateTests/ArtPreviews.swift) and keeps them under refs/previews/<branch>, outside the branches. To look:
+    #   git fetch origin refs/previews/<branch> && git worktree add ../previews FETCH_HEAD
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use the newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      - name: Draw the previews
+        env:
+          TEST_RUNNER_DOCKORATE_PREVIEWS: ${{ runner.temp }}/previews
+        run: |
+          xcodebuild test -project FallDock.xcodeproj -scheme FallDock -destination 'platform=macOS' \
+            -only-testing:DockorateTests/ArtPreviews -quiet CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+          ls -l "$RUNNER_TEMP/previews"
+
+      - name: Keep the previews
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          cd "$RUNNER_TEMP/previews"
+          git init -q
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "Art previews for $GITHUB_REF_NAME at ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY.git" "HEAD:refs/previews/$GITHUB_REF_NAME"
