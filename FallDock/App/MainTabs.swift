@@ -820,23 +820,34 @@ enum ExtraArt {
         }
     }
 
-    /// A lit diya, for Diwali: a shallow lamp with its spout up to the right and a flame above it.
+    /// A lit diya, for Diwali: a round clay lamp with its spout up to the right and a flame on it.
     static func menuBarDiya() -> NSImage {
         menuBarTemplate("menuBarDiya") { ctx in
-            // The bowl: its rim rising to the spout's tip, and a rounded underside.
+            // The bowl, curving down from its rim and up into the pinched spout.
             ctx.beginPath()
-            ctx.move(to: CGPoint(x: 1, y: 8.4))
-            ctx.addLine(to: CGPoint(x: 18.6, y: 9.6))
-            ctx.addQuadCurve(to: CGPoint(x: 1, y: 8.4), control: CGPoint(x: 8, y: -3.2))
+            ctx.move(to: CGPoint(x: 0.8, y: 8.4))
+            ctx.addCurve(to: CGPoint(x: 8.4, y: 1.4), control1: CGPoint(x: 1, y: 4.4), control2: CGPoint(x: 4.2, y: 1.4))
+            ctx.addCurve(to: CGPoint(x: 14.6, y: 4.6), control1: CGPoint(x: 11.4, y: 1.4), control2: CGPoint(x: 13.4, y: 2.6))
+            ctx.addQuadCurve(to: CGPoint(x: 17.8, y: 9.8), control: CGPoint(x: 16.6, y: 6.6))
+            ctx.addQuadCurve(to: CGPoint(x: 13.6, y: 8.6), control: CGPoint(x: 15.4, y: 8.6))
+            ctx.closePath()
             ctx.fillPath()
             // Its little foot.
-            ctx.fillEllipse(in: CGRect(x: 6.2, y: 0.4, width: 5.6, height: 2.2))
-            // The flame, just clear of the spout.
+            ctx.fillEllipse(in: CGRect(x: 5.8, y: 0.2, width: 5.4, height: 2.2))
+            // The flame, standing on the spout.
             ctx.beginPath()
-            ctx.move(to: CGPoint(x: 16.6, y: 17.6))
-            ctx.addQuadCurve(to: CGPoint(x: 16.8, y: 10.8), control: CGPoint(x: 20.2, y: 12.4))
-            ctx.addQuadCurve(to: CGPoint(x: 16.6, y: 17.6), control: CGPoint(x: 13.4, y: 12.4))
+            ctx.move(to: CGPoint(x: 17, y: 17.7))
+            ctx.addQuadCurve(to: CGPoint(x: 17.6, y: 10.5), control: CGPoint(x: 20.6, y: 12.2))
+            ctx.addQuadCurve(to: CGPoint(x: 17, y: 17.7), control: CGPoint(x: 14.2, y: 12.2))
             ctx.fillPath()
+            // A line cut just under the rim, like the pumpkin's ribs.
+            ctx.setBlendMode(.clear)
+            ctx.setLineWidth(0.9)
+            ctx.setLineCap(.round)
+            ctx.beginPath()
+            ctx.move(to: CGPoint(x: 2.2, y: 7))
+            ctx.addLine(to: CGPoint(x: 13.2, y: 7.2))
+            ctx.strokePath()
         }
     }
 
