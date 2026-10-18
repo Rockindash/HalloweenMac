@@ -2,8 +2,9 @@ import SpriteKit
 import XCTest
 @testable import Dockorate
 
-/// The second theme: picking Fall or Halloween (or the calendar), what each grows on the Dock, and
-/// the crossfade between them. Fall, the original, must stay exactly as it was.
+/// The themes: picking Fall, Halloween or Diwali (or the calendar), what each grows on the Dock, and
+/// the crossfade between them. Fall, the original, must stay exactly as it was. (Diwali's own tests are
+/// in DiwaliTests.)
 final class ThemeTests: SettingsTestCase {
     private func date(_ month: Int, _ day: Int, year: Int = 2026) -> Date {
         Calendar.current.date(from: DateComponents(year: year, month: month, day: day, hour: 12))!
@@ -60,11 +61,13 @@ final class ThemeTests: SettingsTestCase {
 
     func testFestivalsGoOnAWeekBeforeTheirDay() {
         let automatic = Settings.ThemeChoice.automatic
+        // Just Halloween here: Diwali moves with the moon and sometimes lands next to it (see DiwaliTests).
+        let rotation: Set<Settings.Theme> = [.fall, .halloween]
         for year in [2026, 2027, 2028, 2031] {
-            XCTAssertEqual(automatic.theme(on: date(10, 23, year: year)), .fall, "\(year)")
-            XCTAssertEqual(automatic.theme(on: date(10, 24, year: year)), .halloween, "a week before Halloween, \(year)")
-            XCTAssertEqual(automatic.theme(on: date(10, 31, year: year)), .halloween, "Halloween itself, \(year)")
-            XCTAssertEqual(automatic.theme(on: date(11, 1, year: year)), .fall, "the season again the day after, \(year)")
+            XCTAssertEqual(automatic.theme(on: date(10, 23, year: year), rotation: rotation), .fall, "\(year)")
+            XCTAssertEqual(automatic.theme(on: date(10, 24, year: year), rotation: rotation), .halloween, "a week before Halloween, \(year)")
+            XCTAssertEqual(automatic.theme(on: date(10, 31, year: year), rotation: rotation), .halloween, "Halloween itself, \(year)")
+            XCTAssertEqual(automatic.theme(on: date(11, 1, year: year), rotation: rotation), .fall, "the season again the day after, \(year)")
         }
     }
 
@@ -139,22 +142,27 @@ final class ThemeTests: SettingsTestCase {
         let toHalloween = try XCTUnwrap(automatic.next(after: date(10, 15)))
         XCTAssertEqual(toHalloween.theme, .halloween)
         XCTAssertEqual(monthDay(toHalloween.date), DateComponents(month: 10, day: 24))
-        let backToFall = try XCTUnwrap(automatic.next(after: date(10, 26)))
-        XCTAssertEqual(backToFall.theme, .fall)
+        // In 2026 Diwali (November 8th) comes on the day after Halloween.
+        let toDiwali = try XCTUnwrap(automatic.next(after: date(10, 26)))
+        XCTAssertEqual(toDiwali.theme, .diwali)
+        XCTAssertEqual(monthDay(toDiwali.date), DateComponents(month: 11, day: 1))
+        let backToFall = try XCTUnwrap(automatic.next(after: date(10, 26), rotation: [.fall, .halloween]))
+        XCTAssertEqual(backToFall.theme, .fall, "without Diwali, back to the season")
         XCTAssertEqual(monthDay(backToFall.date), DateComponents(month: 11, day: 1))
 
-        let changes = automatic.changes(after: date(10, 15), count: 3)
-        XCTAssertEqual(changes.map { $0.theme }, [.halloween, .fall, .halloween])
+        let changes = automatic.changes(after: date(10, 15), count: 4)
+        XCTAssertEqual(changes.map { $0.theme }, [.halloween, .diwali, .fall, .diwali])
         XCTAssertEqual(changes.map { monthDay($0.date) },
-                       [DateComponents(month: 10, day: 24), DateComponents(month: 11, day: 1), DateComponents(month: 10, day: 24)])
-        XCTAssertEqual(Calendar.current.component(.year, from: changes[2].date), 2027)
+                       [DateComponents(month: 10, day: 24), DateComponents(month: 11, day: 1), DateComponents(month: 11, day: 9),
+                        DateComponents(month: 10, day: 22)])
+        XCTAssertEqual(Calendar.current.component(.year, from: changes[3].date), 2027, "Diwali is October 29th in 2027")
         XCTAssertTrue(Settings.ThemeChoice.keep(.fall).changes(after: date(10, 15), count: 3).isEmpty)
     }
 
     @MainActor func testTheYearShowsEachThemeInTurn() {
         let year = ThemeYear.stretches(in: 2026)
         XCTAssertEqual(year.days, 365)
-        XCTAssertEqual(year.stretches.map(\.theme), [.fall, .halloween, .fall])
+        XCTAssertEqual(year.stretches.map(\.theme), [.fall, .halloween, .diwali, .fall])
         XCTAssertEqual(year.stretches.first?.first, 0)
         XCTAssertEqual(year.stretches.last?.last, 364)
         for (a, b) in zip(year.stretches, year.stretches.dropFirst()) {
@@ -164,7 +172,7 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertEqual(ThemeYear.stretches(in: 2028).days, 366)
         // Picking another lead stretches the festival's days on the ribbon.
         let earlier = ThemeYear.stretches(in: 2026, lead: 30).stretches
-        XCTAssertEqual(earlier.map(\.theme), [.fall, .halloween, .fall])
+        XCTAssertEqual(earlier.map(\.theme), [.fall, .halloween, .diwali, .fall], "Halloween ends first, so it goes first")
         XCTAssertEqual(earlier[1].last - earlier[1].first, 30)
         XCTAssertEqual(earlier[1].last, year.stretches[1].last, "still ending on Halloween")
     }
@@ -176,9 +184,12 @@ final class ThemeTests: SettingsTestCase {
         Settings.rotation = [.fall]
         XCTAssertEqual(Settings.rotation, [.fall])
         // Saved as the ones left out, so themes added in an update join the rotation by themselves.
-        XCTAssertEqual(defaults.stringArray(forKey: "themesLeftOut"), ["halloween"])
-        defaults.set(["halloween", "a-theme-from-a-later-version"], forKey: "themesLeftOut")
+        XCTAssertEqual(defaults.stringArray(forKey: "themesLeftOut"), ["halloween", "diwali"])
+        defaults.set(["halloween", "diwali", "a-theme-from-a-later-version"], forKey: "themesLeftOut")
         XCTAssertEqual(Settings.rotation, [.fall])
+        // Dockorate 1.1 only knew Halloween, so someone who left it out gets Diwali by itself.
+        defaults.set(["halloween"], forKey: "themesLeftOut")
+        XCTAssertEqual(Settings.rotation, [.fall, .diwali])
     }
 
     @MainActor func testAThemeLeftOutOfTheRotationNeverComesOnByItself() {
@@ -230,6 +241,8 @@ final class ThemeTests: SettingsTestCase {
         Settings.festivalLead = 21
         Settings.bats = false
         Settings.ghost = false
+        Settings.fireworks = false
+        Settings.peacock = false
         Settings.resetAll()
         Settings.registerDefaults()
         XCTAssertEqual(Settings.themeChoice, .keep(.fall))
@@ -237,6 +250,8 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertEqual(Settings.festivalLead, 7, "festivals a week before again")
         XCTAssertTrue(Settings.bats)
         XCTAssertTrue(Settings.ghost)
+        XCTAssertTrue(Settings.fireworks)
+        XCTAssertTrue(Settings.peacock)
     }
 
     func testEachThemeHasItsOwnVisitor() {
@@ -246,14 +261,24 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertFalse(Settings.visitor, "the squirrel's switch in fall")
         Settings.themeChoice = .keep(.halloween)
         XCTAssertTrue(Settings.visitor, "the ghost's switch at Halloween")
+        Settings.peacock = false
+        Settings.themeChoice = .keep(.diwali)
+        XCTAssertFalse(Settings.visitor, "the peacock's switch at Diwali")
     }
 
     // MARK: What each theme grows
 
     func testEveryThemeHasItsOwnExtras() {
-        let fall = Set(Settings.Theme.fall.extras), halloween = Set(Settings.Theme.halloween.extras)
-        XCTAssertTrue(fall.isDisjoint(with: halloween))
-        XCTAssertEqual(fall.union(halloween), Set(DecorKind.allCases), "every extra belongs to a theme")
+        let themes = Settings.Theme.allCases
+        for (i, a) in themes.enumerated() {
+            for b in themes[(i + 1)...] {
+                XCTAssertTrue(Set(a.extras).isDisjoint(with: b.extras), "\(a) and \(b) share extras")
+            }
+        }
+        XCTAssertEqual(Set(themes.flatMap(\.extras)), Set(DecorKind.allCases), "every extra belongs to a theme")
+        for kind in DecorKind.allCases {
+            XCTAssertTrue(kind.theme.extras.contains(kind), "\(kind)")
+        }
         for theme in Settings.Theme.allCases {
             XCTAssertTrue(Set(theme.gapCycle).isSubset(of: theme.extras), "\(theme)")
             XCTAssertTrue(theme.specials.isSubset(of: theme.extras), "\(theme)")
@@ -363,7 +388,7 @@ final class ThemeTests: SettingsTestCase {
         XCTAssertTrue(scene["//outgoing-harvest"].isEmpty, "nothing to fade away")
     }
 
-    @MainActor func testWindowHarvestGrowsBothThemes() {
+    @MainActor func testWindowHarvestGrowsEveryTheme() {
         for theme in Settings.Theme.allCases {
             Settings.themeChoice = .keep(theme)
             let live = LiveHarvest()

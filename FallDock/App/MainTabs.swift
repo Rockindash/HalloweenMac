@@ -308,11 +308,11 @@ struct LiveHarvestView: View {
     /// The settings that change what grows; the little harvest regrows when any of them change.
     private var look: [AnyHashable] {
         [model.showVines, model.cozyExtras, model.squirrel, model.enabledExtras, model.fullness, model.fallingLeaves,
-         model.bats, model.ghost]
+         model.bats, model.ghost, model.fireworks, model.peacock]
     }
 
     /// Light mode shows a fall afternoon with the sun out; Dark mode, a starry night under a harvest moon.
-    /// At Halloween, a purple dusk or a deep purple night.
+    /// At Halloween, a purple dusk or a deep purple night; at Diwali, a plum and saffron dusk or a moonless indigo night.
     private var isDay: Bool { model.appearance == .light }
 
     private func sky(_ theme: Settings.Theme, day: Bool) -> [Color] {
@@ -321,6 +321,8 @@ struct LiveHarvestView: View {
         case (.fall, false): return [Color(cgColor: .hex(0x1C2340)), Color(cgColor: .hex(0x4A2238)), Color.harvestPlum]
         case (.halloween, true): return [Color(cgColor: .hex(0x6B5A8E)), Color(cgColor: .hex(0xC48BA0)), Color(cgColor: .hex(0xF2B279))]
         case (.halloween, false): return [Color(cgColor: .hex(0x120C1F)), Color.harvestNight, Color(cgColor: .hex(0x4D2A4A))]
+        case (.diwali, true): return [Color(cgColor: .hex(0x7A3E7E)), Color(cgColor: .hex(0xE57A6E)), Color(cgColor: .hex(0xFBC46A))]
+        case (.diwali, false): return [Color(cgColor: .hex(0x1A1240)), Color(cgColor: .hex(0x3D1E5C)), Color(cgColor: .hex(0x7A2E52))]
         }
     }
 
@@ -377,6 +379,8 @@ struct LiveHarvestView: View {
                     .shadow(color: .white.opacity(0.35), radius: 14)
                     .position(x: geometry.size.width - 70, y: 44)
                     .offset(y: isDay ? geometry.size.height : 0)
+                    // Diwali falls on the new moon, so its nights are dark (and full of fireworks).
+                    .opacity(model.theme == .diwali ? 0 : 1)
                 // A pretend Dock.
                 HStack(spacing: 10) {
                     // As many icons as fit, like a real Dock.
@@ -422,7 +426,31 @@ struct CustomizePage: View {
     private let columns = [GridItem(.adaptive(minimum: 132), spacing: 14)]
 
     private var theme: Settings.Theme { picked ?? model.theme }
-    private var halloween: Bool { theme == .halloween }
+
+    /// The symbol and color of the theme's vine row, and of its extras row.
+    private var vineMark: (symbol: String, color: Color) {
+        switch theme {
+        case .fall: return ("laurel.leading", .harvestGreen)
+        case .halloween: return ("mountain.2.fill", .purple)
+        case .diwali: return ("camera.macro", .orange)
+        }
+    }
+
+    private var extrasMark: (symbol: String, color: Color) {
+        switch theme {
+        case .fall: return ("basket.fill", .harvestMustard)
+        case .halloween: return ("theatermasks.fill", .purple)
+        case .diwali: return ("gift.fill", .pink)
+        }
+    }
+
+    private var extrasHint: String {
+        switch theme {
+        case .fall: return "Click to switch each one on or off. On the Dock, click the hay bales, leaf piles, the latte and the lantern."
+        case .halloween: return "Click to switch each one on or off. On the Dock, click the jack-o'-lanterns, the cat, the cauldron and the candles."
+        case .diwali: return "Click to switch each one on or off. On the Dock, click the diyas, the crackers and the sweets."
+        }
+    }
 
     var body: some View {
         PageLayout(title: "Customize") {
@@ -461,22 +489,26 @@ struct CustomizePage: View {
             }
 
             Card(title: "On Your Dock") {
-                SettingRow(symbol: halloween ? "mountain.2.fill" : "laurel.leading", color: halloween ? .purple : .harvestGreen,
-                           title: theme.vineTitle, detail: theme.vineDetail) {
+                SettingRow(symbol: vineMark.symbol, color: vineMark.color, title: theme.vineTitle, detail: theme.vineDetail) {
                     Toggle("", isOn: $model.showVines).labelsHidden().toggleStyle(.switch)
                 }
                 Divider()
-                if halloween {
+                switch theme {
+                case .fall:
+                    fallingLeaves
+                case .halloween:
                     SettingRow(symbol: "moon.stars.fill", color: .harvestNight, title: "Bats",
                                detail: "A bat fluttering past now and then, and one hiding in each jack-o'-lantern.") {
                         Toggle("", isOn: $model.bats).labelsHidden().toggleStyle(.switch)
                     }
-                } else {
-                    fallingLeaves
+                case .diwali:
+                    SettingRow(symbol: "sparkles", color: Settings.Theme.diwali.color, title: "Fireworks",
+                               detail: "Little fireworks bursting in the sky now and then. Click a diya to send one up yourself.") {
+                        Toggle("", isOn: $model.fireworks).labelsHidden().toggleStyle(.switch)
+                    }
                 }
                 Divider()
-                SettingRow(symbol: halloween ? "theatermasks.fill" : "basket.fill", color: halloween ? .purple : .harvestMustard,
-                           title: theme.extrasTitle, detail: theme.extrasDetail) {
+                SettingRow(symbol: extrasMark.symbol, color: extrasMark.color, title: theme.extrasTitle, detail: theme.extrasDetail) {
                     Toggle("", isOn: $model.cozyExtras).labelsHidden().toggleStyle(.switch)
                 }
             }
@@ -489,18 +521,19 @@ struct CustomizePage: View {
                             model.setExtra(kind, enabled: !model.enabledExtras.contains(kind))
                         }
                     }
-                    if halloween {
-                        ExtraTile(image: ExtraArt.ghost(), title: theme.visitorTitle, isOn: model.ghost) { model.ghost.toggle() }
-                    } else {
+                    switch theme {
+                    case .fall:
                         ExtraTile(image: ExtraArt.squirrel(), title: theme.visitorTitle, isOn: model.squirrel) { model.squirrel.toggle() }
+                    case .halloween:
+                        ExtraTile(image: ExtraArt.ghost(), title: theme.visitorTitle, isOn: model.ghost) { model.ghost.toggle() }
+                    case .diwali:
+                        ExtraTile(image: ExtraArt.peacock(), title: theme.visitorTitle, isOn: model.peacock) { model.peacock.toggle() }
                     }
                 }
                 .id(theme)
                 .disabled(!model.cozyExtras)
                 .opacity(model.cozyExtras ? 1 : 0.45)
-                Text(!model.cozyExtras ? "Switch on \(theme.extrasTitle) to pick them."
-                     : halloween ? "Click to switch each one on or off. On the Dock, click the jack-o'-lanterns, the cat, the cauldron and the candles."
-                     : "Click to switch each one on or off. On the Dock, click the hay bales, leaf piles, the latte and the lantern.")
+                Text(!model.cozyExtras ? "Switch on \(theme.extrasTitle) to pick them." : extrasHint)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -604,7 +637,62 @@ enum ExtraArt {
         if let image = cache[key] { return image }
         let unit: CGFloat = 60
         let size = CozyArt.size(of: kind, unit: unit)
-        let texture = kind.isSpooky ? SpookyArt.tile(kind, unit: unit, scale: 2) : CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
+        let texture: SKTexture
+        switch kind.theme {
+        case .fall: texture = CozyArt.texture(kind, unit: unit, variant: 1, scale: 2)
+        case .halloween: texture = SpookyArt.tile(kind, unit: unit, scale: 2)
+        case .diwali: texture = DiwaliArt.tile(kind, unit: unit, scale: 2)
+        }
+        let image = NSImage(cgImage: texture.cgImage(), size: size)
+        cache[key] = image
+        return image
+    }
+
+    /// The theme's own pumpkin (or lamp), for the Theme card.
+    static func themeImage(_ theme: Settings.Theme) -> NSImage {
+        switch theme {
+        case .fall: return pumpkin()
+        case .halloween: return jackOLantern()
+        case .diwali: return diya()
+        }
+    }
+
+    /// The theme's visitor, for the Customize card.
+    static func visitor(_ theme: Settings.Theme) -> NSImage {
+        switch theme {
+        case .fall: return squirrel()
+        case .halloween: return ghost()
+        case .diwali: return peacock()
+        }
+    }
+
+    /// A lit diya, for Diwali.
+    static func diya() -> NSImage {
+        let key = "diya-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let height: CGFloat = 100
+        let image = NSImage(cgImage: DiwaliArt.litLamp(.diyaPink, height: height, scale: 2).cgImage(),
+                            size: DiwaliArt.litLampSize(.diyaPink, height: height))
+        cache[key] = image
+        return image
+    }
+
+    /// The peacock with its tail fanned out, for Diwali.
+    static func peacock() -> NSImage {
+        let key = "peacock-\(Palette.appearance)"
+        if let image = cache[key] { return image }
+        let unit: CGFloat = 60
+        let body = DiwaliArt.peacockSize(unit: unit), fan = DiwaliArt.fanSize(unit: unit)
+        // The fan rises behind the bird from its rump, so the picture is as wide as the fan and tall enough for both.
+        let rump = CGPoint(x: DiwaliArt.peacockRump.x * body.width, y: DiwaliArt.peacockRump.y * body.height)
+        let fanOrigin = CGPoint(x: rump.x - fan.width / 2, y: rump.y - fan.height * DiwaliArt.fanPivot)
+        let minX = min(0, fanOrigin.x), maxX = max(body.width, fanOrigin.x + fan.width)
+        let size = CGSize(width: (maxX - minX).rounded(), height: max(body.height, fanOrigin.y + fan.height).rounded())
+        let texture = TextureMaker.make(size: size, scale: 2) { ctx in
+            ctx.draw(DiwaliArt.fanTexture(unit: unit, scale: 2).cgImage(),
+                     in: CGRect(origin: CGPoint(x: fanOrigin.x - minX, y: fanOrigin.y), size: fan))
+            ctx.draw(DiwaliArt.peacockTexture(unit: unit, scale: 2).cgImage(), in: CGRect(origin: CGPoint(x: -minX, y: 0), size: body))
+        }
         let image = NSImage(cgImage: texture.cgImage(), size: size)
         cache[key] = image
         return image
@@ -707,6 +795,7 @@ enum ThemePreview {
         switch theme {
         case .fall: image = fall()
         case .halloween: image = halloween()
+        case .diwali: image = diwali()
         }
         cache[key] = image
         return image
@@ -717,6 +806,7 @@ enum ThemePreview {
         switch theme {
         case .fall: return Color(cgColor: Palette.plum.mixed(with: Palette.rust, 0.18))
         case .halloween: return Color(cgColor: Palette.night)
+        case .diwali: return Color(cgColor: diwaliSky)
         }
     }
 
@@ -884,6 +974,100 @@ enum ThemePreview {
             ctx.setAlpha(0.92)
             ctx.draw(SpookyArt.ghostTexture(unit: h * 0.8, scale: scale).cgImage(), in: CGRect(x: 300, y: 86, width: ghost.width, height: ghost.height))
             ctx.setAlpha(1)
+        }
+        return NSImage(cgImage: texture.cgImage(), size: size)
+    }
+
+    /// Diwali's dark, moonless night sky.
+    private static var diwaliSky: CGColor { Palette.night.mixed(with: Palette.royal, 0.2).mixed(with: Palette.soot, 0.3) }
+
+    private static func diwali() -> NSImage {
+        let size = CGSize(width: 520, height: 170)
+        let scale: CGFloat = 2
+        let h: CGFloat = 62
+        let texture = TextureMaker.make(size: size, scale: scale) { ctx in
+            // A moonless night full of fireworks, with a kandil hanging at each side.
+            ctx.setFillColor(diwaliSky)
+            ctx.fill(CGRect(origin: .zero, size: size))
+            var rng = SeededRandom(seed: 47)
+            ctx.setFillColor(Palette.ghost.withAlpha(0.6))
+            for _ in 0..<18 {
+                let r = rng.float(0.5...1.2)
+                ctx.fillEllipse(in: CGRect(x: rng.float(0...size.width), y: rng.float(80...size.height), width: r * 2, height: r * 2))
+            }
+            DiwaliArt.drawFirework(ctx, center: CGPoint(x: 150, y: 128), radius: 26, colors: [Palette.magenta, Palette.marigold], seed: 1)
+            DiwaliArt.drawFirework(ctx, center: CGPoint(x: 268, y: 146), radius: 16, colors: [Palette.teal, Palette.candlelight], rays: 12, seed: 2)
+            DiwaliArt.drawFirework(ctx, center: CGPoint(x: 384, y: 120), radius: 30, colors: [Palette.marigold, Palette.candyPink, Palette.slime], seed: 3)
+            let kandil = DiwaliArt.kandilSize(unit: h * 0.85)
+            for x in [52, 468] as [CGFloat] {
+                let top = size.height - 6
+                ctx.setFillColor(Palette.soot.mixed(with: Palette.ghost, 0.3))
+                ctx.fill(CGRect(x: x - 0.5, y: top, width: 1, height: 6))
+                let glow = kandil.width * 1.8
+                ctx.draw(CozyArt.glowTexture(color: Palette.marigold, diameter: glow, scale: scale).cgImage(),
+                         in: CGRect(x: x - glow / 2, y: top - kandil.height * 0.4 - glow / 2, width: glow, height: glow))
+                ctx.draw(DiwaliArt.kandilTexture(unit: h * 0.85, scale: scale).cgImage(),
+                         in: CGRect(x: x - kandil.width / 2, y: top - kandil.height, width: kandil.width, height: kandil.height))
+            }
+
+            // A Dock that stops short of the edges, with the garland along it and strings of marigolds at its ends.
+            let shelf: CGFloat = 24
+            let dock = CGRect(x: 30, y: 0, width: size.width - 60, height: shelf)
+            ctx.setFillColor(Palette.soot.mixed(with: Palette.plum, 0.45))
+            ctx.fill(dock)
+            let k = h / 60
+            let garlandHeight = (h * 0.34).rounded()
+            ctx.draw(DiwaliArt.garlandTexture(width: dock.width, height: garlandHeight, seed: 5, unit: k, scale: scale).cgImage(),
+                     in: CGRect(x: dock.minX, y: shelf - 8, width: dock.width, height: garlandHeight))
+            let strand = CGSize(width: (shelf * 0.55).rounded(), height: shelf)
+            let strandTexture = DiwaliArt.strandTexture(size: strand, scale: scale).cgImage()
+            ctx.draw(strandTexture, in: CGRect(origin: CGPoint(x: dock.minX, y: shelf - strand.height), size: strand))
+            ctx.saveGState()
+            ctx.translateBy(x: dock.maxX, y: 0)
+            ctx.scaleBy(x: -1, y: 1)
+            ctx.draw(strandTexture, in: CGRect(origin: CGPoint(x: 0, y: shelf - strand.height), size: strand))
+            ctx.restoreGState()
+
+            enum Item { case lamp(PumpkinKind, CGFloat), decor(DecorKind), boxes(PumpkinKind) }
+            let items: [Item] = [.lamp(.diyaClay, 1), .decor(.rangoli), .lamp(.lampStand, 0.95), .decor(.laddoos), .boxes(.diyaBrass),
+                                 .decor(.anar), .lamp(.diyaLotus, 0.9), .decor(.mithai), .lamp(.diyaTeal, 1)]
+            let decorUnit = (h * 0.75).rounded()
+            func width(_ item: Item) -> CGFloat {
+                switch item {
+                case let .lamp(kind, s): return PumpkinArt.size(of: kind, height: (h * s).rounded()).width
+                case let .decor(kind): return CozyArt.size(of: kind, unit: decorUnit).width
+                case .boxes: return CozyArt.size(of: .giftBoxes, unit: h).width
+                }
+            }
+            func drawLamp(_ kind: PumpkinKind, height: CGFloat, centerX: CGFloat, y: CGFloat) {
+                let s = DiwaliArt.litLampSize(kind, height: height)
+                let glow = s.width * (kind == .lampStand ? 2 : 1.3)
+                ctx.draw(CozyArt.glowTexture(color: Palette.marigold, diameter: glow, scale: scale).cgImage(),
+                         in: CGRect(x: centerX - glow / 2, y: y + s.height * 0.75 - glow / 2, width: glow, height: glow))
+                ctx.draw(DiwaliArt.litLamp(kind, height: height, scale: scale).cgImage(),
+                         in: CGRect(x: centerX - s.width / 2, y: y, width: s.width, height: s.height))
+            }
+            let used = items.map(width).reduce(0, +)
+            let space = max(2, (dock.width - used) / CGFloat(items.count + 1))
+            var x = dock.minX + space
+            for item in items {
+                let w = width(item)
+                let center = x + w / 2
+                switch item {
+                case let .lamp(kind, s):
+                    drawLamp(kind, height: (h * s).rounded(), centerX: center, y: shelf - 3)
+                case let .decor(kind):
+                    let s = CozyArt.size(of: kind, unit: decorUnit)
+                    ctx.draw(DiwaliArt.tile(kind, unit: decorUnit, scale: scale).cgImage(),
+                             in: CGRect(x: center - s.width / 2, y: shelf - 2, width: s.width, height: s.height))
+                case let .boxes(kind):
+                    let s = CozyArt.size(of: .giftBoxes, unit: h)
+                    ctx.draw(CozyArt.texture(.giftBoxes, unit: h, variant: 2, scale: scale).cgImage(),
+                             in: CGRect(x: center - s.width / 2, y: shelf - 3, width: s.width, height: s.height))
+                    drawLamp(kind, height: (h * 0.78).rounded(), centerX: center, y: shelf - 3 + s.height * 0.86)
+                }
+                x += w + space
+            }
         }
         return NSImage(cgImage: texture.cgImage(), size: size)
     }

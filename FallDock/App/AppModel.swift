@@ -109,6 +109,16 @@ final class AppModel: ObservableObject {
         didSet { Settings.ghost = ghost; overlay.refresh(force: true) }
     }
 
+    /// Little fireworks over the Dock at Diwali.
+    @Published var fireworks: Bool {
+        didSet { Settings.fireworks = fireworks }
+    }
+
+    /// The peacock that struts by at Diwali.
+    @Published var peacock: Bool {
+        didSet { Settings.peacock = peacock; overlay.refresh(force: true) }
+    }
+
     /// The desktop picture goes with the theme (the Background page).
     @Published var wallpaperEnabled: Bool {
         didSet { Settings.wallpaperEnabled = wallpaperEnabled; wallpaper.refresh() }
@@ -160,6 +170,8 @@ final class AppModel: ObservableObject {
         theme = Settings.theme
         bats = Settings.bats
         ghost = Settings.ghost
+        fireworks = Settings.fireworks
+        peacock = Settings.peacock
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
@@ -255,6 +267,8 @@ final class AppModel: ObservableObject {
         festivalLead = Settings.festivalLead
         bats = Settings.bats
         ghost = Settings.ghost
+        fireworks = Settings.fireworks
+        peacock = Settings.peacock
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves

@@ -216,6 +216,20 @@ final class DockorateUITests: XCTestCase {
         XCTAssertTrue(element("Falling leaves").exists)
     }
 
+    func testPickingDiwaliChangesWhatCustomizeShows() {
+        launch()
+        open("themes")
+        // On the second row of themes.
+        let diwali = app.buttons["theme-diwali"].firstMatch
+        reveal(diwali)
+        diwali.click()
+        open("customize")
+        XCTAssertTrue(element("Marigold garland").waitForExistence(timeout: 5), "Customize shows Diwali's options")
+        XCTAssertTrue(element("Fireworks").exists)
+        XCTAssertTrue(element("Festive extras").exists)
+        XCTAssertFalse(element("Graveyard dirt").exists)
+    }
+
     func testChangeAutomaticallyIsKept() {
         launch()
         open("themes")

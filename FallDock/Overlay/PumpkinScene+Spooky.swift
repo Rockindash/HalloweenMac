@@ -42,9 +42,9 @@ extension PumpkinScene {
         glow.run(.sequence([.wait(forDuration: animated ? 0.6 : 0), .repeatForever(.sequence(flicker))]), withKey: "flicker")
     }
 
-    /// The candle flares up when the pointer comes near, as if the jack-o'-lantern noticed.
+    /// The candle flares up when the pointer comes near, as if the jack-o'-lantern (or diya) noticed.
     func flare(_ pumpkin: PumpkinNode) {
-        guard pumpkin.isLantern, let glow = pumpkin.childNode(withName: "candle") else { return }
+        guard pumpkin.isLantern || pumpkin.isLit, let glow = pumpkin.childNode(withName: "candle") else { return }
         glow.run(.sequence([.group([.scale(to: 1.4, duration: 0.12), .fadeAlpha(to: 0.8, duration: 0.12)]),
                             .group([.scale(to: 1, duration: 0.5), .fadeAlpha(to: 0.42, duration: 0.5)])]), withKey: "flare")
     }

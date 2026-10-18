@@ -152,3 +152,16 @@ final class WebNode: DockSprite {
 final class HandNode: DockSprite {
     override var isInteractive: Bool { false }
 }
+
+/// Strings of marigolds hanging in each top corner of the Dock at Diwali (they just sway).
+final class StrandNode: DockSprite {
+    override var isInteractive: Bool { false }
+    override var risesWithIcons: Bool { false }
+}
+
+/// The peacock that struts by at Diwali.
+final class PeacockNode: DockSprite {
+    var isFleeing = false
+    /// Its tail is fanned out.
+    var isDisplaying = false
+}

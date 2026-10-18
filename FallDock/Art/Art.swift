@@ -82,6 +82,20 @@ enum Palette {
     /// The black cat, the cauldron and bats.
     static var soot: CGColor { pick(dark: 0x221A2B, light: 0x3B2F47) }
 
+    // Diwali's extra colors.
+    /// Marigolds, laddoos and the glow of a diya.
+    static var marigold: CGColor { pick(dark: 0xF2A11F, light: 0xF7B547) }
+    /// Rani pink, for painted diyas, gift boxes and rangoli.
+    static var magenta: CGColor { pick(dark: 0xC72F7C, light: 0xDB4F93) }
+    /// Peacock teal.
+    static var teal: CGColor { pick(dark: 0x168A8C, light: 0x2EA3A3) }
+    /// The peacock's royal blue.
+    static var royal: CGColor { pick(dark: 0x1F4CA6, light: 0x3B68C0) }
+    /// Polished brass.
+    static var brass: CGColor { pick(dark: 0xD9A635, light: 0xEDBF55) }
+    /// Terracotta, for clay diyas.
+    static var clay: CGColor { pick(dark: 0xB6552A, light: 0xCB6B40) }
+
     static var stemCut: CGColor { pick(dark: 0xC9773D, light: 0xDE9A5E) }
     static var shadowInk: CGColor { pick(dark: 0x3B1420, light: 0x7A5446) }
     static var seed: CGColor { pick(dark: 0xF6E4C1, light: 0xFFF7E8) }
@@ -95,6 +109,7 @@ enum ArtCache {
         VineArt.clearCache()
         CozyArt.clearCache()
         SpookyArt.clearCache()
+        DiwaliArt.clearCache()
     }
 }
 
@@ -231,6 +246,13 @@ enum PumpkinShape {
     case squat      // wide and low
     case tall       // taller than wide
     case butternut  // pear-shaped squash
+    // Diwali's lamps, drawn in DiwaliArt.
+    case diya       // a little bowl with a pointed spout
+    case lotus      // a diya shaped like a lotus flower
+    case lampStand  // a tall brass lamp with three flames
+
+    /// One of Diwali's lamps rather than a pumpkin.
+    var isLamp: Bool { self == .diya || self == .lotus || self == .lampStand }
 }
 
 enum PumpkinKind: CaseIterable {
@@ -238,12 +260,16 @@ enum PumpkinKind: CaseIterable {
     case butternutOrange, butternutMustard, littleGreen
     /// A pale "ghost" pumpkin, for Halloween.
     case ghostWhite
+    /// Diwali's lamps: diyas of clay, painted pink or teal, and brass, a lotus diya and a tall brass lamp.
+    case diyaClay, diyaPink, diyaTeal, diyaBrass, diyaLotus, lampStand
 
     /// The pumpkins on a fall Dock.
     static let fall: [PumpkinKind] = [.roundOrange, .roundMustard, .squatMustard, .squatOrange, .tallOrange, .tallMustard,
                                       .butternutOrange, .butternutMustard, .littleGreen]
     /// The pumpkins on a Halloween Dock: mostly orange ones to carve, and a few ghost pumpkins.
     static let halloween: [PumpkinKind] = [.roundOrange, .squatOrange, .tallOrange, .roundOrange, .squatOrange, .ghostWhite]
+    /// The lamps on a Diwali Dock: mostly diyas, with now and then a lotus diya or a tall brass lamp.
+    static let diwali: [PumpkinKind] = [.diyaClay, .diyaPink, .diyaTeal, .diyaBrass, .diyaClay, .diyaLotus, .diyaPink, .lampStand]
 
     struct Look {
         var shape: PumpkinShape
@@ -280,10 +306,32 @@ enum PumpkinKind: CaseIterable {
         case .ghostWhite:
             return Look(shape: .round, body: Palette.ghost, side: Palette.ghost.mixed(with: Palette.stone, 0.35),
                         rib: Palette.stone.mixed(with: Palette.plum, 0.25), aspect: 1.3, heightFactor: 0.92)
+        // For a lamp, `rib` is the painted pattern.
+        case .diyaClay:
+            return Look(shape: .diya, body: Palette.clay, side: Palette.clay.mixed(with: Palette.plum, 0.3),
+                        rib: Palette.peach, aspect: 1.72, heightFactor: 0.58)
+        case .diyaPink:
+            return Look(shape: .diya, body: Palette.magenta, side: Palette.magenta.mixed(with: Palette.plum, 0.35),
+                        rib: Palette.brass, aspect: 1.76, heightFactor: 0.6)
+        case .diyaTeal:
+            return Look(shape: .diya, body: Palette.teal, side: Palette.teal.mixed(with: Palette.soot, 0.3),
+                        rib: Palette.marigold, aspect: 1.66, heightFactor: 0.58)
+        case .diyaBrass:
+            return Look(shape: .diya, body: Palette.brass, side: Palette.brass.mixed(with: Palette.rust, 0.35),
+                        rib: Palette.ghost, aspect: 1.8, heightFactor: 0.56)
+        case .diyaLotus:
+            return Look(shape: .lotus, body: Palette.magenta.mixed(with: Palette.peach, 0.3), side: Palette.magenta,
+                        rib: Palette.magenta.mixed(with: Palette.plum, 0.35), aspect: 1.45, heightFactor: 0.66)
+        case .lampStand:
+            return Look(shape: .lampStand, body: Palette.brass, side: Palette.brass.mixed(with: Palette.rust, 0.35),
+                        rib: Palette.brass.mixed(with: Palette.plum, 0.45), aspect: 0.62, heightFactor: 1.02)
         }
     }
 
-    var isRound: Bool { look.shape != .butternut }
+    var isRound: Bool { look.shape == .round || look.shape == .squat || look.shape == .tall }
+
+    /// One of Diwali's lamps, which lights up rather than smashing.
+    var isLamp: Bool { look.shape.isLamp }
 
     /// Whether a jack-o'-lantern face can be carved into it (round orange-ish pumpkins only).
     var isCarvable: Bool { isRound && self != .littleGreen && self != .ghostWhite }
@@ -394,6 +442,10 @@ enum PumpkinArt {
 
     /// Draws a pumpkin whose body is `w` x `h`, standing on `base` and centered on `cx`.
     static func draw(kind: PumpkinKind, cx: CGFloat, base: CGFloat, w: CGFloat, h: CGFloat, variant: Int, ctx: CGContext) {
+        if kind.isLamp {
+            DiwaliArt.drawLamp(kind: kind, cx: cx, base: base, w: w, h: h, variant: variant, ctx: ctx)
+            return
+        }
         var rng = SeededRandom(seed: UInt64(variant) &* 7919 &+ UInt64(PumpkinKind.allCases.firstIndex(of: kind) ?? 0))
         let look = kind.look
         let lineW = max(1.2, w * 0.028)

@@ -19,7 +19,7 @@ extension PumpkinScene {
         }
     }
 
-    /// A hay bale (or crypt pedestal) under a pumpkin that sits up high, behind every pumpkin.
+    /// A hay bale (or crypt pedestal, or stack of gift boxes) under a pumpkin that sits up high, behind every pumpkin.
     private func addBale(slot: Int, grow: Bool) {
         let h = pumpkinHeight
         let perch = Settings.theme.perch
@@ -54,6 +54,7 @@ extension PumpkinScene {
         case .cauldron: brew(decor)
         case .candles: light(decor)
         case .blackCat: dress(decor)
+        case .rangoli, .rocket, .chakri, .kandil, .flowerBowl: dressDiwali(decor)
         default: break
         }
     }
@@ -159,6 +160,8 @@ extension PumpkinScene {
             decor.run(DockSprite.hop(height: h * 0.08, duration: 0.25), withKey: "hop")
         case .tombstone, .blackCat, .cauldron, .candy, .candles, .crypt, .skull:
             pokeSpooky(decor)
+        case .giftBoxes, .rangoli, .laddoos, .mithai, .anar, .rocket, .chakri, .kandil, .flowerBowl:
+            pokeDiwali(decor)
         default:
             decor.run(DockSprite.hop(height: h * 0.12, duration: 0.3), withKey: "hop")
         }
@@ -204,15 +207,19 @@ extension PumpkinScene {
 
     // MARK: The squirrel
 
-    /// Schedules the season's visitor: the squirrel in fall, the ghost at Halloween.
+    /// Schedules the season's visitor: the squirrel in fall, the ghost at Halloween, the peacock at Diwali.
     func scheduleVisitor(first: Bool) {
         removeAction(forKey: "squirrel")
         guard !Self.reduceMotion, Settings.visitor else { return }
-        let halloween = Settings.theme == .halloween
+        let theme = Settings.theme
         run(.sequence([
             .wait(forDuration: first ? Double.random(in: 10...20) : Double.random(in: 45...90)),
             .run { [weak self] in
-                if halloween { self?.ghostVisit() } else { self?.squirrelVisit() }
+                switch theme {
+                case .fall: self?.squirrelVisit()
+                case .halloween: self?.ghostVisit()
+                case .diwali: self?.peacockVisit()
+                }
             },
         ]), withKey: "squirrel")
     }

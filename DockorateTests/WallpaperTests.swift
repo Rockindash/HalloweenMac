@@ -103,6 +103,37 @@ final class WallpaperTests: SettingsTestCase {
         }
     }
 
+    func testDiwalisPictureIsATownFullOfLights() throws {
+        for appearance in [Palette.Appearance.light, .dark] {
+            let look = WallpaperArt.look(for: .diwali, appearance)
+            let festive = try XCTUnwrap(look.festive, "Diwali has its own scene")
+            XCTAssertNil(look.spooky)
+            let image = try XCTUnwrap(WallpaperArt.image(look, pixels: CGSize(width: 1600, height: 1000)))
+            // Places worked out from where the scene puts things on a 1600 by 1000 picture.
+            XCTAssertColor(color(in: image, x: 0.015, y: 0.004), look.skyTop.rgb255, tolerance: 4, "sky at the top")
+            XCTAssertColor(color(in: image, x: 0.78, y: 0.205), look.orb.rgb255, tolerance: 2, "the sun, or a firework's heart")
+            XCTAssertColor(color(in: image, x: 0.34, y: 0.70), look.backHill.rgb255, tolerance: 2, "the temple's spire")
+            XCTAssertColor(color(in: image, x: 0.5, y: 0.98), look.frontHill.rgb255, tolerance: 2, "the wall in front")
+            XCTAssertGreaterThan(count(festive.light.rgb255, in: pixels(of: image)), 500, "\(appearance): lit windows and diyas")
+        }
+        XCTAssertNil(WallpaperArt.look(for: .fall, .dark).festive, "Fall's pictures stay as they were")
+        XCTAssertNil(WallpaperArt.look(for: .halloween, .dark).festive)
+    }
+
+    func testDiwaliLooksNothingLikeFallOrHalloween() throws {
+        let size = CGSize(width: 400, height: 250)
+        for appearance in [Palette.Appearance.light, .dark] {
+            let diwali = pixels(of: try XCTUnwrap(WallpaperArt.image(WallpaperArt.look(for: .diwali, appearance), pixels: size)))
+            for other in [Settings.Theme.fall, .halloween] {
+                let picture = pixels(of: try XCTUnwrap(WallpaperArt.image(WallpaperArt.look(for: other, appearance), pixels: size)))
+                let different = stride(from: 0, to: diwali.count, by: 4).filter { i in
+                    (0..<3).contains { abs(Int(diwali[i + $0]) - Int(picture[i + $0])) > 24 }
+                }.count
+                XCTAssertGreaterThan(Double(different) / Double(diwali.count / 4), 0.25, "\(appearance) against \(other)")
+            }
+        }
+    }
+
     /// The pictures stay in the background, so the Dock is the star: every theme's sun or moon is small and
     /// in the same spot as Fall's, and Halloween's has no glowing jack-o'-lanterns.
     func testEveryPictureKeepsItsSunOrMoonSmallAndInTheSameSpot() throws {
@@ -128,6 +159,8 @@ final class WallpaperTests: SettingsTestCase {
     func testEachThemeGetsItsOwnFiles() {
         let pixels = CGSize(width: 320, height: 200)
         XCTAssertNotEqual(WallpaperArt.file(for: .fall, .dark, pixels: pixels), WallpaperArt.file(for: .halloween, .dark, pixels: pixels))
+        let files = Settings.Theme.allCases.compactMap { WallpaperArt.file(for: $0, .dark, pixels: pixels) }
+        XCTAssertEqual(Set(files).count, Settings.Theme.allCases.count, "Diwali too")
     }
 
     func testPictureIsSavedOnceAndReused() throws {

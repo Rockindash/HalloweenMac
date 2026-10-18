@@ -3,6 +3,7 @@ import SpriteKit
 
 // The cozy extras that fill the gaps between pumpkins: hay bales, leaf piles, acorns,
 // a pumpkin spice latte, a lantern, a crate of apples and a visiting squirrel.
+// (Halloween's extras are drawn in SpookyArt, and Diwali's in DiwaliArt.)
 // Same flat harvest-wagon style as the pumpkins: wagon colors, flat fills, a darker side,
 // tapered brush strokes and no outlines.
 
@@ -11,6 +12,8 @@ enum DecorKind: String, CaseIterable {
     case hayBale, leafPile, acorns, mug, lantern, apples
     // Halloween (drawn in SpookyArt).
     case crypt, tombstone, blackCat, cauldron, candy, candles, skull
+    // Diwali (drawn in DiwaliArt).
+    case giftBoxes, rangoli, laddoos, mithai, anar, rocket, chakri, kandil, flowerBowl
 
     var title: String {
         switch self {
@@ -27,10 +30,22 @@ enum DecorKind: String, CaseIterable {
         case .candy: return "Candy"
         case .candles: return "Candles"
         case .skull: return "Skull"
+        case .giftBoxes: return "Gift boxes"
+        case .rangoli: return "Rangoli"
+        case .laddoos: return "Laddoos"
+        case .mithai: return "Mithai box"
+        case .anar: return "Anar"
+        case .rocket: return "Rocket"
+        case .chakri: return "Chakri"
+        case .kandil: return "Kandil"
+        case .flowerBowl: return "Flower bowl"
         }
     }
 
-    var isSpooky: Bool { Settings.Theme.halloween.extras.contains(self) }
+    /// The theme this extra belongs to.
+    var theme: Settings.Theme { Settings.Theme.allCases.first { $0.extras.contains(self) } ?? .fall }
+
+    var isSpooky: Bool { theme == .halloween }
 }
 
 enum CozyArt {
@@ -60,6 +75,15 @@ enum CozyArt {
         case .candy: s = CGSize(width: h * 0.95, height: h * 0.66)
         case .candles: s = CGSize(width: h * 0.58, height: h * 0.66)
         case .skull: s = CGSize(width: h * 0.66, height: h * 0.5)
+        case .giftBoxes: s = CGSize(width: h * 1.2, height: h * 0.5)
+        case .rangoli: s = CGSize(width: h * 1.15, height: h * 0.46)
+        case .laddoos: s = CGSize(width: h * 0.78, height: h * 0.7)
+        case .mithai: s = CGSize(width: h * 0.95, height: h * 0.6)
+        case .anar: s = CGSize(width: h * 0.62, height: h * 0.66)
+        case .rocket: s = CGSize(width: h * 0.42, height: h * 0.86)
+        case .chakri: s = CGSize(width: h * 0.62, height: h * 0.7)
+        case .kandil: s = CGSize(width: h * 0.6, height: h * 1.05)
+        case .flowerBowl: s = CGSize(width: h * 1.05, height: h * 0.42)
         }
         return CGSize(width: s.width.rounded(), height: s.height.rounded())
     }
@@ -80,6 +104,8 @@ enum CozyArt {
             case .apples: drawApples(ctx, size: size, h: h, rng: &rng)
             case .crypt, .tombstone, .blackCat, .cauldron, .candy, .candles, .skull:
                 SpookyArt.draw(kind, ctx, size: size, h: h, rng: &rng)
+            case .giftBoxes, .rangoli, .laddoos, .mithai, .anar, .rocket, .chakri, .kandil, .flowerBowl:
+                DiwaliArt.draw(kind, ctx, size: size, h: h, rng: &rng)
             }
         }
         cache[key] = texture
