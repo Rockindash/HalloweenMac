@@ -550,10 +550,6 @@ private struct RotationPicker: View {
                     }
                 }
             }
-            Text("Switch a theme off to skip it. The season before it stays on longer, and a festival's days stay with the season.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

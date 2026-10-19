@@ -118,6 +118,16 @@ final class ArtTests: XCTestCase {
 
     // MARK: The app window
 
+    @MainActor func testEveryHomeCardHasItsOwnPicture() {
+        for theme in Settings.Theme.allCases {
+            for appearance in [Palette.Appearance.light, .dark] {
+                let art = HomePage.cardArt(for: theme, appearance)
+                XCTAssertEqual(art.count, 4, "one for each card on Home")
+                XCTAssertEqual(Set(art).count, 4, "\(theme) uses a picture twice on Home: \(art)")
+            }
+        }
+    }
+
     @MainActor func testGreetingChangesThroughTheDay() {
         func at(_ hour: Int) -> String {
             HomePage.greeting(at: Calendar.current.date(bySettingHour: hour, minute: 30, second: 0, of: Date())!)

@@ -245,6 +245,33 @@ struct HomePage: View {
         }
     }
 
+    /// The pictures on the four cards, in order: each card has its own, whatever the theme.
+    enum CardArt: Hashable {
+        case pumpkin, jackOLantern, leafPile, blackCat, squirrel, ghost, desktop(Settings.Theme, Palette.Appearance)
+
+        var image: NSImage {
+            switch self {
+            case .pumpkin: return ExtraArt.pumpkin()
+            case .jackOLantern: return ExtraArt.jackOLantern()
+            case .leafPile: return ExtraArt.image(for: .leafPile)
+            case .blackCat: return ExtraArt.image(for: .blackCat)
+            case .squirrel: return ExtraArt.squirrel()
+            case .ghost: return ExtraArt.ghost()
+            case .desktop(let theme, let appearance): return WallpaperArt.preview(for: theme, appearance)
+            }
+        }
+    }
+
+    /// Your harvest (what gets smashed), Theme, Customize (the visitor) and Background (the desktop picture).
+    static func cardArt(for theme: Settings.Theme, _ appearance: Palette.Appearance) -> [CardArt] {
+        switch theme {
+        case .fall: return [.pumpkin, .leafPile, .squirrel, .desktop(theme, appearance)]
+        case .halloween: return [.jackOLantern, .blackCat, .ghost, .desktop(theme, appearance)]
+        }
+    }
+
+    private var art: [CardArt] { Self.cardArt(for: model.theme, model.appearance) }
+
     var body: some View {
         // Checked every minute, so the greeting changes if the window stays open past noon or 5pm.
         TimelineView(.everyMinute) { context in
@@ -256,12 +283,11 @@ struct HomePage: View {
                 LazyVGrid(columns: columns, spacing: 20) {
                     FeatureCard(eyebrow: "Your harvest", title: smashed,
                                 subtitle: "Smash one on your Dock and another grows in its place.",
-                                image: ExtraArt.pumpkin(), imageBackground: Color.harvestMustard.opacity(0.22))
+                                image: art[0].image, imageBackground: Color.harvestMustard.opacity(0.22))
                     Button(action: openThemes) {
                         FeatureCard(eyebrow: "Theme", title: model.theme.title,
                                     subtitle: ThemeSchedule.summary(model.themeChoice),
-                                    image: model.theme == .halloween ? ExtraArt.jackOLantern() : ExtraArt.pumpkin(),
-                                    imageBackground: Color.harvestNight.opacity(0.2))
+                                    image: art[1].image, imageBackground: Color.harvestNight.opacity(0.2))
                             .contentShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(PressableStyle())
@@ -270,8 +296,7 @@ struct HomePage: View {
                                     subtitle: model.theme == .halloween
                                         ? "Graveyard dirt, bats, tombstones, candy and a friendly ghost."
                                         : "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
-                                    image: model.theme == .halloween ? ExtraArt.ghost() : ExtraArt.squirrel(),
-                                    imageBackground: Color.harvestRust.opacity(0.2))
+                                    image: art[2].image, imageBackground: Color.harvestRust.opacity(0.2))
                             .contentShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(PressableStyle())
@@ -280,7 +305,7 @@ struct HomePage: View {
                                     subtitle: model.wallpaperEnabled
                                         ? "Your desktop shows the \(model.theme.title) picture."
                                         : "A soft sky and rolling hills behind your Dock. Off until you switch it on.",
-                                    image: WallpaperArt.preview(for: model.theme, model.appearance),
+                                    image: art[3].image,
                                     imageBackground: Color.harvestPlum.opacity(0.2), fillsCircle: true)
                             .contentShape(RoundedRectangle(cornerRadius: 16))
                     }
