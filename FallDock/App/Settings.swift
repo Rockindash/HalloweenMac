@@ -246,14 +246,14 @@ enum Settings {
             }
         }
 
-        /// The Home card's title for the count, like "No Pumpkins Smashed Yet" or "3 Jack-o'-Lanterns Smashed".
+        /// The Home card's title for the count, like "0 Pumpkins Smashed" or "3 Jack-o'-Lanterns Smashed".
         func smashedTitle(_ count: Int) -> String {
             let things: String
             switch self {
             case .fall: things = count == 1 ? "Pumpkin" : "Pumpkins"
             case .halloween: things = count == 1 ? "Jack-o'-Lantern" : "Jack-o'-Lanterns"
             }
-            return count == 0 ? "No \(things) Smashed Yet" : "\(count) \(things) Smashed"
+            return "\(count) \(things) Smashed"
         }
 
         /// This theme's extras, in the order their tiles show.

@@ -41,9 +41,9 @@ final class SettingsTests: SettingsTestCase {
     }
 
     func testSmashCountWords() {
-        XCTAssertEqual(Settings.Theme.fall.smashedTitle(0), "No Pumpkins Smashed Yet")
+        XCTAssertEqual(Settings.Theme.fall.smashedTitle(0), "0 Pumpkins Smashed")
         XCTAssertEqual(Settings.Theme.fall.smashedTitle(1), "1 Pumpkin Smashed")
-        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(0), "No Jack-o'-Lanterns Smashed Yet")
+        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(0), "0 Jack-o'-Lanterns Smashed")
         XCTAssertEqual(Settings.Theme.halloween.smashedTitle(1), "1 Jack-o'-Lantern Smashed")
         XCTAssertEqual(Settings.Theme.halloween.smashedTitle(3), "3 Jack-o'-Lanterns Smashed")
         XCTAssertEqual(Settings.Theme.fall.smashed(2), "2 pumpkins")
