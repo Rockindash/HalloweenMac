@@ -270,7 +270,7 @@ final class DockorateUITests: XCTestCase {
 
         setSwitch("Change automatically", on: true)
         XCTAssertTrue(element("theme-year").waitForExistence(timeout: 5), "the year at a glance")
-        XCTAssertTrue(text("Themes It Switches Between").waitForExistence(timeout: 5), "the rotation says plainly what it is")
+        XCTAssertTrue(text("THEMES IT SWITCHES BETWEEN").waitForExistence(timeout: 5), "the rotation says plainly what it is")
         let fall = toggle("rotation-fall"), halloween = toggle("rotation-halloween")
         XCTAssertTrue(isOn(fall))
         XCTAssertTrue(isOn(halloween), "every theme starts out in the rotation")

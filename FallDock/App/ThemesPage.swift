@@ -523,8 +523,7 @@ private struct RotationPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Themes It Switches Between")
-                    .font(.headline)
+                Eyebrow(text: "Themes it switches between")
                 Spacer()
                 Text("\(model.rotation.count) of \(Settings.Theme.allCases.count) themes")
                     .font(.callout)
@@ -533,8 +532,10 @@ private struct RotationPicker: View {
             ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
                 let themes = Settings.Theme.allCases.filter { $0.kind == kind }
                 if !themes.isEmpty {
-                    // A subheading under the title: small grey capitals.
-                    Eyebrow(text: kind.title)
+                    // A subheading under the title, a little softer than the themes.
+                    Text(kind.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .opacity(0.8)
                         .padding(.top, 4)
                     // Two to a row. (Not a lazy grid: those leave out rows that aren't on screen yet.)
                     VStack(spacing: 10) {
