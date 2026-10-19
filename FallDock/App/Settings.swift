@@ -251,7 +251,8 @@ enum Settings {
             let things: String
             switch self {
             case .fall: things = count == 1 ? "Pumpkin" : "Pumpkins"
-            case .halloween: things = count == 1 ? "Jack-o'-Lantern" : "Jack-o'-Lanterns"
+            // Non-breaking hyphens, so a title too long for one line never breaks after "Jack-o'-".
+            case .halloween: things = count == 1 ? "Jack\u{2011}o'\u{2011}Lantern" : "Jack\u{2011}o'\u{2011}Lanterns"
             }
             return "\(count) \(things) Smashed"
         }

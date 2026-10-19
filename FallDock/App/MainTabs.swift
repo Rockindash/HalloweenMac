@@ -169,10 +169,10 @@ struct FeatureCard<Footer: View>: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 Eyebrow(text: eyebrow)
+                // Wraps as far as it needs, never cut off with "...".
                 Text(title)
                     .font(.system(size: 22, weight: .bold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(subtitle)
                     .font(.callout)
                     .foregroundStyle(.secondary)
