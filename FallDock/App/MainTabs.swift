@@ -57,19 +57,27 @@ struct PageLayout<Content: View>: View {
 /// A rounded panel that groups related things, with an optional heading above it.
 struct Card<Content: View>: View {
     var title: String?
+    /// Keeps what's inside within the card's corners, for a card whose content slides in and out.
+    var clips = false
     @ViewBuilder var content: Content
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let box = VStack(alignment: .leading, spacing: 14) {
+            content
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(shape.fill(Color.cardFill))
         VStack(alignment: .leading, spacing: 10) {
             if let title {
                 Text(title).font(.title3.weight(.bold))
             }
-            VStack(alignment: .leading, spacing: 14) {
-                content
+            if clips {
+                box.clipShape(shape)
+            } else {
+                box
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardFill))
         }
     }
 }

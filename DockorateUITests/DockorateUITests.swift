@@ -224,13 +224,29 @@ final class DockorateUITests: XCTestCase {
         launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
         open("themes")
         XCTAssertTrue(isOn(toggle("Change automatically")))
-        // Picking a theme keeps it, which switches changing automatically off.
+        // Switching it off keeps the theme that's on, and brings back the themes to pick from.
+        setSwitch("Change automatically", on: false)
         let halloween = app.buttons["theme-halloween"].firstMatch
+        XCTAssertTrue(halloween.waitForExistence(timeout: 5))
         reveal(halloween)
         halloween.click()
-        let automatic = toggle("Change automatically")
-        let off = NSPredicate { _, _ in !self.isOn(automatic) }
-        wait(for: [expectation(for: off, evaluatedWith: nil)], timeout: 5)
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5), "the picked theme is on the Dock")
+    }
+
+    func testPickAThemeShowsOnlyWhenChangeAutomaticallyIsOff() {
+        launch()
+        open("themes")
+        XCTAssertFalse(isOn(toggle("Change automatically")))
+        XCTAssertTrue(element("pick-a-theme").waitForExistence(timeout: 5), "themes to pick from while it's off")
+        XCTAssertTrue(app.buttons["theme-fall"].firstMatch.exists)
+
+        setSwitch("Change automatically", on: true)
+        let gone = NSPredicate { _, _ in !self.element("pick-a-theme").exists && !self.app.buttons["theme-fall"].firstMatch.exists }
+        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
+
+        setSwitch("Change automatically", on: false)
+        XCTAssertTrue(element("pick-a-theme").waitForExistence(timeout: 5), "back once it's off again")
     }
 
     func testThemesPageShowsChangeAutomaticallyFirstAndThemesTwoToARow() {
@@ -254,6 +270,7 @@ final class DockorateUITests: XCTestCase {
 
         setSwitch("Change automatically", on: true)
         XCTAssertTrue(element("theme-year").waitForExistence(timeout: 5), "the year at a glance")
+        XCTAssertTrue(text("Themes It Switches Between").waitForExistence(timeout: 5), "the rotation says plainly what it is")
         let fall = toggle("rotation-fall"), halloween = toggle("rotation-halloween")
         XCTAssertTrue(isOn(fall))
         XCTAssertTrue(isOn(halloween), "every theme starts out in the rotation")

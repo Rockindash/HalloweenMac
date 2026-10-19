@@ -20,8 +20,14 @@ struct ThemesPage: View {
     }
 
     private func choose(_ choice: Settings.ThemeChoice) {
-        withAnimation(.easeInOut(duration: 0.35)) { model.themeChoice = choice }
+        withAnimation(.easeInOut(duration: 0.4)) { model.themeChoice = choice }
     }
+
+    /// What appears and disappears as Change automatically goes on and off: it fades in place, going
+    /// quickly and arriving once the page has made room, so nothing slides over anything else.
+    private static let swap = AnyTransition.asymmetric(
+        insertion: .opacity.animation(.easeOut(duration: 0.3).delay(0.15)),
+        removal: .opacity.animation(.easeIn(duration: 0.12)))
 
     var body: some View {
         PageLayout(title: "Themes") {
@@ -34,7 +40,7 @@ struct ThemesPage: View {
                     .transition(.opacity)
             }
 
-            Card(title: "Change Automatically") {
+            Card(title: "Change Automatically", clips: true) {
                 SettingRow(symbol: "calendar.badge.clock", color: .pumpkin, title: "Change automatically",
                            detail: "Follows the seasons, and puts each festival on your Dock \(ThemeSchedule.lead(model.festivalLead)) before its day.") {
                     Toggle("", isOn: automatic).labelsHidden().toggleStyle(.switch)
@@ -51,32 +57,40 @@ struct ThemesPage: View {
                         RotationPicker(model: model)
                     }
                     .padding(.top, 8)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(Self.swap)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Pick a Theme").font(.title3.weight(.bold))
-                // Two to a row, like the Background pictures.
-                VStack(spacing: 14) {
-                    ForEach(Self.rows, id: \.self) { row in
-                        HStack(alignment: .top, spacing: 14) {
-                            ForEach(row, id: \.self) { theme in
-                                ThemeTile(theme: theme, isPicked: model.themeChoice == .keep(theme),
-                                          isOnNow: model.theme == theme) { choose(.keep(theme)) }
-                            }
-                            if row.count == 1 { Color.clear.frame(maxWidth: .infinity, maxHeight: 1) }
-                        }
-                    }
-                }
-                Text(isAutomatic
-                     ? "Click a theme to keep it on your Dock all year. That switches off Change automatically."
-                     : "Click a theme to put it on your Dock.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Picking one theme to keep, only while it isn't changing automatically.
+            if !isAutomatic {
+                pickATheme
+                    .transition(Self.swap)
             }
         }
+    }
+
+    private var pickATheme: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Pick a Theme").font(.title3.weight(.bold))
+            // Two to a row, like the Background pictures.
+            VStack(spacing: 14) {
+                ForEach(Self.rows, id: \.self) { row in
+                    HStack(alignment: .top, spacing: 14) {
+                        ForEach(row, id: \.self) { theme in
+                            ThemeTile(theme: theme, isPicked: model.themeChoice == .keep(theme),
+                                      isOnNow: model.theme == theme) { choose(.keep(theme)) }
+                        }
+                        if row.count == 1 { Color.clear.frame(maxWidth: .infinity, maxHeight: 1) }
+                    }
+                }
+            }
+            Text("Click a theme to keep it on your Dock all year.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("pick-a-theme")
     }
 }
 
@@ -509,7 +523,8 @@ private struct RotationPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Eyebrow(text: "In the rotation")
+                Text("Themes It Switches Between")
+                    .font(.headline)
                 Spacer()
                 Text("\(model.rotation.count) of \(Settings.Theme.allCases.count) themes")
                     .font(.callout)
@@ -518,10 +533,9 @@ private struct RotationPicker: View {
             ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
                 let themes = Settings.Theme.allCases.filter { $0.kind == kind }
                 if !themes.isEmpty {
-                    Text(kind.title)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 2)
+                    // A subheading under the title: small grey capitals.
+                    Eyebrow(text: kind.title)
+                        .padding(.top, 4)
                     // Two to a row. (Not a lazy grid: those leave out rows that aren't on screen yet.)
                     VStack(spacing: 10) {
                         ForEach(stride(from: 0, to: themes.count, by: 2).map { Array(themes[$0..<min($0 + 2, themes.count)]) }, id: \.self) { row in
