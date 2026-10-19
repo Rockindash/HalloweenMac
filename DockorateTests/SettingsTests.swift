@@ -43,10 +43,9 @@ final class SettingsTests: SettingsTestCase {
     func testSmashCountWords() {
         XCTAssertEqual(Settings.Theme.fall.smashedTitle(0), "0 Pumpkins Smashed")
         XCTAssertEqual(Settings.Theme.fall.smashedTitle(1), "1 Pumpkin Smashed")
-        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(0), "0 Jack\u{2011}o'\u{2011}Lanterns Smashed")
-        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(1), "1 Jack\u{2011}o'\u{2011}Lantern Smashed")
-        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(3), "3 Jack\u{2011}o'\u{2011}Lanterns Smashed")
-        XCTAssertFalse(Settings.Theme.halloween.smashedTitle(3).contains("-"), "no hyphen a line could break after")
+        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(0), "0 Lanterns Smashed")
+        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(1), "1 Lantern Smashed")
+        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(3), "3 Lanterns Smashed")
         XCTAssertEqual(Settings.Theme.fall.smashed(2), "2 pumpkins")
         XCTAssertEqual(Settings.Theme.halloween.smashed(1), "1 jack-o'-lantern")
     }

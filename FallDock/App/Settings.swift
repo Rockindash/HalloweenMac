@@ -246,13 +246,13 @@ enum Settings {
             }
         }
 
-        /// The Home card's title for the count, like "0 Pumpkins Smashed" or "3 Jack-o'-Lanterns Smashed".
+        /// The Home card's title for the count, like "0 Pumpkins Smashed" or "3 Lanterns Smashed" (short, so it
+        /// fits the card).
         func smashedTitle(_ count: Int) -> String {
             let things: String
             switch self {
             case .fall: things = count == 1 ? "Pumpkin" : "Pumpkins"
-            // Non-breaking hyphens, so a title too long for one line never breaks after "Jack-o'-".
-            case .halloween: things = count == 1 ? "Jack\u{2011}o'\u{2011}Lantern" : "Jack\u{2011}o'\u{2011}Lanterns"
+            case .halloween: things = count == 1 ? "Lantern" : "Lanterns"
             }
             return "\(count) \(things) Smashed"
         }
