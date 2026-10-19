@@ -89,7 +89,8 @@ struct MainView: View {
                     LicensePage(license: model.license)
                 case .home:
                     HomePage(model: model, state: state, openCustomize: { pageName = Page.customize.rawValue },
-                             openThemes: { pageName = Page.themes.rawValue })
+                             openThemes: { pageName = Page.themes.rawValue },
+                             openBackground: { pageName = Page.background.rawValue })
                 case .themes: ThemesPage(model: model)
                 case .customize: CustomizePage(model: model)
                 case .background: BackgroundPage(model: model)
@@ -218,8 +219,10 @@ struct HomePage: View {
     var state: HarvestState
     var openCustomize: () -> Void
     var openThemes: () -> Void
+    var openBackground: () -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 280), spacing: 20)]
+    /// Two by two: the harvest, the theme, Customize and Background.
+    private let columns = [GridItem(.flexible(), spacing: 20), GridItem(.flexible(), spacing: 20)]
 
     private var status: String {
         switch state {
@@ -272,6 +275,17 @@ struct HomePage: View {
                             .contentShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(PressableStyle())
+                    Button(action: openBackground) {
+                        FeatureCard(eyebrow: "Background", title: "A Desktop to Match",
+                                    subtitle: model.wallpaperEnabled
+                                        ? "Your desktop shows the \(model.theme.title) picture."
+                                        : "A soft sky and rolling hills behind your Dock. Off until you switch it on.",
+                                    image: WallpaperArt.preview(for: model.theme, model.appearance),
+                                    imageBackground: Color.harvestPlum.opacity(0.2), fillsCircle: true)
+                            .contentShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(PressableStyle())
+                    .accessibilityIdentifier("home-background")
                 }
             }
         }

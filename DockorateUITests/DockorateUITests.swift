@@ -350,9 +350,13 @@ final class DockorateUITests: XCTestCase {
     func testCustomizeHasAThemeMenu() {
         launch()
         open("customize")
-        let menu = app.popUpButtons["customize-theme"].firstMatch
+        let menu = element("customize-theme")
         XCTAssertTrue(menu.waitForExistence(timeout: 5), "a drop-down menu of themes")
-        XCTAssertTrue((menu.value as? String)?.contains("Fall") == true, "showing the theme on the Dock: \(menu.debugDescription)")
+        func shows(_ title: String) -> Bool { ((menu.value as? String) ?? "").contains(title) || menu.label.contains(title) }
+        XCTAssertTrue(shows("Fall"), "showing the theme on the Dock: \(menu.debugDescription)")
+        // On the right, across from the page's title.
+        let window = app.windows.firstMatch
+        XCTAssertGreaterThan(menu.frame.midX, window.frame.midX, "the menu sits on the right: \(menu.frame) in \(window.frame)")
         // It follows the theme on the Dock. (XCUITest can't open the menu itself on the CI Mac: its
         // click waits for a menu-open notification that never arrives there.)
         open("themes")
@@ -361,10 +365,20 @@ final class DockorateUITests: XCTestCase {
         halloween.click()
         open("customize")
         XCTAssertTrue(menu.waitForExistence(timeout: 5))
-        let showsHalloween = NSPredicate { _, _ in (menu.value as? String)?.contains("Halloween") == true }
+        let showsHalloween = NSPredicate { _, _ in shows("Halloween") }
         wait(for: [expectation(for: showsHalloween, evaluatedWith: nil)], timeout: 5)
         XCTAssertTrue(element("Graveyard dirt").exists)
         XCTAssertTrue(element("Bats").exists)
+    }
+
+    func testHomeHasABackgroundShortcut() {
+        launch()
+        open("home")
+        let card = element("home-background")
+        reveal(card)
+        XCTAssertTrue(card.waitForExistence(timeout: 5), "a Background card under Your harvest, Theme and Customize")
+        card.click()
+        XCTAssertTrue(element("Match my desktop to the Dock").waitForExistence(timeout: 5), "it opens the Background page")
     }
 
     func testBackgroundIsOffUntilSwitchedOn() {

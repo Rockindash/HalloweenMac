@@ -30,16 +30,22 @@ extension Color {
 // MARK: - Building blocks
 
 /// A page: its big title, then its sections.
-struct PageLayout<Content: View>: View {
+struct PageLayout<Accessory: View, Content: View>: View {
     var title: String
+    /// Something to the right of the title, like the Customize page's theme menu.
+    @ViewBuilder var accessory: Accessory
     @ViewBuilder var content: Content
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                Text(title)
-                    .font(.system(size: 34, weight: .bold))
-                    .padding(.bottom, -6)
+                HStack(alignment: .center, spacing: 12) {
+                    Text(title)
+                        .font(.system(size: 34, weight: .bold))
+                    Spacer(minLength: 0)
+                    accessory
+                }
+                .padding(.bottom, -6)
                 content
             }
             .padding(.horizontal, 40)
@@ -51,6 +57,12 @@ struct PageLayout<Content: View>: View {
         // Start near the top of the window, as the App Store does, rather than below the empty toolbar.
         .modifier(UnderToolbar())
         .background(Color.pageBackground)
+    }
+}
+
+extension PageLayout where Accessory == EmptyView {
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.init(title: title, accessory: { EmptyView() }, content: content)
     }
 }
 
@@ -82,15 +94,16 @@ struct Card<Content: View>: View {
     }
 }
 
-/// The small grey capitals over a card's title.
+/// The small capitals over a card's title, grey unless they are the title themselves.
 struct Eyebrow: View {
     var text: String
+    var style: HierarchicalShapeStyle = .secondary
 
     var body: some View {
         Text(text.uppercased())
             .font(.system(size: 12, weight: .semibold))
             .tracking(0.4)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(style)
     }
 }
 
@@ -148,6 +161,8 @@ struct FeatureCard<Footer: View>: View {
     var subtitle: String
     var image: NSImage
     var imageBackground: Color
+    /// Fills the whole circle with the picture (a desktop picture) instead of sitting a drawing in it.
+    var fillsCircle = false
     @ViewBuilder var footer: Footer
 
     var body: some View {
@@ -172,9 +187,10 @@ struct FeatureCard<Footer: View>: View {
                 .overlay {
                     Image(nsImage: image)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .padding(18)
+                        .aspectRatio(contentMode: fillsCircle ? .fill : .fit)
+                        .padding(fillsCircle ? 0 : 18)
                 }
+                .clipShape(Circle())
                 .frame(width: 96, height: 96)
         }
         .padding(22)
@@ -184,8 +200,9 @@ struct FeatureCard<Footer: View>: View {
 }
 
 extension FeatureCard where Footer == EmptyView {
-    init(eyebrow: String, title: String, subtitle: String, image: NSImage, imageBackground: Color) {
-        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle, image: image, imageBackground: imageBackground) { EmptyView() }
+    init(eyebrow: String, title: String, subtitle: String, image: NSImage, imageBackground: Color, fillsCircle: Bool = false) {
+        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle, image: image, imageBackground: imageBackground,
+                  fillsCircle: fillsCircle) { EmptyView() }
     }
 }
 
@@ -432,29 +449,38 @@ struct CustomizePage: View {
     private var theme: Settings.Theme { picked ?? model.theme }
     private var halloween: Bool { theme == .halloween }
 
+    /// A drop-down menu of the themes, with room for many seasons and festivals. Each one is a button,
+    /// so picking it always shows its options. (A menu-style Picker split into sections didn't pick.)
+    private var themeMenu: some View {
+        Menu {
+            ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
+                Section(kind.title) {
+                    ForEach(Settings.Theme.allCases.filter { $0.kind == kind }, id: \.self) { option in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) { picked = option }
+                        } label: {
+                            Label(option.title, systemImage: option == theme ? "checkmark" : option.symbol)
+                        }
+                        .accessibilityIdentifier("customize-theme-\(option.rawValue)")
+                    }
+                }
+            }
+        } label: {
+            Label(theme.title, systemImage: theme.symbol)
+        }
+        .fixedSize()
+        .accessibilityIdentifier("customize-theme")
+        .accessibilityValue(theme.title)
+    }
+
     var body: some View {
         PageLayout(title: "Customize") {
-            if Settings.Theme.allCases.count > 1 {
+            if Settings.Theme.allCases.count > 1 { themeMenu }
+        } content: {
+            if theme != model.theme {
                 HStack(spacing: 10) {
-                    Text("Theme").foregroundStyle(.secondary)
-                    // A drop-down menu, with room for many seasons and festivals.
-                    Picker("Theme", selection: Binding(get: { theme }, set: { new in withAnimation(.easeInOut(duration: 0.25)) { picked = new } })) {
-                        ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
-                            Section(kind.title) {
-                                ForEach(Settings.Theme.allCases.filter { $0.kind == kind }, id: \.self) {
-                                    Label($0.title, systemImage: $0.symbol).tag($0)
-                                }
-                            }
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .fixedSize()
-                    .accessibilityIdentifier("customize-theme")
-                    if theme != model.theme {
-                        Text("Not on your Dock right now.").font(.callout).foregroundStyle(.secondary)
-                        Button("Show \(theme.title)") { model.themeChoice = .keep(theme) }
-                    }
+                    Text("\(theme.title) isn't on your Dock right now.").font(.callout).foregroundStyle(.secondary)
+                    Button("Show \(theme.title)") { model.themeChoice = .keep(theme) }
                     Spacer(minLength: 0)
                 }
             }
