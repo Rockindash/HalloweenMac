@@ -221,8 +221,6 @@ struct HomePage: View {
     var openThemes: () -> Void
     var openBackground: () -> Void
 
-    /// Two by two: the harvest, the theme, Customize and Background.
-    private let columns = [GridItem(.flexible(), spacing: 20), GridItem(.flexible(), spacing: 20)]
 
     private var status: String {
         switch state {
@@ -275,37 +273,42 @@ struct HomePage: View {
 
                 controls
 
-                LazyVGrid(columns: columns, spacing: 20) {
-                    FeatureCard(eyebrow: "Your harvest", title: smashed,
-                                subtitle: "Smash one on your Dock and another grows in its place.",
-                                image: art[0].image, imageBackground: Color.harvestMustard.opacity(0.22))
-                    Button(action: openThemes) {
-                        FeatureCard(eyebrow: "Theme", title: model.theme.title,
-                                    subtitle: ThemeSchedule.summary(model.themeChoice),
-                                    image: art[1].image, imageBackground: Color.harvestNight.opacity(0.2))
-                            .contentShape(RoundedRectangle(cornerRadius: 16))
+                // Two by two, and not lazy: there are only four, and all of them are there for VoiceOver.
+                Grid(horizontalSpacing: 20, verticalSpacing: 20) {
+                    GridRow {
+                        FeatureCard(eyebrow: "Your harvest", title: smashed,
+                                    subtitle: "Smash one on your Dock and another grows in its place.",
+                                    image: art[0].image, imageBackground: Color.harvestMustard.opacity(0.22))
+                        Button(action: openThemes) {
+                            FeatureCard(eyebrow: "Theme", title: model.theme.title,
+                                        subtitle: ThemeSchedule.summary(model.themeChoice),
+                                        image: art[1].image, imageBackground: Color.harvestNight.opacity(0.2))
+                                .contentShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(PressableStyle())
                     }
-                    .buttonStyle(PressableStyle())
-                    Button(action: openCustomize) {
-                        FeatureCard(eyebrow: "Customize", title: "Make It Yours",
-                                    subtitle: model.theme == .halloween
-                                        ? "Graveyard dirt, bats, tombstones, candy and a friendly ghost."
-                                        : "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
-                                    image: art[2].image, imageBackground: Color.harvestRust.opacity(0.2))
-                            .contentShape(RoundedRectangle(cornerRadius: 16))
+                    GridRow {
+                        Button(action: openCustomize) {
+                            FeatureCard(eyebrow: "Customize", title: "Make It Yours",
+                                        subtitle: model.theme == .halloween
+                                            ? "Graveyard dirt, bats, tombstones, candy and a friendly ghost."
+                                            : "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
+                                        image: art[2].image, imageBackground: Color.harvestRust.opacity(0.2))
+                                .contentShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(PressableStyle())
+                        Button(action: openBackground) {
+                            FeatureCard(eyebrow: "Background", title: "A Desktop to Match",
+                                        subtitle: model.wallpaperEnabled
+                                            ? "Your desktop shows the \(model.theme.title) picture."
+                                            : "A soft sky and rolling hills behind your Dock. Off until you switch it on.",
+                                        image: art[3].image,
+                                        imageBackground: Color.harvestPlum.opacity(0.2), fillsCircle: true)
+                                .contentShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(PressableStyle())
+                        .accessibilityIdentifier("home-background")
                     }
-                    .buttonStyle(PressableStyle())
-                    Button(action: openBackground) {
-                        FeatureCard(eyebrow: "Background", title: "A Desktop to Match",
-                                    subtitle: model.wallpaperEnabled
-                                        ? "Your desktop shows the \(model.theme.title) picture."
-                                        : "A soft sky and rolling hills behind your Dock. Off until you switch it on.",
-                                    image: art[3].image,
-                                    imageBackground: Color.harvestPlum.opacity(0.2), fillsCircle: true)
-                            .contentShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    .buttonStyle(PressableStyle())
-                    .accessibilityIdentifier("home-background")
                 }
             }
         }
