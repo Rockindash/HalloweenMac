@@ -15,7 +15,7 @@ enum Settings {
         static let sound = "sound"
         static let pumpkinCount = "pumpkinCount" // replaced by fullness; read once to carry it over
         static let fullness = "fullness"
-        static let smashCount = "smashCount"
+        static let smashCount = "smashCount" // Fall's; every other theme adds ".<theme>"
         static let hasSeenWelcome = "hasSeenWelcome"
         static let disabledExtras = "disabledExtras"
         static let squirrel = "squirrel"
@@ -65,7 +65,6 @@ enum Settings {
             Key.showMenuBarIcon: true,
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
-            Key.smashCount: 0,
             Key.wallpaperEnabled: false,
             Key.wallpaperMode: WallpaperMode.matchDock.rawValue,
         ])
@@ -77,7 +76,7 @@ enum Settings {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
                     Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.festivalLead, Key.wallpaperEnabled, Key.wallpaperMode,
-                    Key.bats, Key.ghost]
+                    Key.bats, Key.ghost] + Theme.allCases.map(smashCountKey)
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -149,9 +148,18 @@ enum Settings {
         set { defaults.set(newValue.rawValue, forKey: Key.fullness) }
     }
 
-    static var smashCount: Int {
-        get { defaults.integer(forKey: Key.smashCount) }
-        set { defaults.set(newValue, forKey: Key.smashCount) }
+    /// Each theme counts its own smashes. Fall keeps the original count, which was all Fall's before
+    /// there were other themes.
+    static func smashCountKey(for theme: Theme) -> String {
+        theme == .fall ? Key.smashCount : "\(Key.smashCount).\(theme.rawValue)"
+    }
+
+    static func smashCount(for theme: Theme) -> Int {
+        defaults.integer(forKey: smashCountKey(for: theme))
+    }
+
+    static func setSmashCount(_ count: Int, for theme: Theme) {
+        defaults.set(count, forKey: smashCountKey(for: theme))
     }
 
     static var hasSeenWelcome: Bool {
@@ -228,6 +236,24 @@ enum Settings {
             case .fall: return "Pumpkins, hay bales, a latte and falling leaves."
             case .halloween: return "Glowing jack-o'-lanterns, tombstones, candy, bats and a friendly ghost."
             }
+        }
+
+        /// How many of what gets smashed in this theme, like "1 pumpkin" or "3 jack-o'-lanterns".
+        func smashed(_ count: Int) -> String {
+            switch self {
+            case .fall: return count == 1 ? "1 pumpkin" : "\(count) pumpkins"
+            case .halloween: return count == 1 ? "1 jack-o'-lantern" : "\(count) jack-o'-lanterns"
+            }
+        }
+
+        /// The Home card's title for the count, like "No Pumpkins Smashed Yet" or "3 Jack-o'-Lanterns Smashed".
+        func smashedTitle(_ count: Int) -> String {
+            let things: String
+            switch self {
+            case .fall: things = count == 1 ? "Pumpkin" : "Pumpkins"
+            case .halloween: things = count == 1 ? "Jack-o'-Lantern" : "Jack-o'-Lanterns"
+            }
+            return count == 0 ? "No \(things) Smashed Yet" : "\(count) \(things) Smashed"
         }
 
         /// This theme's extras, in the order their tiles show.

@@ -14,12 +14,40 @@ final class SettingsTests: SettingsTestCase {
         XCTAssertTrue(Settings.showMenuBarIcon)
         XCTAssertTrue(Settings.sound)
         XCTAssertEqual(Settings.fullness, .plenty)
-        XCTAssertEqual(Settings.smashCount, 0)
+        for theme in Settings.Theme.allCases {
+            XCTAssertEqual(Settings.smashCount(for: theme), 0)
+        }
         XCTAssertFalse(Settings.hasSeenWelcome)
         XCTAssertEqual(Settings.theme, .fall)
         for kind in DecorKind.allCases {
             XCTAssertTrue(Settings.isEnabled(kind), "\(kind) should start switched on")
         }
+    }
+
+    func testEachThemeCountsItsOwnSmashes() {
+        Settings.setSmashCount(12, for: .fall)
+        Settings.setSmashCount(3, for: .halloween)
+        XCTAssertEqual(Settings.smashCount(for: .fall), 12)
+        XCTAssertEqual(Settings.smashCount(for: .halloween), 3, "Halloween's smashes don't add to Fall's")
+        XCTAssertEqual(Set(Settings.Theme.allCases.map(Settings.smashCountKey)).count, Settings.Theme.allCases.count,
+                       "every theme is saved under its own name")
+    }
+
+    func testDockorate10sSmashCountStaysWithFall() {
+        // 1.0 had only Fall, and saved its count as "smashCount".
+        defaults.set(42, forKey: "smashCount")
+        XCTAssertEqual(Settings.smashCount(for: .fall), 42)
+        XCTAssertEqual(Settings.smashCount(for: .halloween), 0)
+    }
+
+    func testSmashCountWords() {
+        XCTAssertEqual(Settings.Theme.fall.smashedTitle(0), "No Pumpkins Smashed Yet")
+        XCTAssertEqual(Settings.Theme.fall.smashedTitle(1), "1 Pumpkin Smashed")
+        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(0), "No Jack-o'-Lanterns Smashed Yet")
+        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(1), "1 Jack-o'-Lantern Smashed")
+        XCTAssertEqual(Settings.Theme.halloween.smashedTitle(3), "3 Jack-o'-Lanterns Smashed")
+        XCTAssertEqual(Settings.Theme.fall.smashed(2), "2 pumpkins")
+        XCTAssertEqual(Settings.Theme.halloween.smashed(1), "1 jack-o'-lantern")
     }
 
     func testBackgroundIsOffByDefaultAndMatchesTheDock() {
@@ -38,7 +66,7 @@ final class SettingsTests: SettingsTestCase {
         Settings.showMenuBarIcon = false
         Settings.sound = false
         Settings.fullness = .overflowing
-        Settings.smashCount = 42
+        Settings.setSmashCount(42, for: .fall)
         Settings.hasSeenWelcome = true
         Settings.wallpaperEnabled = true
         Settings.wallpaperMode = .dark
@@ -52,7 +80,7 @@ final class SettingsTests: SettingsTestCase {
         XCTAssertFalse(Settings.showMenuBarIcon)
         XCTAssertFalse(Settings.sound)
         XCTAssertEqual(Settings.fullness, .overflowing)
-        XCTAssertEqual(Settings.smashCount, 42)
+        XCTAssertEqual(Settings.smashCount(for: .fall), 42)
         XCTAssertTrue(Settings.hasSeenWelcome)
         XCTAssertTrue(Settings.wallpaperEnabled)
         XCTAssertEqual(Settings.wallpaperMode, .dark)
@@ -115,7 +143,8 @@ final class SettingsTests: SettingsTestCase {
         Settings.showPumpkins = false
         Settings.showVines = false
         Settings.fullness = .aFew
-        Settings.smashCount = 7
+        Settings.setSmashCount(7, for: .fall)
+        Settings.setSmashCount(5, for: .halloween)
         Settings.setEnabled(.apples, false)
         Settings.wallpaperEnabled = true
         Settings.wallpaperMode = .light
@@ -126,7 +155,8 @@ final class SettingsTests: SettingsTestCase {
         XCTAssertTrue(Settings.showPumpkins)
         XCTAssertTrue(Settings.showVines)
         XCTAssertEqual(Settings.fullness, .plenty)
-        XCTAssertEqual(Settings.smashCount, 0)
+        XCTAssertEqual(Settings.smashCount(for: .fall), 0)
+        XCTAssertEqual(Settings.smashCount(for: .halloween), 0, "every theme's count is cleared")
         XCTAssertTrue(Settings.isEnabled(.apples))
         XCTAssertFalse(Settings.wallpaperEnabled)
         XCTAssertEqual(Settings.wallpaperMode, .matchDock)

@@ -237,13 +237,8 @@ struct HomePage: View {
         }
     }
 
-    private var smashed: String {
-        switch model.smashCount {
-        case 0: return "No Pumpkins Smashed Yet"
-        case 1: return "1 Pumpkin Smashed"
-        default: return "\(model.smashCount) Pumpkins Smashed"
-        }
-    }
+    /// The count for the theme on the Dock: each theme keeps its own.
+    private var smashed: String { model.theme.smashedTitle(model.smashCount) }
 
     /// The pictures on the four cards, in order: each card has its own, whatever the theme.
     enum CardArt: Hashable {
@@ -372,6 +367,12 @@ struct SettingsPage: View {
     @State private var hasAccessibility = DockLocator.hasAccessibility
     @State private var dockAtBottom = SettingsPage.isDockAtBottom
     @State private var confirmingSmashReset = false
+
+    /// Each theme's count, like "12 pumpkins and 3 jack-o'-lanterns".
+    private var smashedSoFar: String {
+        let counts = Settings.Theme.allCases.map { $0.smashed(model.smashCounts[$0] ?? 0) }
+        return ListFormatter.localizedString(byJoining: counts)
+    }
     @State private var confirmingResetAll = false
     @State private var confirmingLicenseRemoval = false
     private let tick = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
@@ -466,9 +467,9 @@ struct SettingsPage: View {
 
             Card(title: "Reset") {
                 SettingRow(symbol: "hammer.fill", color: .pumpkin, title: "Smash count",
-                           detail: model.smashCount == 1 ? "1 pumpkin smashed so far." : "\(model.smashCount) pumpkins smashed so far.") {
+                           detail: "\(smashedSoFar) smashed so far.") {
                     Button("Reset Smash Count") { confirmingSmashReset = true }
-                        .disabled(model.smashCount == 0)
+                        .disabled(model.totalSmashCount == 0)
                 }
                 Divider()
                 SettingRow(symbol: "arrow.counterclockwise", color: .red, title: "Reset everything",
@@ -481,7 +482,7 @@ struct SettingsPage: View {
                 Button("Reset", role: .destructive) { model.resetSmashCount() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("The count of \(model.smashCount) smashed pumpkins goes back to zero. This can't be undone.")
+                Text("Every theme's count goes back to zero: \(smashedSoFar). This can't be undone.")
             }
             .alert("Reset everything?", isPresented: $confirmingResetAll) {
                 Button("Reset Everything", role: .destructive) { model.resetEverything() }

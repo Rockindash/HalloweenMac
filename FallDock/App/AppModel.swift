@@ -20,7 +20,11 @@ final class AppModel: ObservableObject {
     let license = LicenseManager()
     let updater = Updater()
 
-    @Published private(set) var smashCount: Int
+    /// Each theme's own count of smashes.
+    @Published private(set) var smashCounts: [Settings.Theme: Int]
+    /// The count for the theme on the Dock.
+    var smashCount: Int { smashCounts[theme] ?? 0 }
+    var totalSmashCount: Int { smashCounts.values.reduce(0, +) }
     /// The app's window is in full screen (its pages then start below the toolbar).
     @Published var isFullScreen = false
     @Published private(set) var isPaused = false
@@ -147,7 +151,7 @@ final class AppModel: ObservableObject {
 
     private init() {
         Settings.registerDefaults()
-        smashCount = Settings.smashCount
+        smashCounts = Self.savedSmashCounts()
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras
@@ -229,21 +233,27 @@ final class AppModel: ObservableObject {
     }
 
     /// A pumpkin was smashed, on the Dock or in the app window's little harvest.
+    /// It counts for the theme on the Dock, which is also the one in the app window.
     func recordSmash() {
-        Settings.smashCount += 1
-        smashCount = Settings.smashCount
+        Settings.setSmashCount(Settings.smashCount(for: theme) + 1, for: theme)
+        smashCounts = Self.savedSmashCounts()
     }
 
+    /// Every theme's count back to zero.
     func resetSmashCount() {
-        Settings.smashCount = 0
-        smashCount = 0
+        Settings.Theme.allCases.forEach { Settings.setSmashCount(0, for: $0) }
+        smashCounts = Self.savedSmashCounts()
+    }
+
+    private static func savedSmashCounts() -> [Settings.Theme: Int] {
+        Dictionary(uniqueKeysWithValues: Settings.Theme.allCases.map { ($0, Settings.smashCount(for: $0)) })
     }
 
     /// Every option back to how it started, the smash count back to zero, and a fresh harvest.
     /// Open at login is left alone: it's a Mac setting the person chose in System Settings too.
     func resetEverything() {
         Settings.resetAll()
-        smashCount = Settings.smashCount
+        smashCounts = Self.savedSmashCounts()
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras
