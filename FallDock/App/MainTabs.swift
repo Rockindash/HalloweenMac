@@ -514,6 +514,18 @@ struct CustomizePage: View {
                                detail: "Quit an app and its ghost floats up out of the Dock. Open it again and the ghost swoops back in.") {
                         Toggle("", isOn: $model.spirits).labelsHidden().toggleStyle(.switch)
                     }
+                    if model.spirits && !model.hasAccessibility {
+                        // Without Accessibility the Dock won't say where each icon is, so the spot is a guess.
+                        HStack(spacing: 10) {
+                            Text("Allow Accessibility so each ghost comes from its app's exact icon.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                            Button("Allow") { DockLocator.requestAccessibility() }
+                                .accessibilityIdentifier("spirits-allow-accessibility")
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.leading, 40)
+                    }
                 } else {
                     fallingLeaves
                 }
