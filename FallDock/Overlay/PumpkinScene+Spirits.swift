@@ -24,12 +24,21 @@ struct SpiritLedger {
 
     /// Where the Dock's app icons are now. An app whose icon has gone (it quit) keeps its last spot.
     mutating func noteIcons(_ frames: [String: CGRect]) {
-        for (key, frame) in frames { iconX[key] = frame.midX }
+        for (key, frame) in frames {
+            iconX[key] = frame.midX
+            exact.insert(key)
+        }
     }
+
+    /// The apps whose icon spot last came from the Dock itself, rather than being worked out.
+    private(set) var exact: Set<String> = []
 
     /// Where the Dock's app icons probably are (the middle of each across the screen), by key.
     mutating func noteIconX(_ xs: [String: CGFloat]) {
-        for (key, x) in xs { iconX[key] = x }
+        for (key, x) in xs {
+            iconX[key] = x
+            exact.remove(key)
+        }
     }
 
     /// Where each open app's icon probably is when the Dock can't be asked (without Accessibility), by

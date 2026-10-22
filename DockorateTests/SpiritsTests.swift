@@ -66,6 +66,21 @@ final class SpiritsTests: SettingsTestCase {
         XCTAssertNotEqual(xs["com.apple.calculator"], xs["com.amol.dockorate"], "a quit app's spirit doesn't come from Dockorate's icon")
     }
 
+    func testSpacersInTheDockKeepTheirPlace() {
+        let dock = CGRect(x: 100, y: 0, width: 800, height: 70)
+        let xs = SpiritLedger.estimatedIconX(kept: ["com.apple.Safari", "#tile-1", "com.apple.mail"], open: [], dockFrame: dock, tileSize: 50)
+        XCTAssertEqual(xs["com.apple.mail"]!, xs["com.apple.Safari"]! + 2 * 55, accuracy: 0.01, "a spacer between them takes a spot")
+    }
+
+    func testTheLedgerKnowsWhichSpotsCameFromTheDock() {
+        var ledger = SpiritLedger()
+        ledger.noteIconX(["a": 10, "b": 20])
+        ledger.noteIcons(["b": CGRect(x: 0, y: 0, width: 40, height: 40)])
+        XCTAssertFalse(ledger.exact.contains("a"))
+        XCTAssertTrue(ledger.exact.contains("b"))
+        XCTAssertEqual(ledger.iconX["b"], 20, "the Dock's own spot wins")
+    }
+
     func testAWorkedOutSpotIsRememberedAfterTheAppQuits() {
         var ledger = SpiritLedger()
         let key = SpiritLedger.key(for: notes)

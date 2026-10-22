@@ -613,8 +613,9 @@ final class OverlayController {
         // The worked-out spots first, then the exact ones over them wherever the Dock gives them.
         if let dock = currentDock {
             let settings = UserDefaults(suiteName: "com.apple.dock")
-            let kept = (settings?.array(forKey: "persistent-apps") as? [[String: Any]] ?? []).compactMap { entry in
-                (entry["tile-data"] as? [String: Any])?["bundle-identifier"] as? String
+            // Every kept tile takes a spot, spacers and all, so ones without an app hold their place too.
+            let kept = (settings?.array(forKey: "persistent-apps") as? [[String: Any]] ?? []).enumerated().map { i, entry in
+                (entry["tile-data"] as? [String: Any])?["bundle-identifier"] as? String ?? "#tile-\(i)"
             }
             let guesses = SpiritLedger.estimatedIconX(kept: kept, open: apps.compactMap(\.bundleIdentifier), dockFrame: dock.dockFrame,
                                                       tileSize: CGFloat(settings?.double(forKey: "tilesize") ?? 0))
@@ -667,7 +668,8 @@ final class OverlayController {
             log.debug("Spirits: an app quit, but spirits can't show now")
             return
         }
-        log.info("Spirits: an app quit; its spirit rises (icon spot known: \(x != nil, privacy: .public))")
+        let source = x == nil ? "unknown" : spiritLedger.exact.contains(app.key) ? "read from the Dock" : "worked out (no Accessibility)"
+        log.info("Spirits: \(app.key, privacy: .public) quit; its spirit rises at x \(x ?? -1, privacy: .public), icon spot \(source, privacy: .public)")
         scene?.releaseSpirit(icon: app.icon, key: app.key, atSceneX: sceneX(x))
     }
 
