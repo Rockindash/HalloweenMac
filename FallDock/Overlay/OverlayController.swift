@@ -60,6 +60,8 @@ final class OverlayController {
     private var dockWatchTimer: Timer?
     private var spaceSwitchTimer: Timer?
     private var healthTimer: Timer?
+    private var hauntTimer: Timer?
+    private var haunting = HauntingClock()
     /// The scene's frame count at the last health check, while the harvest was showing.
     private var lastFrameCount: Int?
     private var lastRebuild: TimeInterval = 0
@@ -224,6 +226,12 @@ final class OverlayController {
             Task { @MainActor in self?.checkHealth() }
         }
         healthTimer?.tolerance = 1
+
+        // Haunting while you're away: check now and then how long the Mac has been left alone.
+        hauntTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkHaunting() }
+        }
+        hauntTimer?.tolerance = 0.3
 
         // The Dock slides away in full-screen apps (and with auto-hide), so check often
         // whether it's on screen (watchDock decides how often it's worth it).
@@ -553,9 +561,34 @@ final class OverlayController {
         }
     }
 
+    /// Haunting while you're away: the ghosts gather once the Mac has been left alone for a while at
+    /// Halloween, and scatter the moment anyone's back.
+    func checkHaunting() {
+        let allowed = Settings.haunting && Settings.theme == .halloween && isLicensed && !isPaused
+            && panel?.isVisible == true && !isHiding && !isMissionControlShowing
+        let change = haunting.update(idle: HauntingClock.secondsSinceInput(), now: ProcessInfo.processInfo.systemUptime, allowed: allowed)
+        switch change {
+        case .gather?:
+            log.debug("Nobody's at the Mac: haunting the Dock")
+            scene?.haunt()
+        case .scatter?:
+            scene?.unhaunt()
+        case nil:
+            // A fresh harvest (the Dock changed, say) clears the ghosts away; bring them straight back.
+            if haunting.isHaunting, scene?.isHaunted == false { scene?.haunt(animated: false) }
+        }
+    }
+
+    /// Try It: haunt the Dock as soon as the Mac is left alone for a moment.
+    func tryHaunting() {
+        haunting.tryIt(now: ProcessInfo.processInfo.systemUptime)
+    }
+
     /// Tells the scene where the pointer is, and lets clicks through everywhere except right on top
     /// of a pumpkin or something else that reacts to a click.
     private func updateHover() {
+        // The pointer moving is someone back at the Mac: scatter the ghosts without waiting.
+        if haunting.isHaunting { checkHaunting() }
         guard let panel, let scene, panel.isVisible, !isHiding else {
             hoverTimer?.invalidate()
             hoverTimer = nil
@@ -697,6 +730,7 @@ final class OverlayController {
     func stop() {
         timer?.invalidate()
         healthTimer?.invalidate()
+        hauntTimer?.invalidate()
         dockWatchTimer?.invalidate()
         spaceSwitchTimer?.invalidate()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }

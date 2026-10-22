@@ -57,7 +57,8 @@ Paste this into App Review Information → Notes:
 >
 > Accessibility permission is optional. Without it the harvest still appears and is sized from the Dock's
 > settings. With it, Dockorate reads the positions of the Dock's items so the pumpkins fit between them exactly.
-> It doesn't read or control anything else.
+> At Halloween it also checks how long the Mac has been idle (never what was typed or clicked), so ghosts
+> can gather over the Dock while nobody's there. It doesn't read or control anything else.
 >
 > The optional Background feature (off by default) sets the desktop picture to one that matches the theme,
 > and puts the person's own picture back when it's switched off.
@@ -70,3 +71,4 @@ submitting, run the `DockorateAppStore` scheme from Xcode and check:
 - The harvest sits on the Dock in the right place, with and without Accessibility allowed.
 - Background puts the theme's picture on the desktop, and your own picture comes back when it's switched off.
 - Open at Login works.
+- Haunting while you're away: with Halloween on, click Try It on the Customize page and let go of the mouse; the ghosts should gather in a few seconds and scatter when you move it. (It reads the system's idle time with `CGEventSource.secondsSinceLastEventType`, which needs no permission.)

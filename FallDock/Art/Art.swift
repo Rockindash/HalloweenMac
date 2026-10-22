@@ -95,6 +95,7 @@ enum ArtCache {
         VineArt.clearCache()
         CozyArt.clearCache()
         SpookyArt.clearCache()
+        HauntingArt.clearCache()
     }
 }
 

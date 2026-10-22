@@ -444,6 +444,8 @@ struct CustomizePage: View {
     @ObservedObject var model: AppModel
     /// The theme whose options are showing: the one on the Dock, unless another one is picked above.
     @State private var picked: Settings.Theme?
+    /// Try It was just clicked, and the ghosts are waiting for hands off.
+    @State private var hauntArmed = false
     private let columns = [GridItem(.adaptive(minimum: 132), spacing: 14)]
 
     private var theme: Settings.Theme { picked ?? model.theme }
@@ -505,6 +507,8 @@ struct CustomizePage: View {
                                detail: "A bat fluttering past now and then, and one hiding in each jack-o'-lantern.") {
                         Toggle("", isOn: $model.bats).labelsHidden().toggleStyle(.switch)
                     }
+                    Divider()
+                    haunting
                 } else {
                     fallingLeaves
                 }
@@ -542,6 +546,34 @@ struct CustomizePage: View {
         }
         // A new theme on the Dock (picked elsewhere, or by the calendar) shows its own options.
         .onChange(of: model.theme) { _ in picked = nil }
+    }
+
+    /// Haunting while you're away, and Try It to see it without waiting two minutes.
+    private var haunting: some View {
+        Group {
+            SettingRow(symbol: "eyes", color: .purple, title: "Haunting while you're away",
+                       detail: "Leave your Mac alone for a couple of minutes and ghosts gather over the Dock, eyes blink in the dark and the candles burn green. Touch anything and they scatter.") {
+                Toggle("", isOn: $model.haunting.animation(.easeInOut(duration: 0.25))).labelsHidden().toggleStyle(.switch)
+            }
+            if model.haunting {
+                HStack(spacing: 10) {
+                    Button(hauntArmed ? "Hands Off…" : "Try It") {
+                        model.tryHaunting()
+                        hauntArmed = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + HauntingClock.tryItAfter + 4) { hauntArmed = false }
+                    }
+                    .disabled(model.theme != .halloween)
+                    .accessibilityIdentifier("haunt-try")
+                    Text(model.theme != .halloween ? "Works while Halloween is on your Dock."
+                         : hauntArmed ? "Let go of the mouse and keyboard and watch the Dock."
+                         : "Haunts the Dock after just a moment, not two minutes.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 40)
+            }
+        }
     }
 
     /// Fall's falling leaves, with how many and whether they fill the screen.

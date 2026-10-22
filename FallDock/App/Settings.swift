@@ -25,6 +25,7 @@ enum Settings {
         static let festivalLead = "festivalLead"
         static let bats = "bats"
         static let ghost = "ghost"
+        static let haunting = "haunting"
         static let wallpaperEnabled = "wallpaperEnabled"
         static let wallpaperMode = "wallpaperMode"
         static let wallpaperOriginals = "wallpaperOriginals"
@@ -60,6 +61,7 @@ enum Settings {
             Key.squirrel: true,
             Key.bats: true,
             Key.ghost: true,
+            Key.haunting: true,
             // Fall stays on the Dock until the person picks Halloween or the calendar.
             Key.theme: ThemeChoice.keep(.fall).rawValue,
             Key.showMenuBarIcon: true,
@@ -76,7 +78,7 @@ enum Settings {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
                     Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.festivalLead, Key.wallpaperEnabled, Key.wallpaperMode,
-                    Key.bats, Key.ghost] + Theme.allCases.map(smashCountKey)
+                    Key.bats, Key.ghost, Key.haunting] + Theme.allCases.map(smashCountKey)
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -198,6 +200,13 @@ enum Settings {
     static var ghost: Bool {
         get { defaults.bool(forKey: Key.ghost) }
         set { defaults.set(newValue, forKey: Key.ghost) }
+    }
+
+    /// Haunting while you're away: at Halloween, ghosts gather over the Dock while nobody's at the Mac,
+    /// and scatter when someone's back.
+    static var haunting: Bool {
+        get { defaults.bool(forKey: Key.haunting) }
+        set { defaults.set(newValue, forKey: Key.haunting) }
     }
 
     /// The current theme's visitor: the squirrel in fall, the ghost at Halloween.
