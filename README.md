@@ -21,6 +21,17 @@ Sweep the pointer quickly across the pumpkins to rock them, and get close to the
 
 ![Growing with the Dock's magnification](docs/magnify-preview.png)
 
+## Built for Hackyard Yard 5 (Haunted)
+
+<!-- Add the GIF here once it's recorded: ![Ghosts gathering over the Dock](docs/haunting.gif) -->
+
+Dockorate existed before the Yard: the app, the themes and the Halloween theme came first. Two haunted features were built from scratch during build week, in [PR #3](https://github.com/Rockindash/HalloweenMac/pull/3):
+
+- **Haunting while you're away**: leave the Mac alone and ghosts gather over the Dock, eyes blink between the jack-o'-lanterns and the candles burn green. Touch the mouse and they scatter.
+- **Spirits of quit apps**: quit an app and its spirit floats out of its Dock icon, hugging it, then blurs into mist. Reopen the app soon after and the spirit swoops back in.
+
+Both are opt-in and harmless: each has its own switch on the Customize page, and turning it off removes it at once.
+
 ## Themes
 
 **Fall** is the original theme, and it's what you get unless you pick another. Themes are **seasons** or **festivals**, and more of both are on the way. On the **Themes** page of the app window (or **Theme** in the 🎃 menu):
