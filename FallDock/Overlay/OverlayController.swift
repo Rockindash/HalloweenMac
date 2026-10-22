@@ -66,6 +66,8 @@ final class OverlayController {
     /// The apps open now that have a Dock icon, by `SpiritLedger.key(for:)`, with their icons. Noted
     /// while they run, since a quit app may no longer say what it was.
     private var dockApps: [String: NSImage] = [:]
+    /// Whether the icon spots last came from the Dock itself, to log when that changes.
+    private var lastIconsExact: Bool?
     private var hauntTicks = 0
     /// The scene's frame count at the last health check, while the harvest was showing.
     private var lastFrameCount: Int?
@@ -622,7 +624,18 @@ final class OverlayController {
             }
             spiritLedger.noteIconX(xs)
         }
-        spiritLedger.noteIcons(DockLocator.appIconFrames())
+        let exact = DockLocator.appIconFrames()
+        var found: [String: CGRect] = [:]
+        for app in apps {
+            let key = SpiritLedger.key(for: app.bundleURL!)
+            if let frame = exact[key] ?? app.localizedName.flatMap({ exact[SpiritLedger.titleKey($0)] }) { found[key] = frame }
+        }
+        let isExact = !exact.isEmpty
+        if lastIconsExact != isExact {
+            log.info("Spirits: icon spots \(isExact ? "read from the Dock" : "worked out from the Dock's settings (no Accessibility)", privacy: .public)")
+            lastIconsExact = isExact
+        }
+        spiritLedger.noteIcons(found)
     }
 
     /// The app a launch or quit notification is about, if it has (or had) a Dock icon and isn't Dockorate.

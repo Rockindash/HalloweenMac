@@ -1,3 +1,4 @@
+import CoreImage
 import SpriteKit
 import XCTest
 @testable import Dockorate
@@ -107,6 +108,7 @@ final class SpiritsTests: SettingsTestCase {
         XCTAssertEqual(spirit.position.x, 430, accuracy: 0.5, "right where the icon was")
         XCTAssertTrue((scene.dockRect.minY...scene.dockRect.maxY).contains(spirit.position.y), "out of the Dock itself")
         XCTAssertFalse(spirit is DockSprite, "it can't be clicked")
+        XCTAssertTrue(spirit is SKEffectNode, "it can blur away")
     }
 
     @MainActor func testWithoutAKnownSpotItRisesFromAmongTheOpenApps() {
@@ -122,6 +124,9 @@ final class SpiritsTests: SettingsTestCase {
         scene.returnSpirit(icon: icon, key: "notes", toSceneX: 430)
         let spirit = try! XCTUnwrap(scene.spirits.first)
         XCTAssertGreaterThan(spirit.position.y, scene.dockRect.maxY, "it starts up above the Dock")
+        XCTAssertEqual(spirit.position.x, 430, accuracy: 0.5, "right over its icon")
+        XCTAssertGreaterThan((spirit as? SKEffectNode)?.filter?.value(forKey: kCIInputRadiusKey) as? CGFloat ?? 0, 0,
+                             "it starts out blurred, coming out of the mist")
         XCTAssertLessThanOrEqual(spirit.position.y, scene.size.height)
     }
 
