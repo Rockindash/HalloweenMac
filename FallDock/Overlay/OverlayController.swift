@@ -63,6 +63,9 @@ final class OverlayController {
     private var hauntTimer: Timer?
     private var haunting = HauntingClock()
     private var spiritLedger = SpiritLedger()
+    /// The apps open now that have a Dock icon, by `SpiritLedger.key(for:)`, with their icons. Noted
+    /// while they run, since a quit app may no longer say what it was.
+    private var dockApps: [String: NSImage] = [:]
     private var hauntTicks = 0
     /// The scene's frame count at the last health check, while the harvest was showing.
     private var lastFrameCount: Int?
@@ -575,7 +578,7 @@ final class OverlayController {
     func checkHaunting() {
         // Every few seconds, note where the Dock's app icons are, for the spirits of quit apps.
         hauntTicks &+= 1
-        if hauntTicks % 3 == 0, spiritsAllowed { spiritLedger.noteIcons(DockLocator.appIconFrames()) }
+        if hauntTicks % 3 == 0, spiritsAllowed { noteDockApps() }
         let allowed = Settings.haunting && Settings.theme == .halloween && isLicensed && !isPaused
             && panel?.isVisible == true && !isHiding && !isMissionControlShowing
         let change = haunting.update(idle: HauntingClock.secondsSinceInput(), now: ProcessInfo.processInfo.systemUptime, allowed: allowed)
@@ -597,12 +600,28 @@ final class OverlayController {
         Settings.spirits && Settings.theme == .halloween && isLicensed && !isPaused && panel?.isVisible == true && !isHiding
     }
 
-    /// An app with a Dock icon, other than Dockorate itself, from a launch or quit notification.
-    private static func dockApp(in note: Notification) -> (key: String, icon: NSImage)? {
+    /// Notes the open apps with Dock icons, and where their icons are.
+    private func noteDockApps() {
+        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+            guard let url = app.bundleURL else { continue }
+            let key = SpiritLedger.key(for: url)
+            if dockApps[key] == nil { dockApps[key] = app.icon ?? NSWorkspace.shared.icon(forFile: url.path) }
+        }
+        spiritLedger.noteIcons(DockLocator.appIconFrames())
+    }
+
+    /// The app a launch or quit notification is about, if it has (or had) a Dock icon and isn't Dockorate.
+    private func dockApp(in note: Notification) -> (key: String, icon: NSImage)? {
         guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-              app.activationPolicy == .regular, app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
-              let url = app.bundleURL else { return nil }
-        return (SpiritLedger.key(for: url), app.icon ?? NSWorkspace.shared.icon(forFile: url.path))
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier, let url = app.bundleURL else { return nil }
+        let key = SpiritLedger.key(for: url)
+        // A quit app can report no activation policy any more, so one noted while it ran counts too.
+        guard app.activationPolicy == .regular || dockApps[key] != nil else {
+            log.debug("Spirits: \(url.lastPathComponent, privacy: .public) has no Dock icon")
+            return nil
+        }
+        let icon = dockApps[key] ?? app.icon ?? NSWorkspace.shared.icon(forFile: url.path)
+        return (key, icon)
     }
 
     /// The icon's middle across the scene, from its middle across the screen.
@@ -613,20 +632,27 @@ final class OverlayController {
 
     /// An app quit: its spirit rises out of where its icon was.
     private func appQuit(_ note: Notification) {
-        guard let app = Self.dockApp(in: note) else { return }
+        guard let app = dockApp(in: note) else { return }
+        dockApps[app.key] = nil
         let x = spiritLedger.quit(app.key, now: ProcessInfo.processInfo.systemUptime)
-        guard spiritsAllowed else { return }
+        guard spiritsAllowed else {
+            log.debug("Spirits: an app quit, but spirits can't show now")
+            return
+        }
+        log.info("Spirits: an app quit; its spirit rises (icon spot known: \(x != nil, privacy: .public))")
         scene?.releaseSpirit(icon: app.icon, key: app.key, atSceneX: sceneX(x))
     }
 
     /// An app opened: if its spirit left a little while ago, it swoops back in once the app's icon is in the Dock.
     private func appLaunched(_ note: Notification) {
-        guard let app = Self.dockApp(in: note),
-              spiritLedger.launched(app.key, now: ProcessInfo.processInfo.systemUptime), spiritsAllowed else { return }
+        guard let app = dockApp(in: note) else { return }
+        dockApps[app.key] = app.icon
+        guard spiritLedger.launched(app.key, now: ProcessInfo.processInfo.systemUptime), spiritsAllowed else { return }
+        log.info("Spirits: an app came back; its spirit returns")
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 800_000_000)
             guard let self, self.spiritsAllowed else { return }
-            self.spiritLedger.noteIcons(DockLocator.appIconFrames())
+            self.noteDockApps()
             self.scene?.returnSpirit(icon: app.icon, key: app.key, toSceneX: self.sceneX(self.spiritLedger.iconX[app.key]))
         }
     }

@@ -115,7 +115,20 @@ enum HauntingArt {
             let w = size.width, ht = size.height
             let side = min(w, ht * spiritIconFraction)
             let iconRect = CGRect(x: (w - side) / 2, y: ht - side, width: side, height: side)
-            // The tail: from under the icon, narrowing to a curl at the bottom.
+            // The icon, washed pale (only where the icon is; its transparent corners stay clear).
+            var proposed = CGRect(origin: .zero, size: CGSize(width: side * scale, height: side * scale))
+            if let image = icon.cgImage(forProposedRect: &proposed, context: nil, hints: nil) {
+                ctx.draw(image, in: iconRect)
+                ctx.saveGState()
+                ctx.setBlendMode(.sourceAtop)
+                ctx.setFillColor(Palette.ghost.withAlpha(0.6))
+                ctx.fill(iconRect)
+                ctx.restoreGState()
+            } else {
+                ctx.setFillColor(Palette.ghost.withAlpha(0.8))
+                ctx.fill(iconRect.insetBy(dx: side * 0.1, dy: side * 0.1))
+            }
+            // The tail, behind the icon: from under it, narrowing to a curl at the bottom.
             let tail = CGMutablePath()
             tail.move(to: CGPoint(x: iconRect.minX + side * 0.18, y: iconRect.minY + side * 0.2))
             tail.addQuadCurve(to: CGPoint(x: w * 0.42, y: 0), control: CGPoint(x: w * 0.12, y: ht * 0.1))
@@ -123,27 +136,12 @@ enum HauntingArt {
             tail.addQuadCurve(to: CGPoint(x: iconRect.maxX - side * 0.18, y: iconRect.minY + side * 0.2),
                               control: CGPoint(x: w * 0.86, y: ht * 0.22))
             tail.closeSubpath()
+            ctx.saveGState()
+            ctx.setBlendMode(.destinationOver)
             ctx.addPath(tail)
             ctx.setFillColor(Palette.ghost.withAlpha(0.7))
             ctx.fillPath()
-
-            // The icon, drained of color and washed pale.
-            var proposed = CGRect(origin: .zero, size: CGSize(width: side * scale, height: side * scale))
-            if let image = icon.cgImage(forProposedRect: &proposed, context: nil, hints: nil) {
-                ctx.saveGState()
-                ctx.clip(to: iconRect, mask: image)
-                ctx.draw(image, in: iconRect)
-                ctx.setBlendMode(.saturation)
-                ctx.setFillColor(CGColor(gray: 0.5, alpha: 1))
-                ctx.fill(iconRect)
-                ctx.setBlendMode(.normal)
-                ctx.setFillColor(Palette.ghost.withAlpha(0.55))
-                ctx.fill(iconRect)
-                ctx.restoreGState()
-            } else {
-                ctx.setFillColor(Palette.ghost.withAlpha(0.8))
-                ctx.fill(iconRect.insetBy(dx: side * 0.1, dy: side * 0.1))
-            }
+            ctx.restoreGState()
             // Hollow eyes and a mouth.
             ctx.setFillColor(Palette.soot.withAlpha(0.85))
             let eye = side * 0.16
