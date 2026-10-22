@@ -216,6 +216,37 @@ final class DockorateUITests: XCTestCase {
         XCTAssertTrue(element("Falling leaves").exists)
     }
 
+    func testHauntingAndSpiritsHaveSwitchesAndTryIt() {
+        launch()
+        open("themes")
+        let halloween = app.buttons["theme-halloween"].firstMatch
+        reveal(halloween)
+        halloween.click()
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5))
+        let haunting = toggle("Haunting while you're away")
+        XCTAssertTrue(isOn(haunting), "on to start with")
+        let tryIt = app.buttons["haunt-try"].firstMatch
+        reveal(tryIt)
+        XCTAssertTrue(tryIt.isEnabled, "Try It works while Halloween is on the Dock")
+        tryIt.click()
+        XCTAssertTrue(text("Let go of the mouse and keyboard and watch the Dock.").waitForExistence(timeout: 3))
+
+        // Spirits of quit apps has its own switch, on to start with.
+        XCTAssertTrue(isOn(toggle("Spirits of quit apps")))
+        setSwitch("Spirits of quit apps", on: false)
+
+        // Switched off, Try It goes away, and it stays off after a relaunch.
+        setSwitch("Haunting while you're away", on: false)
+        let gone = NSPredicate { _, _ in !self.app.buttons["haunt-try"].firstMatch.exists }
+        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
+        launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5))
+        XCTAssertFalse(isOn(toggle("Haunting while you're away")))
+        XCTAssertFalse(isOn(toggle("Spirits of quit apps")))
+    }
+
     func testChangeAutomaticallyIsKept() {
         launch()
         open("themes")

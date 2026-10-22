@@ -392,6 +392,38 @@ enum DockLocator {
         return CGRect(x: position.x, y: mainHeight - position.y - size.height, width: size.width, height: size.height)
     }
 
+    /// Where each app's icon sits in the Dock (AppKit coordinates), keyed by the app's place on disk
+    /// (see `SpiritLedger.key(for:)`) and by its name (`SpiritLedger.titleKey`). Read through the
+    /// Accessibility API; empty without permission.
+    static func appIconFrames() -> [String: CGRect] {
+        guard AXIsProcessTrusted(), let dockPID = dockPID() else { return [:] }
+        var childrenRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(dockPID), kAXChildrenAttribute as CFString, &childrenRef) == .success,
+              let children = childrenRef as? [AXUIElement],
+              let list = children.first(where: { role(of: $0) == kAXListRole as String })
+        else { return [:] }
+        var itemsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(list, kAXChildrenAttribute as CFString, &itemsRef) == .success,
+              let items = itemsRef as? [AXUIElement] else { return [:] }
+        var frames: [String: CGRect] = [:]
+        for item in items {
+            var subrole: CFTypeRef?
+            AXUIElementCopyAttributeValue(item, kAXSubroleAttribute as CFString, &subrole)
+            guard (subrole as? String) == "AXApplicationDockItem" else { continue }
+            guard let frame = frame(of: item) else { continue }
+            var urlRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(item, kAXURLAttribute as CFString, &urlRef) == .success, let url = urlRef as? URL {
+                frames[SpiritLedger.key(for: url)] = frame
+            }
+            // Its name too, for an app whose place on disk the Dock spells differently (Safari's, say).
+            var titleRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(item, kAXTitleAttribute as CFString, &titleRef) == .success, let title = titleRef as? String {
+                frames[SpiritLedger.titleKey(title)] = frame
+            }
+        }
+        return frames
+    }
+
     /// The Dock's folder tiles (stacks like Downloads), looked up again every few seconds.
     private static var folderItems: [AXUIElement] = []
     private static var folderItemsTime: TimeInterval = 0

@@ -113,6 +113,21 @@ final class AppModel: ObservableObject {
         didSet { Settings.ghost = ghost; overlay.refresh(force: true) }
     }
 
+    /// Haunting while you're away (Halloween). Switched off mid-haunting, the ghosts scatter at once.
+    @Published var haunting: Bool {
+        didSet { Settings.haunting = haunting; overlay.checkHaunting() }
+    }
+
+    /// Spirits of quit apps (Halloween).
+    @Published var spirits: Bool {
+        didSet { Settings.spirits = spirits }
+    }
+
+    /// Try It: haunt the Dock as soon as the Mac is left alone for a moment.
+    func tryHaunting() {
+        overlay.tryHaunting()
+    }
+
     /// The desktop picture goes with the theme (the Background page).
     @Published var wallpaperEnabled: Bool {
         didSet { Settings.wallpaperEnabled = wallpaperEnabled; wallpaper.refresh() }
@@ -164,6 +179,8 @@ final class AppModel: ObservableObject {
         theme = Settings.theme
         bats = Settings.bats
         ghost = Settings.ghost
+        haunting = Settings.haunting
+        spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
@@ -265,6 +282,8 @@ final class AppModel: ObservableObject {
         festivalLead = Settings.festivalLead
         bats = Settings.bats
         ghost = Settings.ghost
+        haunting = Settings.haunting
+        spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves

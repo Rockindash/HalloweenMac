@@ -38,6 +38,8 @@ Each theme is a case of `Settings.Theme`: a season says the day it starts, and a
 - **Purple graveyard dirt** runs along the Dock instead of a vine, lumpy, with pebbles and tufts of grass, and a **cobweb** strung in each top corner of the Dock, fanning down across its ends, with a spider slowly lowering itself on its thread.
 - Spooky extras, each with a click: **tombstones** (a zombie hand reaches up out of the dirt and waves), a **black cat** that blinks and swishes its tail (its eyes go wide when you point at it, and it meows when clicked), a **bubbling cauldron**, a pile of **assorted candy** that flies when clicked, **dripping candles** that blow out and relight, a **skull** whose jaw chatters, and gnarled **crypt pedestals** with a jack-o'-lantern on top.
 - **Bats** flutter past now and then instead of falling leaves.
+- **Haunting while you're away**: leave the Mac alone for two minutes and the Dock gets haunted. Wispy ghosts drift in from the sides of the screen and gather over the Dock, circling, glowing eyes open one by one over the jack-o'-lanterns and in the dark above them, blinking and looking around, and the candles burn an eerie green. Touch anything (the mouse, a key) and the eyes snap shut, the ghosts dash off the nearest side and the candles warm up again. It only reads how long ago the Mac last had any input, never what was typed. It has its own switch on the Customize page, with **Try It** to haunt the Dock after just a moment's hands off (for showing someone).
+- **Spirits of quit apps**: quit an app and a little ghost, hugging that app's own icon and looking sad about it, rises out of its spot in the Dock, sways, and drifts up off the screen. Open the app again within ten minutes and its spirit swoops back down into its icon with a soft flash. With Accessibility allowed it comes from the app's exact icon; without it, from where the icon should be, worked out from the apps kept in the Dock and the ones open. It has its own switch on the Customize page.
 - A cute **ghost** flies across above the Dock instead of the squirrel. Click it and it dashes off the side of the screen.
 - With Background on, a quiet scene of its own: a **haunted house** with lit windows on a hill, a small moon (where Fall's sun is) with a few bats, and a graveyard in front with tombstones, crosses, an iron fence and a gnarled tree. The light picture is a violet and pumpkin-orange dusk; the dark one is a starry night with an eerie green glow and fog in the valley.
 
@@ -131,11 +133,14 @@ Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transpare
 | `Overlay/PumpkinScene.swift` | Pumpkins, the vine, following the Dock's magnification, wobbling, smashing, regrowing and falling leaves (SpriteKit) |
 | `Overlay/PumpkinScene+Cozy.swift` | The cozy extras and the squirrel |
 | `Overlay/PumpkinScene+Spooky.swift` | Halloween: jack-o'-lanterns, the spooky extras, zombie hands, the ghost, bats and cobwebs |
+| `Overlay/PumpkinScene+Haunting.swift` | Haunting while you're away: when the Mac's been left alone, and the ghosts, eyes and green candles |
+| `Overlay/PumpkinScene+Spirits.swift` | Spirits of quit apps: where each app's Dock icon is, which spirits left, and the spirits rising and coming back |
 | `Overlay/ScreenLeafScene.swift` | Leaves falling across the whole screen, for Fill the whole screen |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
 | `Art/SpookyArt.swift` | Draws Halloween: jack-o'-lantern faces, crypt pedestals, tombstones, the black cat, the cauldron, candy, candles, the skull, the zombie hand, the ghost, bats, the spider, cobwebs and purple dirt |
+| `Art/HauntingArt.swift` | Draws the haunting's glowing eyes and wispy ghosts, and quit apps' spirits |
 | `Art/WallpaperArt.swift` | Draws each theme's light and dark desktop pictures |
 | `Art/SmashSound.swift` | Makes the smash sound and the cat's meow from scratch |
 
