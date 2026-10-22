@@ -51,6 +51,27 @@ final class SpiritsTests: SettingsTestCase {
         XCTAssertFalse(ledger.launched(SpiritLedger.key(for: notes), now: 1))
     }
 
+    func testWithoutAccessibilityIconSpotsAreWorkedOutFromTheDock() {
+        let dock = CGRect(x: 100, y: 0, width: 800, height: 70)
+        let xs = SpiritLedger.estimatedIconX(kept: ["com.apple.Safari", "com.apple.mail"],
+                                             open: ["com.apple.finder", "com.apple.mail", "com.apple.calculator", "com.amol.dockorate"],
+                                             dockFrame: dock, tileSize: 50)
+        let pitch: CGFloat = 50 + 5
+        XCTAssertEqual(xs["com.apple.finder"]!, dock.minX + 10 + pitch / 2, accuracy: 0.01, "Finder comes first")
+        XCTAssertEqual(xs["com.apple.Safari"]!, xs["com.apple.finder"]! + pitch, accuracy: 0.01, "then the kept apps, in order")
+        XCTAssertEqual(xs["com.apple.mail"]!, xs["com.apple.Safari"]! + pitch, accuracy: 0.01, "a kept app that's open stays in its place")
+        XCTAssertEqual(xs["com.apple.calculator"]!, xs["com.apple.mail"]! + pitch + 14, accuracy: 0.01, "open apps come after the divider")
+        XCTAssertEqual(xs["com.amol.dockorate"]!, xs["com.apple.calculator"]! + pitch, accuracy: 0.01, "in the order they opened")
+        XCTAssertNotEqual(xs["com.apple.calculator"], xs["com.amol.dockorate"], "a quit app's spirit doesn't come from Dockorate's icon")
+    }
+
+    func testAWorkedOutSpotIsRememberedAfterTheAppQuits() {
+        var ledger = SpiritLedger()
+        let key = SpiritLedger.key(for: notes)
+        ledger.noteIconX([key: 321])
+        XCTAssertEqual(ledger.quit(key, now: 0), 321)
+    }
+
     // MARK: The switch
 
     func testSpiritsAreOnToStartWithAndResetPutsThemBack() {

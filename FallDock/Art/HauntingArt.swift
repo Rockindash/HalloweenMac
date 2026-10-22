@@ -60,94 +60,122 @@ enum HauntingArt {
         }
     }
 
-    /// A wispy ghost for gathering over the Dock, for something `unit` tall.
-    static func wispSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.4).rounded(), height: (h * 0.52).rounded()) }
+    // MARK: Ghosts
 
-    /// A wispy, see-through ghost seen from the front: a round head, two hollow eyes, an open "ooo"
-    /// mouth, and a ragged hem that trails away.
+    /// A gathering ghost, for something `unit` tall.
+    static func wispSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.5).rounded(), height: (h * 0.6).rounded()) }
+
+    /// A cute ghost seen from the front, the same style as the friendly ghost that flies by: a round
+    /// dome, a scalloped hem, a cool shade underneath and down its right side, dot eyes with a glint,
+    /// rosy cheeks, and an "ooo" mouth with its little arms up, ready to say boo.
     static func wispTexture(unit h: CGFloat, scale: CGFloat) -> SKTexture {
         let size = wispSize(unit: h)
-        return cached("haunt-wisp", size: size, scale: scale) { ctx in
+        return cached("haunt-ghost", size: size, scale: scale) { ctx in
+            drawGhost(ctx, size: size, unit: h, armsUp: true)
             let w = size.width, ht = size.height
-            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
-            let body = CGMutablePath()
-            body.move(to: p(0.06, 0.2))
-            body.addLine(to: p(0.06, 0.6))
-            body.addCurve(to: p(0.94, 0.6), control1: p(0.06, 1.06), control2: p(0.94, 1.06))
-            body.addLine(to: p(0.94, 0.2))
-            // A ragged hem: three points trailing down.
-            body.addQuadCurve(to: p(0.78, 0.06), control: p(0.9, 0.04))
-            body.addQuadCurve(to: p(0.62, 0.18), control: p(0.7, 0.18))
-            body.addQuadCurve(to: p(0.5, 0.0), control: p(0.6, 0.0))
-            body.addQuadCurve(to: p(0.36, 0.18), control: p(0.4, 0.0))
-            body.addQuadCurve(to: p(0.2, 0.04), control: p(0.3, 0.18))
-            body.addQuadCurve(to: p(0.06, 0.2), control: p(0.08, 0.04))
-            body.closeSubpath()
-            ctx.addPath(body)
-            ctx.setFillColor(Palette.ghost.withAlpha(0.82))
-            ctx.fillPath()
-            // A faint shade down the right side, like the rest of the art.
-            ctx.saveGState()
-            ctx.addPath(body)
-            ctx.clip()
-            ctx.setFillColor(Palette.stone.withAlpha(0.22))
-            ctx.fill(CGRect(x: w * 0.68, y: 0, width: w * 0.32, height: ht))
-            ctx.restoreGState()
-            // Hollow eyes and an "ooo" mouth.
+            // "Ooo".
             ctx.setFillColor(Palette.soot)
-            ctx.fillEllipse(in: CGRect(x: w * 0.27, y: ht * 0.62, width: w * 0.15, height: ht * 0.15))
-            ctx.fillEllipse(in: CGRect(x: w * 0.58, y: ht * 0.62, width: w * 0.15, height: ht * 0.15))
-            ctx.fillEllipse(in: CGRect(x: w * 0.43, y: ht * 0.36, width: w * 0.14, height: ht * 0.17))
+            ctx.fillEllipse(in: CGRect(x: w * 0.42, y: ht * 0.4, width: w * 0.12, height: ht * 0.12))
         }
     }
 
-    /// A quit app's spirit: its icon at the top, with a wispy tail below it.
-    static func spiritSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.5).rounded(), height: (h * 0.8).rounded()) }
+    /// The ghost's body, arms and eyes, filling `size`. The mouth is left to each kind of ghost. Arms are
+    /// raised, down at its sides, or (nil) left off for a ghost that draws its own hands.
+    private static func drawGhost(_ ctx: CGContext, size: CGSize, unit h: CGFloat, armsUp: Bool?) {
+        let w = size.width, ht = size.height
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: y * ht) }
+        let body = CGMutablePath()
+        body.move(to: p(0.1, 0.14))
+        body.addLine(to: p(0.12, 0.58))
+        body.addCurve(to: p(0.5, 0.99), control1: p(0.12, 0.88), control2: p(0.3, 0.99))
+        body.addCurve(to: p(0.88, 0.58), control1: p(0.7, 0.99), control2: p(0.88, 0.88))
+        body.addLine(to: p(0.92, 0.14))
+        // A scalloped hem: three round lobes.
+        body.addQuadCurve(to: p(0.65, 0.12), control: p(0.8, -0.04))
+        body.addQuadCurve(to: p(0.37, 0.12), control: p(0.51, -0.04))
+        body.addQuadCurve(to: p(0.1, 0.14), control: p(0.22, -0.04))
+        body.closeSubpath()
 
-    /// How much of the spirit's height its icon takes, from the top.
-    static let spiritIconFraction: CGFloat = 0.62
+        // Little arms, behind the body's edges, their outer ends raised when they're up.
+        ctx.setFillColor(Palette.ghost)
+        let arm = CGSize(width: w * 0.2, height: ht * 0.13)
+        let armY = armsUp == true ? ht * 0.52 : ht * 0.3
+        for (x, tilt) in armsUp == nil ? [] : [(w * 0.02, CGFloat(-0.5)), (w * 0.78, 0.5)] {
+            ctx.saveGState()
+            ctx.translateBy(x: x + arm.width / 2, y: armY + arm.height / 2)
+            ctx.rotate(by: armsUp == true ? tilt : 0)
+            ctx.fillEllipse(in: CGRect(x: -arm.width / 2, y: -arm.height / 2, width: arm.width, height: arm.height))
+            ctx.restoreGState()
+        }
 
-    /// A pale, see-through ghost of an app's own icon, with hollow eyes and an "ooo" mouth, trailing a
-    /// ragged wisp of a tail. `key` names the app, so each app's spirit is drawn once.
+        ctx.addPath(body)
+        ctx.setFillColor(Palette.ghost)
+        ctx.fillPath()
+        // A cool shade under the hem and down the right side, like the rest of the art.
+        ctx.saveGState()
+        ctx.addPath(body)
+        ctx.clip()
+        let shade = Palette.witch.mixed(with: Palette.ghost, 0.75)
+        ctx.setFillColor(shade.withAlpha(0.6))
+        ctx.fillEllipse(in: CGRect(x: -w * 0.2, y: -ht * 0.42, width: w * 1.4, height: ht * 0.6))
+        ctx.setFillColor(shade.withAlpha(0.35))
+        ctx.fillEllipse(in: CGRect(x: w * 0.7, y: ht * 0.05, width: w * 0.5, height: ht * 0.9))
+        ctx.restoreGState()
+
+        // Dot eyes with a glint, and rosy cheeks.
+        ctx.setFillColor(Palette.soot)
+        let eye = CGSize(width: w * 0.11, height: ht * 0.13)
+        for x in [w * 0.32, w * 0.57] {
+            ctx.fillEllipse(in: CGRect(x: x, y: ht * 0.58, width: eye.width, height: eye.height))
+        }
+        ctx.setFillColor(Palette.ghost)
+        for x in [w * 0.32, w * 0.57] {
+            ctx.fillEllipse(in: CGRect(x: x + eye.width * 0.5, y: ht * 0.58 + eye.height * 0.55, width: eye.width * 0.35, height: eye.width * 0.35))
+        }
+        ctx.setFillColor(Palette.candyPink.withAlpha(0.5))
+        ctx.fillEllipse(in: CGRect(x: w * 0.2, y: ht * 0.5, width: w * 0.12, height: ht * 0.07))
+        ctx.fillEllipse(in: CGRect(x: w * 0.68, y: ht * 0.5, width: w * 0.12, height: ht * 0.07))
+    }
+
+    // MARK: Spirits of quit apps
+
+    /// A quit app's spirit, for something `unit` tall.
+    static func spiritSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.56).rounded(), height: (h * 0.64).rounded()) }
+
+    /// Where the app's icon sits on its spirit, as fractions of the spirit's size from its bottom left.
+    static let spiritIcon = CGRect(x: 0.27, y: 0.08, width: 0.46, height: 0.36)
+
+    /// A quit app's spirit: the cute ghost, hugging the app's own icon (so you can tell which app it
+    /// was) in its little arms, with a small sad mouth. `key` names the app, so each is drawn once.
     static func spiritTexture(icon: NSImage, key: String, unit h: CGFloat, scale: CGFloat) -> SKTexture {
         let size = spiritSize(unit: h)
         return cached("spirit-\(key)", size: size, scale: scale) { ctx in
             let w = size.width, ht = size.height
-            let side = min(w, ht * spiritIconFraction)
-            let iconRect = CGRect(x: (w - side) / 2, y: ht - side, width: side, height: side)
-            // The icon, washed pale (only where the icon is; its transparent corners stay clear).
+            drawGhost(ctx, size: size, unit: h, armsUp: nil)
+            // A small, wobbly frown above the icon.
+            ctx.setStrokeColor(Palette.soot)
+            ctx.setLineWidth(max(1, h * 0.018))
+            ctx.addArc(center: CGPoint(x: w * 0.5, y: ht * 0.49), radius: w * 0.05, startAngle: .pi * 0.2, endAngle: .pi * 0.8, clockwise: false)
+            ctx.strokePath()
+
+            // The icon, hugged in front of the body, in its own colors.
+            let side = min(w * spiritIcon.width, ht * spiritIcon.height)
+            let iconRect = CGRect(x: w * 0.5 - side / 2, y: ht * spiritIcon.minY, width: side, height: side)
             var proposed = CGRect(origin: .zero, size: CGSize(width: side * scale, height: side * scale))
             if let image = icon.cgImage(forProposedRect: &proposed, context: nil, hints: nil) {
                 ctx.draw(image, in: iconRect)
-                ctx.saveGState()
-                ctx.setBlendMode(.sourceAtop)
-                ctx.setFillColor(Palette.ghost.withAlpha(0.6))
-                ctx.fill(iconRect)
-                ctx.restoreGState()
             } else {
-                ctx.setFillColor(Palette.ghost.withAlpha(0.8))
-                ctx.fill(iconRect.insetBy(dx: side * 0.1, dy: side * 0.1))
+                ctx.setFillColor(Palette.stone)
+                ctx.fill(iconRect.insetBy(dx: side * 0.12, dy: side * 0.12))
             }
-            // The tail, behind the icon: from under it, narrowing to a curl at the bottom.
-            let tail = CGMutablePath()
-            tail.move(to: CGPoint(x: iconRect.minX + side * 0.18, y: iconRect.minY + side * 0.2))
-            tail.addQuadCurve(to: CGPoint(x: w * 0.42, y: 0), control: CGPoint(x: w * 0.12, y: ht * 0.1))
-            tail.addQuadCurve(to: CGPoint(x: w * 0.6, y: ht * 0.2), control: CGPoint(x: w * 0.62, y: ht * 0.04))
-            tail.addQuadCurve(to: CGPoint(x: iconRect.maxX - side * 0.18, y: iconRect.minY + side * 0.2),
-                              control: CGPoint(x: w * 0.86, y: ht * 0.22))
-            tail.closeSubpath()
-            ctx.saveGState()
-            ctx.setBlendMode(.destinationOver)
-            ctx.addPath(tail)
-            ctx.setFillColor(Palette.ghost.withAlpha(0.7))
-            ctx.fillPath()
-            ctx.restoreGState()
-            // Hollow eyes and a mouth.
-            ctx.setFillColor(Palette.soot.withAlpha(0.85))
-            let eye = side * 0.16
-            ctx.fillEllipse(in: CGRect(x: iconRect.midX - side * 0.24, y: iconRect.minY + side * 0.52, width: eye, height: eye * 1.25))
-            ctx.fillEllipse(in: CGRect(x: iconRect.midX + side * 0.08, y: iconRect.minY + side * 0.52, width: eye, height: eye * 1.25))
-            ctx.fillEllipse(in: CGRect(x: iconRect.midX - side * 0.07, y: iconRect.minY + side * 0.22, width: side * 0.14, height: side * 0.17))
+            // Two little hands holding it, one on each side.
+            ctx.setFillColor(Palette.ghost)
+            let hand = side * 0.3
+            ctx.fillEllipse(in: CGRect(x: iconRect.minX - hand * 0.45, y: iconRect.midY - hand * 0.6, width: hand, height: hand * 0.85))
+            ctx.fillEllipse(in: CGRect(x: iconRect.maxX - hand * 0.55, y: iconRect.midY - hand * 0.6, width: hand, height: hand * 0.85))
         }
     }
+
+    /// The middle of the icon on a spirit, as a fraction of its size (the spirit's anchor).
+    static var spiritIconCenter: CGPoint { CGPoint(x: 0.5, y: spiritIcon.minY + min(spiritIcon.height, spiritIcon.width * 0.56 / 0.64) / 2) }
 }

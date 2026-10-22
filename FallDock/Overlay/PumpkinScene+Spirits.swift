@@ -23,6 +23,33 @@ struct SpiritLedger {
         for (key, frame) in frames { iconX[key] = frame.midX }
     }
 
+    /// Where the Dock's app icons probably are (the middle of each across the screen), by key.
+    mutating func noteIconX(_ xs: [String: CGFloat]) {
+        for (key, x) in xs { iconX[key] = x }
+    }
+
+    /// Where each open app's icon probably is when the Dock can't be asked (without Accessibility), by
+    /// bundle identifier: Finder first, then the apps kept in the Dock in their order, then (after a
+    /// divider) the other open apps in the order they opened. The same tile sizes as
+    /// `DockLocator.estimatedDockWidth`.
+    static func estimatedIconX(kept: [String], open: [String], dockFrame: CGRect, tileSize: CGFloat) -> [String: CGFloat] {
+        let icon = tileSize > 0 ? tileSize : dockFrame.height * 0.78
+        let pitch = icon + max(4, icon * 0.1)
+        let finder = "com.apple.finder"
+        var section1 = [finder]
+        for id in kept where !section1.contains(id) { section1.append(id) }
+        var section2: [String] = []
+        for id in open where !section1.contains(id) && !section2.contains(id) { section2.append(id) }
+        var xs: [String: CGFloat] = [:]
+        for (i, id) in section1.enumerated() {
+            xs[id] = dockFrame.minX + 10 + (CGFloat(i) + 0.5) * pitch
+        }
+        for (i, id) in section2.enumerated() {
+            xs[id] = dockFrame.minX + 10 + 14 + (CGFloat(section1.count + i) + 0.5) * pitch
+        }
+        return xs
+    }
+
     /// The app at `key` quit: its spirit leaves now. Returns where its icon was, if known.
     mutating func quit(_ key: String, now: TimeInterval) -> CGFloat? {
         departed[key] = now
@@ -37,7 +64,7 @@ struct SpiritLedger {
     }
 }
 
-/// Spirits of quit apps (Halloween): quit an app and a pale, hollow-eyed ghost of its icon floats up out
+/// Spirits of quit apps (Halloween): quit an app and a little ghost hugging its icon floats up out
 /// of its spot in the Dock and drifts away; open it again soon after and the spirit swoops back down into
 /// its icon. Nothing here can be clicked.
 extension PumpkinScene {
@@ -59,8 +86,8 @@ extension PumpkinScene {
         let spirit = SKSpriteNode(texture: HauntingArt.spiritTexture(icon: icon, key: key, unit: h, scale: pixelScale),
                                   size: HauntingArt.spiritSize(unit: h))
         spirit.name = Self.spiritName
-        // The icon is at the top; the tail trails below it.
-        spirit.anchorPoint = CGPoint(x: 0.5, y: 1 - HauntingArt.spiritIconFraction / 2)
+        // Anchored on the icon it carries, so the icon starts and ends right on the app's own.
+        spirit.anchorPoint = HauntingArt.spiritIconCenter
         spirit.zPosition = 15
         let diameter = (spirit.size.width * 1.5).rounded()
         let glow = SKSpriteNode(texture: CozyArt.glowTexture(color: Palette.ghost, diameter: diameter, scale: pixelScale),

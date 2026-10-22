@@ -600,12 +600,27 @@ final class OverlayController {
         Settings.spirits && Settings.theme == .halloween && isLicensed && !isPaused && panel?.isVisible == true && !isHiding
     }
 
-    /// Notes the open apps with Dock icons, and where their icons are.
+    /// Notes the open apps with Dock icons, and where their icons are: exactly, from the Dock itself
+    /// with Accessibility allowed, or else worked out from the Dock's settings and the open apps.
     private func noteDockApps() {
-        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
-            guard let url = app.bundleURL else { continue }
-            let key = SpiritLedger.key(for: url)
-            if dockApps[key] == nil { dockApps[key] = app.icon ?? NSWorkspace.shared.icon(forFile: url.path) }
+        let apps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular && $0.bundleURL != nil }
+        for app in apps {
+            let key = SpiritLedger.key(for: app.bundleURL!)
+            if dockApps[key] == nil { dockApps[key] = app.icon ?? NSWorkspace.shared.icon(forFile: app.bundleURL!.path) }
+        }
+        // The worked-out spots first, then the exact ones over them wherever the Dock gives them.
+        if let dock = currentDock {
+            let settings = UserDefaults(suiteName: "com.apple.dock")
+            let kept = (settings?.array(forKey: "persistent-apps") as? [[String: Any]] ?? []).compactMap { entry in
+                (entry["tile-data"] as? [String: Any])?["bundle-identifier"] as? String
+            }
+            let guesses = SpiritLedger.estimatedIconX(kept: kept, open: apps.compactMap(\.bundleIdentifier), dockFrame: dock.dockFrame,
+                                                      tileSize: CGFloat(settings?.double(forKey: "tilesize") ?? 0))
+            var xs: [String: CGFloat] = [:]
+            for app in apps {
+                if let id = app.bundleIdentifier, let x = guesses[id] { xs[SpiritLedger.key(for: app.bundleURL!)] = x }
+            }
+            spiritLedger.noteIconX(xs)
         }
         spiritLedger.noteIcons(DockLocator.appIconFrames())
     }
@@ -647,12 +662,14 @@ final class OverlayController {
     private func appLaunched(_ note: Notification) {
         guard let app = dockApp(in: note) else { return }
         dockApps[app.key] = app.icon
-        guard spiritLedger.launched(app.key, now: ProcessInfo.processInfo.systemUptime), spiritsAllowed else { return }
-        log.info("Spirits: an app came back; its spirit returns")
+        let returning = spiritLedger.launched(app.key, now: ProcessInfo.processInfo.systemUptime)
+        // Note where its icon is once it's in the Dock, even if it quits again before the next check.
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 800_000_000)
             guard let self, self.spiritsAllowed else { return }
             self.noteDockApps()
+            guard returning else { return }
+            log.info("Spirits: an app came back; its spirit returns")
             self.scene?.returnSpirit(icon: app.icon, key: app.key, toSceneX: self.sceneX(self.spiritLedger.iconX[app.key]))
         }
     }
