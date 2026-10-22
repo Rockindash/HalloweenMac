@@ -1,0 +1,77 @@
+import AppKit
+import SwiftUI
+
+/// The app's own window, opened from the Applications folder or the pumpkin menu: Home, Customize and
+/// Settings in a sidebar (see MainView.swift). While it's open Dockorate shows in the Dock and the
+/// app switcher like any other app.
+@MainActor
+final class MainWindow: NSObject, NSWindowDelegate {
+    private var window: NSWindow?
+    private weak var model: AppModel?
+
+    func show(model: AppModel) {
+        self.model = model
+        if window == nil { build(model: model) }
+        // Keep the title hidden on every macOS version. (SwiftUI only removes its own title on macOS 15 and later.)
+        window?.titleVisibility = .hidden
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+        // macOS can bring the window back already in full screen (it was left that way last time).
+        updateFullScreen()
+    }
+
+    private func build(model: AppModel) {
+        let host = NSHostingController(rootView: MainView(model: model))
+        // The window can't shrink below what the pages need.
+        host.sizingOptions = [.minSize]
+        let window = NSWindow(contentViewController: host)
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.title = "Dockorate"
+        // An empty unified toolbar lets the floating sidebar run up to the top of the window, with
+        // the close, minimize and zoom buttons inside it, as in the App Store.
+        window.toolbar = NSToolbar(identifier: "FallDockMainWindow")
+        window.toolbarStyle = .unified
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.setContentSize(NSSize(width: 1040, height: 780))
+        window.contentMinSize = MainView.minSize
+        window.center()
+        window.setFrameAutosaveName("FallDockMainWindow")
+        // A size saved by an older version may be smaller than the pages now need.
+        let size = window.contentRect(forFrameRect: window.frame).size
+        if size.width < MainView.minSize.width || size.height < MainView.minSize.height {
+            window.setContentSize(NSSize(width: max(size.width, 1040), height: max(size.height, 780)))
+            window.center()
+        }
+        self.window = window
+    }
+
+    // In full screen macOS draws the toolbar as a solid band across the top. The page title and the
+    // first sidebar row normally run up under the see-through toolbar, so they'd be hidden under it;
+    // the pages move below it while in full screen (see MainView).
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        model?.isFullScreen = true
+    }
+
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        updateFullScreen()
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        updateFullScreen()
+    }
+
+    private func updateFullScreen() {
+        guard let window, let model else { return }
+        let fullScreen = window.styleMask.contains(.fullScreen)
+        if model.isFullScreen != fullScreen { model.isFullScreen = fullScreen }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        // Back to living in the menu bar only.
+        NSApp.setActivationPolicy(.accessory)
+    }
+}

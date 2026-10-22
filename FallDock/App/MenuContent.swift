@@ -1,38 +1,51 @@
 import SwiftUI
 
-/// The 🎃 menu in the menu bar.
+/// The pumpkin menu in the menu bar. Finer settings live in the app window.
 struct MenuContent: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        Text(model.smashCount == 1 ? "1 pumpkin smashed" : "\(model.smashCount) pumpkins smashed")
+        Button("Open Dockorate…") { model.showMainWindow() }
+            .keyboardShortcut(",")
 
         Divider()
 
-        Toggle("Show Pumpkins", isOn: $model.showPumpkins)
-        Toggle("Vines", isOn: $model.showVines)
-        Toggle("Falling Leaves", isOn: $model.fallingLeaves)
-        Toggle("Smash Sound", isOn: $model.sound)
-
-        Picker("Number of Pumpkins", selection: $model.pumpkinCount) {
-            Text("A Few (5)").tag(5)
-            Text("Plenty (9)").tag(9)
-            Text("Overflowing (13)").tag(13)
+        if !model.license.isActive {
+            Button("Enter License Key") { model.showMainWindow() }
+            Divider()
         }
 
-        Button("Grow New Pumpkins") { model.regrow() }
-            .keyboardShortcut("r")
-
-        Divider()
-
+        if model.isPaused {
+            Button("Resume") { model.resume() }
+        } else {
+            Button("Pause for 1 Hour") { model.pauseForAnHour() }
+        }
+        Menu("Theme") {
+            Toggle("Change Automatically", isOn: Binding(get: { model.themeChoice == .automatic },
+                                                         set: { model.themeChoice = $0 ? .automatic : .keep(model.theme) }))
+            ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
+                Section(kind.title) {
+                    ForEach(Settings.Theme.allCases.filter { $0.kind == kind }, id: \.self) { theme in
+                        Toggle(theme.title, isOn: Binding(get: { model.themeChoice == .keep(theme) },
+                                                          set: { if $0 { model.themeChoice = .keep(theme) } }))
+                    }
+                }
+            }
+        }
         if !model.hasAccessibility {
             Button("Fit Pumpkins to Dock Exactly…") { model.askForAccessibility() }
+        }
+        if model.theme == .fall {
+            Toggle("Full-Screen Leaves", isOn: $model.leavesFillScreen)
         }
         Toggle("Open at Login", isOn: $model.openAtLogin)
 
         Divider()
 
-        Button("Quit Fall Dock") { NSApplication.shared.terminate(nil) }
+        if Updater.isAvailable {
+            Button("Check for Updates") { model.updater.checkForUpdates() }
+        }
+        Button("Quit Dockorate") { NSApplication.shared.terminate(nil) }
             .keyboardShortcut("q")
     }
 }

@@ -16,7 +16,82 @@
 		E936A13B2C23B84F65CDF1B6 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99464A212618FEB7553190F /* Settings.swift */; };
 		F6332A40B4E0A0FD3C4CABEF /* OverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B243FB33A4ADC486AA1AFE1 /* OverlayController.swift */; };
 		FA4B5A8E65F0CEE7AC4142B0 /* PumpkinScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */; };
+		A1C0FFEE00000000000000A1 /* CozyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B1 /* CozyArt.swift */; };
+		A1C0FFEE00000000000000A2 /* DockSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B2 /* DockSprite.swift */; };
+		A1C0FFEE00000000000000A3 /* PumpkinScene+Cozy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */; };
+		A1C0FFEE000000000000F1A1 /* ScreenLeafScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */; };
+		A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B6 /* Welcome.swift */; };
+		A1C0FFEE00000000000000A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B7 /* Assets.xcassets */; };
+		A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B8 /* MainWindow.swift */; };
+		A1C0FFEE00000000000000D1 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000D2 /* MainView.swift */; };
+		A1C0FFEE00000000000000A9 /* MainTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B9 /* MainTabs.swift */; };
+		A1C0FFEE00000000000000AA /* Icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000BA /* Icon.icon */; };
+		A1C0FFEE00000000000000E1 /* License.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000E2 /* License.swift */; };
+		A1C0FFEE00000000000000E3 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000E4 /* Updater.swift */; };
+		A1C0FFEE00000000000000E5 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0FFEE00000000000000E6 /* Sparkle */; };
+		A1C0FFEE0000000000001001 /* WallpaperArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001011 /* WallpaperArt.swift */; };
+		A1C0FFEE0000000000001002 /* Wallpaper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001012 /* Wallpaper.swift */; };
+		A1C0FFEE0000000000001003 /* BackgroundPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001013 /* BackgroundPage.swift */; };
+		A1C0FFEE0000000000002001 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002002 /* AppEnvironment.swift */; };
+		A1C0FFEE0000000000002020 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002030 /* TestSupport.swift */; };
+		A1C0FFEE0000000000002021 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002031 /* SettingsTests.swift */; };
+		A1C0FFEE0000000000002022 /* HarvestLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002032 /* HarvestLayoutTests.swift */; };
+		A1C0FFEE0000000000002023 /* ArtTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002033 /* ArtTests.swift */; };
+		A1C0FFEE0000000000002024 /* WallpaperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002034 /* WallpaperTests.swift */; };
+		A1C0FFEE0000000000002070 /* DockorateUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002080 /* DockorateUITests.swift */; };
+		A1C0FFEE0000000000003100 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5A9911DECFD6B7EC575DB2 /* AppModel.swift */; };
+		A1C0FFEE0000000000003101 /* Art.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D531E91FA2104CA0FBE350 /* Art.swift */; };
+		A1C0FFEE0000000000003102 /* DockLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D9B2A7EF12B4BF9A5F09CF4 /* DockLocator.swift */; };
+		A1C0FFEE0000000000003103 /* FallDockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F389C82E96F35A6292A1D7 /* FallDockApp.swift */; };
+		A1C0FFEE0000000000003104 /* MenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8354B1DB7F276E1BA05DE3 /* MenuContent.swift */; };
+		A1C0FFEE0000000000003105 /* OverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B243FB33A4ADC486AA1AFE1 /* OverlayController.swift */; };
+		A1C0FFEE0000000000003106 /* PumpkinScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */; };
+		A1C0FFEE0000000000003107 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99464A212618FEB7553190F /* Settings.swift */; };
+		A1C0FFEE0000000000003108 /* SmashSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868266014263B38779531296 /* SmashSound.swift */; };
+		A1C0FFEE0000000000003109 /* CozyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B1 /* CozyArt.swift */; };
+		A1C0FFEE000000000000310A /* DockSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B2 /* DockSprite.swift */; };
+		A1C0FFEE000000000000310B /* PumpkinScene+Cozy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */; };
+		A1C0FFEE000000000000310C /* ScreenLeafScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */; };
+		A1C0FFEE000000000000310D /* Welcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B6 /* Welcome.swift */; };
+		A1C0FFEE000000000000310E /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B8 /* MainWindow.swift */; };
+		A1C0FFEE000000000000310F /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000D2 /* MainView.swift */; };
+		A1C0FFEE0000000000003110 /* MainTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B9 /* MainTabs.swift */; };
+		A1C0FFEE0000000000003111 /* License.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000E2 /* License.swift */; };
+		A1C0FFEE0000000000003112 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000E4 /* Updater.swift */; };
+		A1C0FFEE0000000000003113 /* BackgroundPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001013 /* BackgroundPage.swift */; };
+		A1C0FFEE0000000000003114 /* Wallpaper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001012 /* Wallpaper.swift */; };
+		A1C0FFEE0000000000003115 /* WallpaperArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001011 /* WallpaperArt.swift */; };
+		A1C0FFEE0000000000003116 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002002 /* AppEnvironment.swift */; };
+		A1C0FFEE0000000000003060 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000B7 /* Assets.xcassets */; };
+		A1C0FFEE0000000000003061 /* Icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000BA /* Icon.icon */; };
+		A1C0FFEE0000000000003010 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */; };
+		A1C0FFEE0000000000003011 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */; };
+		A1C0FFEE0000000000002025 /* AppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002035 /* AppStoreTests.swift */; };
+		A1C0FFEE0000000000004001 /* SpookyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004021 /* SpookyArt.swift */; };
+		A1C0FFEE0000000000004011 /* SpookyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004021 /* SpookyArt.swift */; };
+		A1C0FFEE0000000000004002 /* PumpkinScene+Spooky.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */; };
+		A1C0FFEE0000000000004012 /* PumpkinScene+Spooky.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */; };
+		A1C0FFEE0000000000004003 /* ThemesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004023 /* ThemesPage.swift */; };
+		A1C0FFEE0000000000004013 /* ThemesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004023 /* ThemesPage.swift */; };
+		A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002036 /* ThemeTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1C0FFEE0000000000002016 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 382903F799CECB4488A4ACF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C998535C361B83F8E249CE13;
+			remoteInfo = FallDock;
+		};
+		A1C0FFEE0000000000002066 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 382903F799CECB4488A4ACF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C998535C361B83F8E249CE13;
+			remoteInfo = FallDock;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpkinScene.swift; sourceTree = "<group>"; };
@@ -29,7 +104,72 @@
 		E7D531E91FA2104CA0FBE350 /* Art.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Art.swift; sourceTree = "<group>"; };
 		F0F389C82E96F35A6292A1D7 /* FallDockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallDockApp.swift; sourceTree = "<group>"; };
 		F99464A212618FEB7553190F /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B1 /* CozyArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CozyArt.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B2 /* DockSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DockSprite.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Cozy.swift"; sourceTree = "<group>"; };
+		A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenLeafScene.swift; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B6 /* Welcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Welcome.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B8 /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainWindow.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000D2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainView.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000B9 /* MainTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainTabs.swift"; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000BA /* Icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Icon.icon; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000E2 /* License.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = License.swift; sourceTree = "<group>"; };
+		A1C0FFEE00000000000000E4 /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001011 /* WallpaperArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WallpaperArt.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001012 /* Wallpaper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Wallpaper.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001013 /* BackgroundPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BackgroundPage.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002002 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002030 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002031 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002032 /* HarvestLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarvestLayoutTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002033 /* ArtTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002034 /* WallpaperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002010 /* DockorateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DockorateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1C0FFEE0000000000002080 /* DockorateUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockorateUITests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002060 /* DockorateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DockorateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1C0FFEE0000000000003001 /* Info-AppStore.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-AppStore.plist"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000003002 /* Dockorate-AppStore.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Dockorate-AppStore.entitlements"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A1C0FFEE0000000000003004 /* DockorateAppStore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DockorateAppStore.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1C0FFEE0000000000002035 /* AppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000004021 /* SpookyArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpookyArt.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Spooky.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000004023 /* ThemesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ThemesPage.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002036 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1C0FFEE00000000000000E7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE00000000000000E5 /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000002014 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000002064 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000003022 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		982F557585F86331490CFAB3 /* Overlay */ = {
@@ -38,6 +178,10 @@
 				4D9B2A7EF12B4BF9A5F09CF4 /* DockLocator.swift */,
 				7B243FB33A4ADC486AA1AFE1 /* OverlayController.swift */,
 				12C04947BB5F64889C7A5AEA /* PumpkinScene.swift */,
+				A1C0FFEE00000000000000B2 /* DockSprite.swift */,
+				A1C0FFEE00000000000000B3 /* PumpkinScene+Cozy.swift */,
+				A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */,
+				A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */,
 			);
 			path = Overlay;
 			sourceTree = "<group>";
@@ -48,6 +192,11 @@
 				FFF5ADC5213DEDA82B422AA4 /* App */,
 				DCC2EE75B074CBF4BDA78682 /* Art */,
 				982F557585F86331490CFAB3 /* Overlay */,
+				A1C0FFEE00000000000000B7 /* Assets.xcassets */,
+				A1C0FFEE00000000000000BA /* Icon.icon */,
+				A1C0FFEE0000000000003003 /* PrivacyInfo.xcprivacy */,
+				A1C0FFEE0000000000003001 /* Info-AppStore.plist */,
+				A1C0FFEE0000000000003002 /* Dockorate-AppStore.entitlements */,
 			);
 			path = FallDock;
 			sourceTree = "<group>";
@@ -56,6 +205,8 @@
 			isa = PBXGroup;
 			children = (
 				9F86A9043B9D5B534D19F6A0 /* FallDock */,
+				A1C0FFEE0000000000002061 /* DockorateUITests */,
+				A1C0FFEE0000000000002011 /* DockorateTests */,
 				E85D0AD4A053F3EF20BF580B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,6 +216,9 @@
 			children = (
 				E7D531E91FA2104CA0FBE350 /* Art.swift */,
 				868266014263B38779531296 /* SmashSound.swift */,
+				A1C0FFEE00000000000000B1 /* CozyArt.swift */,
+				A1C0FFEE0000000000001011 /* WallpaperArt.swift */,
+				A1C0FFEE0000000000004021 /* SpookyArt.swift */,
 			);
 			path = Art;
 			sourceTree = "<group>";
@@ -73,6 +227,9 @@
 			isa = PBXGroup;
 			children = (
 				E16E216E02C5713CEA00F1C4 /* FallDock.app */,
+				A1C0FFEE0000000000002060 /* DockorateUITests.xctest */,
+				A1C0FFEE0000000000002010 /* DockorateTests.xctest */,
+				A1C0FFEE0000000000003004 /* DockorateAppStore.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -84,8 +241,40 @@
 				F0F389C82E96F35A6292A1D7 /* FallDockApp.swift */,
 				BF8354B1DB7F276E1BA05DE3 /* MenuContent.swift */,
 				F99464A212618FEB7553190F /* Settings.swift */,
+				A1C0FFEE00000000000000B6 /* Welcome.swift */,
+				A1C0FFEE00000000000000B8 /* MainWindow.swift */,
+				A1C0FFEE00000000000000D2 /* MainView.swift */,
+				A1C0FFEE00000000000000B9 /* MainTabs.swift */,
+				A1C0FFEE00000000000000E2 /* License.swift */,
+				A1C0FFEE00000000000000E4 /* Updater.swift */,
+				A1C0FFEE0000000000001013 /* BackgroundPage.swift */,
+				A1C0FFEE0000000000001012 /* Wallpaper.swift */,
+				A1C0FFEE0000000000002002 /* AppEnvironment.swift */,
+				A1C0FFEE0000000000004023 /* ThemesPage.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		A1C0FFEE0000000000002011 /* DockorateTests */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0FFEE0000000000002030 /* TestSupport.swift */,
+				A1C0FFEE0000000000002031 /* SettingsTests.swift */,
+				A1C0FFEE0000000000002032 /* HarvestLayoutTests.swift */,
+				A1C0FFEE0000000000002033 /* ArtTests.swift */,
+				A1C0FFEE0000000000002034 /* WallpaperTests.swift */,
+				A1C0FFEE0000000000002035 /* AppStoreTests.swift */,
+				A1C0FFEE0000000000002036 /* ThemeTests.swift */,
+			);
+			path = DockorateTests;
+			sourceTree = "<group>";
+		};
+		A1C0FFEE0000000000002061 /* DockorateUITests */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0FFEE0000000000002080 /* DockorateUITests.swift */,
+			);
+			path = DockorateUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -96,6 +285,8 @@
 			buildConfigurationList = 7ABEB4F87ABA327B2618914A /* Build configuration list for PBXNativeTarget "FallDock" */;
 			buildPhases = (
 				076639A851266A3152AF469C /* Sources */,
+				A1C0FFEE00000000000000E7 /* Frameworks */,
+				A1C0FFEE00000000000000C1 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -103,9 +294,63 @@
 			);
 			name = FallDock;
 			packageProductDependencies = (
+				A1C0FFEE00000000000000E6 /* Sparkle */,
 			);
 			productName = FallDock;
 			productReference = E16E216E02C5713CEA00F1C4 /* FallDock.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1C0FFEE0000000000002012 /* DockorateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1C0FFEE0000000000002018 /* Build configuration list for PBXNativeTarget "DockorateTests" */;
+			buildPhases = (
+				A1C0FFEE0000000000002013 /* Sources */,
+				A1C0FFEE0000000000002014 /* Frameworks */,
+				A1C0FFEE0000000000002015 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1C0FFEE0000000000002017 /* PBXTargetDependency */,
+			);
+			name = DockorateTests;
+			productName = DockorateTests;
+			productReference = A1C0FFEE0000000000002010 /* DockorateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A1C0FFEE0000000000002062 /* DockorateUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1C0FFEE0000000000002068 /* Build configuration list for PBXNativeTarget "DockorateUITests" */;
+			buildPhases = (
+				A1C0FFEE0000000000002063 /* Sources */,
+				A1C0FFEE0000000000002064 /* Frameworks */,
+				A1C0FFEE0000000000002065 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1C0FFEE0000000000002067 /* PBXTargetDependency */,
+			);
+			name = DockorateUITests;
+			productName = DockorateUITests;
+			productReference = A1C0FFEE0000000000002060 /* DockorateUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		A1C0FFEE0000000000003020 /* DockorateAppStore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1C0FFEE0000000000003024 /* Build configuration list for PBXNativeTarget "DockorateAppStore" */;
+			buildPhases = (
+				A1C0FFEE0000000000003021 /* Sources */,
+				A1C0FFEE0000000000003022 /* Frameworks */,
+				A1C0FFEE0000000000003023 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DockorateAppStore;
+			productName = DockorateAppStore;
+			productReference = A1C0FFEE0000000000003004 /* DockorateAppStore.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -120,6 +365,15 @@
 					C998535C361B83F8E249CE13 = {
 						ProvisioningStyle = Automatic;
 					};
+					A1C0FFEE0000000000003020 = {
+						ProvisioningStyle = Automatic;
+					};
+					A1C0FFEE0000000000002012 = {
+						TestTargetID = C998535C361B83F8E249CE13;
+					};
+					A1C0FFEE0000000000002062 = {
+						TestTargetID = C998535C361B83F8E249CE13;
+					};
 				};
 			};
 			buildConfigurationList = 3E8EAF2C3959A1F283ECBB7B /* Build configuration list for PBXProject "FallDock" */;
@@ -131,15 +385,58 @@
 			);
 			mainGroup = D7175408335C450F0EA09F05;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A1C0FFEE00000000000000E8 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E85D0AD4A053F3EF20BF580B /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				C998535C361B83F8E249CE13 /* FallDock */,
+				A1C0FFEE0000000000002062 /* DockorateUITests */,
+				A1C0FFEE0000000000002012 /* DockorateTests */,
+				A1C0FFEE0000000000003020 /* DockorateAppStore */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1C0FFEE00000000000000C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE00000000000000A7 /* Assets.xcassets in Resources */,
+				A1C0FFEE00000000000000AA /* Icon.icon in Resources */,
+				A1C0FFEE0000000000003010 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000002015 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000002065 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000003023 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE0000000000003060 /* Assets.xcassets in Resources */,
+				A1C0FFEE0000000000003061 /* Icon.icon in Resources */,
+				A1C0FFEE0000000000003011 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		076639A851266A3152AF469C /* Sources */ = {
@@ -155,10 +452,95 @@
 				FA4B5A8E65F0CEE7AC4142B0 /* PumpkinScene.swift in Sources */,
 				E936A13B2C23B84F65CDF1B6 /* Settings.swift in Sources */,
 				6FEE257E1C84FB3590A3A735 /* SmashSound.swift in Sources */,
+				A1C0FFEE00000000000000A1 /* CozyArt.swift in Sources */,
+				A1C0FFEE00000000000000A2 /* DockSprite.swift in Sources */,
+				A1C0FFEE00000000000000A3 /* PumpkinScene+Cozy.swift in Sources */,
+				A1C0FFEE000000000000F1A1 /* ScreenLeafScene.swift in Sources */,
+				A1C0FFEE00000000000000A6 /* Welcome.swift in Sources */,
+				A1C0FFEE00000000000000A8 /* MainWindow.swift in Sources */,
+				A1C0FFEE00000000000000D1 /* MainView.swift in Sources */,
+				A1C0FFEE00000000000000A9 /* MainTabs.swift in Sources */,
+				A1C0FFEE00000000000000E1 /* License.swift in Sources */,
+				A1C0FFEE00000000000000E3 /* Updater.swift in Sources */,
+				A1C0FFEE0000000000001003 /* BackgroundPage.swift in Sources */,
+				A1C0FFEE0000000000001002 /* Wallpaper.swift in Sources */,
+				A1C0FFEE0000000000001001 /* WallpaperArt.swift in Sources */,
+				A1C0FFEE0000000000002001 /* AppEnvironment.swift in Sources */,
+				A1C0FFEE0000000000004001 /* SpookyArt.swift in Sources */,
+				A1C0FFEE0000000000004002 /* PumpkinScene+Spooky.swift in Sources */,
+				A1C0FFEE0000000000004003 /* ThemesPage.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000002013 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE0000000000002020 /* TestSupport.swift in Sources */,
+				A1C0FFEE0000000000002021 /* SettingsTests.swift in Sources */,
+				A1C0FFEE0000000000002022 /* HarvestLayoutTests.swift in Sources */,
+				A1C0FFEE0000000000002023 /* ArtTests.swift in Sources */,
+				A1C0FFEE0000000000002024 /* WallpaperTests.swift in Sources */,
+				A1C0FFEE0000000000002025 /* AppStoreTests.swift in Sources */,
+				A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000002063 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE0000000000002070 /* DockorateUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000003021 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE0000000000003100 /* AppModel.swift in Sources */,
+				A1C0FFEE0000000000003101 /* Art.swift in Sources */,
+				A1C0FFEE0000000000003102 /* DockLocator.swift in Sources */,
+				A1C0FFEE0000000000003103 /* FallDockApp.swift in Sources */,
+				A1C0FFEE0000000000003104 /* MenuContent.swift in Sources */,
+				A1C0FFEE0000000000003105 /* OverlayController.swift in Sources */,
+				A1C0FFEE0000000000003106 /* PumpkinScene.swift in Sources */,
+				A1C0FFEE0000000000003107 /* Settings.swift in Sources */,
+				A1C0FFEE0000000000003108 /* SmashSound.swift in Sources */,
+				A1C0FFEE0000000000003109 /* CozyArt.swift in Sources */,
+				A1C0FFEE000000000000310A /* DockSprite.swift in Sources */,
+				A1C0FFEE000000000000310B /* PumpkinScene+Cozy.swift in Sources */,
+				A1C0FFEE000000000000310C /* ScreenLeafScene.swift in Sources */,
+				A1C0FFEE000000000000310D /* Welcome.swift in Sources */,
+				A1C0FFEE000000000000310E /* MainWindow.swift in Sources */,
+				A1C0FFEE000000000000310F /* MainView.swift in Sources */,
+				A1C0FFEE0000000000003110 /* MainTabs.swift in Sources */,
+				A1C0FFEE0000000000003111 /* License.swift in Sources */,
+				A1C0FFEE0000000000003112 /* Updater.swift in Sources */,
+				A1C0FFEE0000000000003113 /* BackgroundPage.swift in Sources */,
+				A1C0FFEE0000000000003114 /* Wallpaper.swift in Sources */,
+				A1C0FFEE0000000000003115 /* WallpaperArt.swift in Sources */,
+				A1C0FFEE0000000000003116 /* AppEnvironment.swift in Sources */,
+				A1C0FFEE0000000000004011 /* SpookyArt.swift in Sources */,
+				A1C0FFEE0000000000004012 /* PumpkinScene+Spooky.swift in Sources */,
+				A1C0FFEE0000000000004013 /* ThemesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1C0FFEE0000000000002017 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C998535C361B83F8E249CE13 /* FallDock */;
+			targetProxy = A1C0FFEE0000000000002016 /* PBXContainerItemProxy */;
+		};
+		A1C0FFEE0000000000002067 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C998535C361B83F8E249CE13 /* FallDock */;
+			targetProxy = A1C0FFEE0000000000002066 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1EAE3883624FCC09DB67F344 /* Debug */ = {
@@ -227,11 +609,11 @@
 		3BC8B286B7B4EA1D8DE46052 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Icon;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 13;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -241,9 +623,9 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.amol.falldock;
-				PRODUCT_NAME = "Fall Dock";
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate;
+				PRODUCT_NAME = Dockorate;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -252,11 +634,11 @@
 		64FEECC5510F2FA15F1F506E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Icon;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 13;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -266,9 +648,9 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.amol.falldock;
-				PRODUCT_NAME = "Fall Dock";
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate;
+				PRODUCT_NAME = Dockorate;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -330,6 +712,134 @@
 			};
 			name = Release;
 		};
+		A1C0FFEE0000000000002019 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dockorate.app/Contents/MacOS/Dockorate";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate.dockoratetests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A1C0FFEE000000000000201A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dockorate.app/Contents/MacOS/Dockorate";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate.dockoratetests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A1C0FFEE0000000000002069 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate.dockorateuitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = FallDock;
+			};
+			name = Debug;
+		};
+		A1C0FFEE000000000000206A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate.dockorateuitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = FallDock;
+			};
+			name = Release;
+		};
+		A1C0FFEE0000000000003025 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Icon;
+				CODE_SIGN_ENTITLEMENTS = "FallDock/Dockorate-AppStore.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 13;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "FallDock/Info-AppStore.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate;
+				PRODUCT_NAME = Dockorate;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A1C0FFEE0000000000003026 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Icon;
+				CODE_SIGN_ENTITLEMENTS = "FallDock/Dockorate-AppStore.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 13;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "FallDock/Info-AppStore.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amol.dockorate;
+				PRODUCT_NAME = Dockorate;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -351,7 +861,53 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		A1C0FFEE0000000000002018 /* Build configuration list for PBXNativeTarget "DockorateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1C0FFEE0000000000002019 /* Debug */,
+				A1C0FFEE000000000000201A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A1C0FFEE0000000000002068 /* Build configuration list for PBXNativeTarget "DockorateUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1C0FFEE0000000000002069 /* Debug */,
+				A1C0FFEE000000000000206A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A1C0FFEE0000000000003024 /* Build configuration list for PBXNativeTarget "DockorateAppStore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1C0FFEE0000000000003025 /* Debug */,
+				A1C0FFEE0000000000003026 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1C0FFEE00000000000000E8 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1C0FFEE00000000000000E6 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1C0FFEE00000000000000E8 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 382903F799CECB4488A4ACF1 /* Project object */;
 }
