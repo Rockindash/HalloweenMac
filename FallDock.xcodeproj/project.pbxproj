@@ -73,12 +73,15 @@
 		A1C0FFEE0000000000004011 /* SpookyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004021 /* SpookyArt.swift */; };
 		A1C0FFEE0000000000004002 /* PumpkinScene+Spooky.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */; };
 		A1C0FFEE0000000000005012 /* PumpkinScene+Haunting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005011 /* PumpkinScene+Haunting.swift */; };
+		A1C0FFEE0000000000005032 /* PumpkinScene+Spirits.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005031 /* PumpkinScene+Spirits.swift */; };
 		A1C0FFEE0000000000005013 /* PumpkinScene+Haunting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005011 /* PumpkinScene+Haunting.swift */; };
+		A1C0FFEE0000000000005033 /* PumpkinScene+Spirits.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005031 /* PumpkinScene+Spirits.swift */; };
 		A1C0FFEE0000000000004012 /* PumpkinScene+Spooky.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */; };
 		A1C0FFEE0000000000004003 /* ThemesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004023 /* ThemesPage.swift */; };
 		A1C0FFEE0000000000004013 /* ThemesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000004023 /* ThemesPage.swift */; };
 		A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002036 /* ThemeTests.swift */; };
 		A1C0FFEE0000000000005022 /* HauntingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005021 /* HauntingTests.swift */; };
+		A1C0FFEE0000000000005042 /* SpiritsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005041 /* SpiritsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -142,9 +145,11 @@
 		A1C0FFEE0000000000005001 /* HauntingArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HauntingArt.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Spooky.swift"; sourceTree = "<group>"; };
 		A1C0FFEE0000000000005011 /* PumpkinScene+Haunting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Haunting.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000005031 /* PumpkinScene+Spirits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Spirits.swift"; sourceTree = "<group>"; };
 		A1C0FFEE0000000000004023 /* ThemesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ThemesPage.swift"; sourceTree = "<group>"; };
 		A1C0FFEE0000000000002036 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000005021 /* HauntingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HauntingTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000005041 /* SpiritsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -191,6 +196,7 @@
 				A1C0FFEE000000000000F1B1 /* ScreenLeafScene.swift */,
 				A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */,
 				A1C0FFEE0000000000005011 /* PumpkinScene+Haunting.swift */,
+				A1C0FFEE0000000000005031 /* PumpkinScene+Spirits.swift */,
 			);
 			path = Overlay;
 			sourceTree = "<group>";
@@ -276,6 +282,7 @@
 				A1C0FFEE0000000000002035 /* AppStoreTests.swift */,
 				A1C0FFEE0000000000002036 /* ThemeTests.swift */,
 				A1C0FFEE0000000000005021 /* HauntingTests.swift */,
+				A1C0FFEE0000000000005041 /* SpiritsTests.swift */,
 			);
 			path = DockorateTests;
 			sourceTree = "<group>";
@@ -481,6 +488,7 @@
 				A1C0FFEE0000000000005002 /* HauntingArt.swift in Sources */,
 				A1C0FFEE0000000000004002 /* PumpkinScene+Spooky.swift in Sources */,
 				A1C0FFEE0000000000005012 /* PumpkinScene+Haunting.swift in Sources */,
+				A1C0FFEE0000000000005032 /* PumpkinScene+Spirits.swift in Sources */,
 				A1C0FFEE0000000000004003 /* ThemesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -497,6 +505,7 @@
 				A1C0FFEE0000000000002025 /* AppStoreTests.swift in Sources */,
 				A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */,
 				A1C0FFEE0000000000005022 /* HauntingTests.swift in Sources */,
+				A1C0FFEE0000000000005042 /* SpiritsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -539,6 +548,7 @@
 				A1C0FFEE0000000000005003 /* HauntingArt.swift in Sources */,
 				A1C0FFEE0000000000004012 /* PumpkinScene+Spooky.swift in Sources */,
 				A1C0FFEE0000000000005013 /* PumpkinScene+Haunting.swift in Sources */,
+				A1C0FFEE0000000000005033 /* PumpkinScene+Spirits.swift in Sources */,
 				A1C0FFEE0000000000004013 /* ThemesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

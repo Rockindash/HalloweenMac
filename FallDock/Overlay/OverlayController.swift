@@ -62,6 +62,8 @@ final class OverlayController {
     private var healthTimer: Timer?
     private var hauntTimer: Timer?
     private var haunting = HauntingClock()
+    private var spiritLedger = SpiritLedger()
+    private var hauntTicks = 0
     /// The scene's frame count at the last health check, while the harvest was showing.
     private var lastFrameCount: Int?
     private var lastRebuild: TimeInterval = 0
@@ -188,6 +190,13 @@ final class OverlayController {
             (workspace, workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main, using: onChange)),
+            // Spirits of quit apps.
+            (workspace, workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+                Task { @MainActor in self?.appQuit(note) }
+            }),
+            (workspace, workspace.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] note in
+                Task { @MainActor in self?.appLaunched(note) }
+            }),
             // Reduce Motion turned on or off: grow the harvest again with or without the movement.
             (workspace, workspace.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil,
                                               queue: .main) { [weak self] _ in
@@ -564,6 +573,9 @@ final class OverlayController {
     /// Haunting while you're away: the ghosts gather once the Mac has been left alone for a while at
     /// Halloween, and scatter the moment anyone's back.
     func checkHaunting() {
+        // Every few seconds, note where the Dock's app icons are, for the spirits of quit apps.
+        hauntTicks &+= 1
+        if hauntTicks % 3 == 0, spiritsAllowed { spiritLedger.noteIcons(DockLocator.appIconFrames()) }
         let allowed = Settings.haunting && Settings.theme == .halloween && isLicensed && !isPaused
             && panel?.isVisible == true && !isHiding && !isMissionControlShowing
         let change = haunting.update(idle: HauntingClock.secondsSinceInput(), now: ProcessInfo.processInfo.systemUptime, allowed: allowed)
@@ -576,6 +588,46 @@ final class OverlayController {
         case nil:
             // A fresh harvest (the Dock changed, say) clears the ghosts away; bring them straight back.
             if haunting.isHaunting, scene?.isHaunted == false { scene?.haunt(animated: false) }
+        }
+    }
+
+    // MARK: Spirits of quit apps
+
+    private var spiritsAllowed: Bool {
+        Settings.spirits && Settings.theme == .halloween && isLicensed && !isPaused && panel?.isVisible == true && !isHiding
+    }
+
+    /// An app with a Dock icon, other than Dockorate itself, from a launch or quit notification.
+    private static func dockApp(in note: Notification) -> (key: String, icon: NSImage)? {
+        guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              app.activationPolicy == .regular, app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              let url = app.bundleURL else { return nil }
+        return (SpiritLedger.key(for: url), app.icon ?? NSWorkspace.shared.icon(forFile: url.path))
+    }
+
+    /// The icon's middle across the scene, from its middle across the screen.
+    private func sceneX(_ screenX: CGFloat?) -> CGFloat? {
+        guard let screenX, let panel else { return nil }
+        return screenX - panel.frame.minX
+    }
+
+    /// An app quit: its spirit rises out of where its icon was.
+    private func appQuit(_ note: Notification) {
+        guard let app = Self.dockApp(in: note) else { return }
+        let x = spiritLedger.quit(app.key, now: ProcessInfo.processInfo.systemUptime)
+        guard spiritsAllowed else { return }
+        scene?.releaseSpirit(icon: app.icon, key: app.key, atSceneX: sceneX(x))
+    }
+
+    /// An app opened: if its spirit left a little while ago, it swoops back in once the app's icon is in the Dock.
+    private func appLaunched(_ note: Notification) {
+        guard let app = Self.dockApp(in: note),
+              spiritLedger.launched(app.key, now: ProcessInfo.processInfo.systemUptime), spiritsAllowed else { return }
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard let self, self.spiritsAllowed else { return }
+            self.spiritLedger.noteIcons(DockLocator.appIconFrames())
+            self.scene?.returnSpirit(icon: app.icon, key: app.key, toSceneX: self.sceneX(self.spiritLedger.iconX[app.key]))
         }
     }
 

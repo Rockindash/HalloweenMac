@@ -118,6 +118,11 @@ final class AppModel: ObservableObject {
         didSet { Settings.haunting = haunting; overlay.checkHaunting() }
     }
 
+    /// Spirits of quit apps (Halloween).
+    @Published var spirits: Bool {
+        didSet { Settings.spirits = spirits }
+    }
+
     /// Try It: haunt the Dock as soon as the Mac is left alone for a moment.
     func tryHaunting() {
         overlay.tryHaunting()
@@ -175,6 +180,7 @@ final class AppModel: ObservableObject {
         bats = Settings.bats
         ghost = Settings.ghost
         haunting = Settings.haunting
+        spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
@@ -277,6 +283,7 @@ final class AppModel: ObservableObject {
         bats = Settings.bats
         ghost = Settings.ghost
         haunting = Settings.haunting
+        spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves

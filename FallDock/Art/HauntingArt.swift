@@ -100,4 +100,56 @@ enum HauntingArt {
             ctx.fillEllipse(in: CGRect(x: w * 0.43, y: ht * 0.36, width: w * 0.14, height: ht * 0.17))
         }
     }
+
+    /// A quit app's spirit: its icon at the top, with a wispy tail below it.
+    static func spiritSize(unit h: CGFloat) -> CGSize { CGSize(width: (h * 0.5).rounded(), height: (h * 0.8).rounded()) }
+
+    /// How much of the spirit's height its icon takes, from the top.
+    static let spiritIconFraction: CGFloat = 0.62
+
+    /// A pale, see-through ghost of an app's own icon, with hollow eyes and an "ooo" mouth, trailing a
+    /// ragged wisp of a tail. `key` names the app, so each app's spirit is drawn once.
+    static func spiritTexture(icon: NSImage, key: String, unit h: CGFloat, scale: CGFloat) -> SKTexture {
+        let size = spiritSize(unit: h)
+        return cached("spirit-\(key)", size: size, scale: scale) { ctx in
+            let w = size.width, ht = size.height
+            let side = min(w, ht * spiritIconFraction)
+            let iconRect = CGRect(x: (w - side) / 2, y: ht - side, width: side, height: side)
+            // The tail: from under the icon, narrowing to a curl at the bottom.
+            let tail = CGMutablePath()
+            tail.move(to: CGPoint(x: iconRect.minX + side * 0.18, y: iconRect.minY + side * 0.2))
+            tail.addQuadCurve(to: CGPoint(x: w * 0.42, y: 0), control: CGPoint(x: w * 0.12, y: ht * 0.1))
+            tail.addQuadCurve(to: CGPoint(x: w * 0.6, y: ht * 0.2), control: CGPoint(x: w * 0.62, y: ht * 0.04))
+            tail.addQuadCurve(to: CGPoint(x: iconRect.maxX - side * 0.18, y: iconRect.minY + side * 0.2),
+                              control: CGPoint(x: w * 0.86, y: ht * 0.22))
+            tail.closeSubpath()
+            ctx.addPath(tail)
+            ctx.setFillColor(Palette.ghost.withAlpha(0.7))
+            ctx.fillPath()
+
+            // The icon, drained of color and washed pale.
+            var proposed = CGRect(origin: .zero, size: CGSize(width: side * scale, height: side * scale))
+            if let image = icon.cgImage(forProposedRect: &proposed, context: nil, hints: nil) {
+                ctx.saveGState()
+                ctx.clip(to: iconRect, mask: image)
+                ctx.draw(image, in: iconRect)
+                ctx.setBlendMode(.saturation)
+                ctx.setFillColor(CGColor(gray: 0.5, alpha: 1))
+                ctx.fill(iconRect)
+                ctx.setBlendMode(.normal)
+                ctx.setFillColor(Palette.ghost.withAlpha(0.55))
+                ctx.fill(iconRect)
+                ctx.restoreGState()
+            } else {
+                ctx.setFillColor(Palette.ghost.withAlpha(0.8))
+                ctx.fill(iconRect.insetBy(dx: side * 0.1, dy: side * 0.1))
+            }
+            // Hollow eyes and a mouth.
+            ctx.setFillColor(Palette.soot.withAlpha(0.85))
+            let eye = side * 0.16
+            ctx.fillEllipse(in: CGRect(x: iconRect.midX - side * 0.24, y: iconRect.minY + side * 0.52, width: eye, height: eye * 1.25))
+            ctx.fillEllipse(in: CGRect(x: iconRect.midX + side * 0.08, y: iconRect.minY + side * 0.52, width: eye, height: eye * 1.25))
+            ctx.fillEllipse(in: CGRect(x: iconRect.midX - side * 0.07, y: iconRect.minY + side * 0.22, width: side * 0.14, height: side * 0.17))
+        }
+    }
 }

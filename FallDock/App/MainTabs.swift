@@ -509,6 +509,11 @@ struct CustomizePage: View {
                     }
                     Divider()
                     haunting
+                    Divider()
+                    SettingRow(symbol: "app.dashed", color: .purple, title: "Spirits of quit apps",
+                               detail: "Quit an app and its ghost floats up out of the Dock. Open it again and the ghost swoops back in.") {
+                        Toggle("", isOn: $model.spirits).labelsHidden().toggleStyle(.switch)
+                    }
                 } else {
                     fallingLeaves
                 }

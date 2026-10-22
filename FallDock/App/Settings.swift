@@ -26,6 +26,7 @@ enum Settings {
         static let bats = "bats"
         static let ghost = "ghost"
         static let haunting = "haunting"
+        static let spirits = "spirits"
         static let wallpaperEnabled = "wallpaperEnabled"
         static let wallpaperMode = "wallpaperMode"
         static let wallpaperOriginals = "wallpaperOriginals"
@@ -62,6 +63,7 @@ enum Settings {
             Key.bats: true,
             Key.ghost: true,
             Key.haunting: true,
+            Key.spirits: true,
             // Fall stays on the Dock until the person picks Halloween or the calendar.
             Key.theme: ThemeChoice.keep(.fall).rawValue,
             Key.showMenuBarIcon: true,
@@ -78,7 +80,7 @@ enum Settings {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
                     Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.festivalLead, Key.wallpaperEnabled, Key.wallpaperMode,
-                    Key.bats, Key.ghost, Key.haunting] + Theme.allCases.map(smashCountKey)
+                    Key.bats, Key.ghost, Key.haunting, Key.spirits] + Theme.allCases.map(smashCountKey)
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -207,6 +209,13 @@ enum Settings {
     static var haunting: Bool {
         get { defaults.bool(forKey: Key.haunting) }
         set { defaults.set(newValue, forKey: Key.haunting) }
+    }
+
+    /// Spirits of quit apps: at Halloween, a quit app's ghost rises out of its spot in the Dock, and
+    /// swoops back in when the app opens again.
+    static var spirits: Bool {
+        get { defaults.bool(forKey: Key.spirits) }
+        set { defaults.set(newValue, forKey: Key.spirits) }
     }
 
     /// The current theme's visitor: the squirrel in fall, the ghost at Halloween.
