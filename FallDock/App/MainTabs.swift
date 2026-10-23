@@ -30,16 +30,22 @@ extension Color {
 // MARK: - Building blocks
 
 /// A page: its big title, then its sections.
-struct PageLayout<Content: View>: View {
+struct PageLayout<Accessory: View, Content: View>: View {
     var title: String
+    /// Something to the right of the title, like the Customize page's theme menu.
+    @ViewBuilder var accessory: Accessory
     @ViewBuilder var content: Content
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                Text(title)
-                    .font(.system(size: 34, weight: .bold))
-                    .padding(.bottom, -6)
+                HStack(alignment: .center, spacing: 12) {
+                    Text(title)
+                        .font(.system(size: 34, weight: .bold))
+                    Spacer(minLength: 0)
+                    accessory
+                }
+                .padding(.bottom, -6)
                 content
             }
             .padding(.horizontal, 40)
@@ -54,35 +60,50 @@ struct PageLayout<Content: View>: View {
     }
 }
 
+extension PageLayout where Accessory == EmptyView {
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.init(title: title, accessory: { EmptyView() }, content: content)
+    }
+}
+
 /// A rounded panel that groups related things, with an optional heading above it.
 struct Card<Content: View>: View {
     var title: String?
+    /// Keeps what's inside within the card's corners, for a card whose content slides in and out.
+    var clips = false
     @ViewBuilder var content: Content
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let box = VStack(alignment: .leading, spacing: 14) {
+            content
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(shape.fill(Color.cardFill))
         VStack(alignment: .leading, spacing: 10) {
             if let title {
                 Text(title).font(.title3.weight(.bold))
             }
-            VStack(alignment: .leading, spacing: 14) {
-                content
+            if clips {
+                box.clipShape(shape)
+            } else {
+                box
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardFill))
         }
     }
 }
 
-/// The small grey capitals over a card's title.
+/// The small capitals over a card's title, grey unless they are the title themselves.
 struct Eyebrow: View {
     var text: String
+    var style: HierarchicalShapeStyle = .secondary
 
     var body: some View {
         Text(text.uppercased())
             .font(.system(size: 12, weight: .semibold))
             .tracking(0.4)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(style)
     }
 }
 
@@ -140,16 +161,18 @@ struct FeatureCard<Footer: View>: View {
     var subtitle: String
     var image: NSImage
     var imageBackground: Color
+    /// Fills the whole circle with the picture (a desktop picture) instead of sitting a drawing in it.
+    var fillsCircle = false
     @ViewBuilder var footer: Footer
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 Eyebrow(text: eyebrow)
+                // Wraps as far as it needs, never cut off with "...".
                 Text(title)
                     .font(.system(size: 22, weight: .bold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(subtitle)
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -164,9 +187,10 @@ struct FeatureCard<Footer: View>: View {
                 .overlay {
                     Image(nsImage: image)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .padding(18)
+                        .aspectRatio(contentMode: fillsCircle ? .fill : .fit)
+                        .padding(fillsCircle ? 0 : 18)
                 }
+                .clipShape(Circle())
                 .frame(width: 96, height: 96)
         }
         .padding(22)
@@ -176,8 +200,9 @@ struct FeatureCard<Footer: View>: View {
 }
 
 extension FeatureCard where Footer == EmptyView {
-    init(eyebrow: String, title: String, subtitle: String, image: NSImage, imageBackground: Color) {
-        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle, image: image, imageBackground: imageBackground) { EmptyView() }
+    init(eyebrow: String, title: String, subtitle: String, image: NSImage, imageBackground: Color, fillsCircle: Bool = false) {
+        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle, image: image, imageBackground: imageBackground,
+                  fillsCircle: fillsCircle) { EmptyView() }
     }
 }
 
@@ -286,8 +311,8 @@ final class LiveHarvest: ObservableObject {
 
     init() {
         scene = PumpkinScene(size: CGSize(width: 512, height: 210))
-        scene.onSmash = { AppModel.shared.addToCount() }
-        scene.onLightUp = { AppModel.shared.addToCount() }
+        scene.onSmash = { AppModel.shared.recordSmash() }
+        scene.onLightUp = { AppModel.shared.recordSmash() }
     }
 
     /// Where the pretend Dock's top edge is, from the bottom of the view.
@@ -425,6 +450,8 @@ struct CustomizePage: View {
     @ObservedObject var model: AppModel
     /// The theme whose options are showing: the one on the Dock, unless another one is picked above.
     @State private var picked: Settings.Theme?
+    /// Try It was just clicked, and the ghosts are waiting for hands off.
+    @State private var hauntArmed = false
     private let columns = [GridItem(.adaptive(minimum: 132), spacing: 14)]
 
     private var theme: Settings.Theme { picked ?? model.theme }
@@ -454,29 +481,38 @@ struct CustomizePage: View {
         }
     }
 
+    /// A drop-down menu of the themes, with room for many seasons and festivals. Each one is a button,
+    /// so picking it always shows its options. (A menu-style Picker split into sections didn't pick.)
+    private var themeMenu: some View {
+        Menu {
+            ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
+                Section(kind.title) {
+                    ForEach(Settings.Theme.allCases.filter { $0.kind == kind }, id: \.self) { option in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) { picked = option }
+                        } label: {
+                            Label(option.title, systemImage: option == theme ? "checkmark" : option.symbol)
+                        }
+                        .accessibilityIdentifier("customize-theme-\(option.rawValue)")
+                    }
+                }
+            }
+        } label: {
+            Label(theme.title, systemImage: theme.symbol)
+        }
+        .fixedSize()
+        .accessibilityIdentifier("customize-theme")
+        .accessibilityValue(theme.title)
+    }
+
     var body: some View {
         PageLayout(title: "Customize") {
-            if Settings.Theme.allCases.count > 1 {
+            if Settings.Theme.allCases.count > 1 { themeMenu }
+        } content: {
+            if theme != model.theme {
                 HStack(spacing: 10) {
-                    Text("Theme").foregroundStyle(.secondary)
-                    // A drop-down menu, with room for many seasons and festivals.
-                    Picker("Theme", selection: Binding(get: { theme }, set: { new in withAnimation(.easeInOut(duration: 0.25)) { picked = new } })) {
-                        ForEach(Settings.Theme.Kind.allCases, id: \.self) { kind in
-                            Section(kind.title) {
-                                ForEach(Settings.Theme.allCases.filter { $0.kind == kind }, id: \.self) {
-                                    Label($0.title, systemImage: $0.symbol).tag($0)
-                                }
-                            }
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .fixedSize()
-                    .accessibilityIdentifier("customize-theme")
-                    if theme != model.theme {
-                        Text("Not on your Dock right now.").font(.callout).foregroundStyle(.secondary)
-                        Button("Show \(theme.title)") { model.themeChoice = .keep(theme) }
-                    }
+                    Text("\(theme.title) isn't on your Dock right now.").font(.callout).foregroundStyle(.secondary)
+                    Button("Show \(theme.title)") { model.themeChoice = .keep(theme) }
                     Spacer(minLength: 0)
                 }
             }
@@ -502,6 +538,25 @@ struct CustomizePage: View {
                     SettingRow(symbol: "moon.stars.fill", color: .harvestNight, title: "Bats",
                                detail: "A bat fluttering past now and then, and one hiding in each jack-o'-lantern.") {
                         Toggle("", isOn: $model.bats).labelsHidden().toggleStyle(.switch)
+                    }
+                    Divider()
+                    haunting
+                    Divider()
+                    SettingRow(symbol: "app.dashed", color: .purple, title: "Spirits of quit apps",
+                               detail: "Quit an app and its ghost floats up out of the Dock. Open it again and the ghost swoops back in.") {
+                        Toggle("", isOn: $model.spirits).labelsHidden().toggleStyle(.switch)
+                    }
+                    if model.spirits && !model.hasAccessibility {
+                        // Without Accessibility the Dock won't say where each icon is, so the spot is a guess.
+                        HStack(spacing: 10) {
+                            Text("Allow Accessibility so each ghost comes from its app's exact icon.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                            Button("Allow") { DockLocator.requestAccessibility() }
+                                .accessibilityIdentifier("spirits-allow-accessibility")
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.leading, 40)
                     }
                 case .diwali:
                     SettingRow(symbol: "sparkles", color: Settings.Theme.diwali.color, title: "Fireworks",
@@ -543,6 +598,34 @@ struct CustomizePage: View {
         }
         // A new theme on the Dock (picked elsewhere, or by the calendar) shows its own options.
         .onChange(of: model.theme) { _ in picked = nil }
+    }
+
+    /// Haunting while you're away, and Try It to see it without waiting two minutes.
+    private var haunting: some View {
+        Group {
+            SettingRow(symbol: "eyes", color: .purple, title: "Haunting while you're away",
+                       detail: "Leave your Mac alone for a couple of minutes and ghosts gather over the Dock, eyes blink in the dark and the candles burn green. Touch anything and they scatter.") {
+                Toggle("", isOn: $model.haunting.animation(.easeInOut(duration: 0.25))).labelsHidden().toggleStyle(.switch)
+            }
+            if model.haunting {
+                HStack(spacing: 10) {
+                    Button(hauntArmed ? "Hands Off…" : "Try It") {
+                        model.tryHaunting()
+                        hauntArmed = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + HauntingClock.tryItAfter + 4) { hauntArmed = false }
+                    }
+                    .disabled(model.theme != .halloween)
+                    .accessibilityIdentifier("haunt-try")
+                    Text(model.theme != .halloween ? "Works while Halloween is on your Dock."
+                         : hauntArmed ? "Let go of the mouse and keyboard and watch the Dock."
+                         : "Haunts the Dock after just a moment, not two minutes.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 40)
+            }
+        }
     }
 
     /// Fall's falling leaves, with how many and whether they fill the screen.
@@ -648,24 +731,6 @@ enum ExtraArt {
         let image = NSImage(cgImage: texture.cgImage(), size: size)
         cache[key] = image
         return image
-    }
-
-    /// The theme's own pumpkin (or lamp), for the Theme card.
-    static func themeImage(_ theme: Settings.Theme) -> NSImage {
-        switch theme {
-        case .fall: return pumpkin()
-        case .halloween: return jackOLantern()
-        case .diwali: return diya()
-        }
-    }
-
-    /// The theme's visitor, for the Customize card.
-    static func visitor(_ theme: Settings.Theme) -> NSImage {
-        switch theme {
-        case .fall: return squirrel()
-        case .halloween: return ghost()
-        case .diwali: return peacock()
-        }
     }
 
     /// A lit diya, for Diwali.

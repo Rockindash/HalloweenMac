@@ -15,7 +15,7 @@ enum Settings {
         static let sound = "sound"
         static let pumpkinCount = "pumpkinCount" // replaced by fullness; read once to carry it over
         static let fullness = "fullness"
-        static let smashCount = "smashCount"
+        static let smashCount = "smashCount" // Fall's; every other theme adds ".<theme>"
         static let hasSeenWelcome = "hasSeenWelcome"
         static let disabledExtras = "disabledExtras"
         static let squirrel = "squirrel"
@@ -27,12 +27,11 @@ enum Settings {
         static let ghost = "ghost"
         static let fireworks = "fireworks"
         static let peacock = "peacock"
+        static let haunting = "haunting"
+        static let spirits = "spirits"
         static let wallpaperEnabled = "wallpaperEnabled"
         static let wallpaperMode = "wallpaperMode"
         static let wallpaperOriginals = "wallpaperOriginals"
-
-        /// Each theme's own count. Fall's is the original smash count, which every smash went to before.
-        static func count(_ theme: Theme) -> String { theme == .fall ? smashCount : "\(theme.rawValue)Count" }
     }
 
     /// The app was called Fall Dock, with the bundle ID com.amol.falldock, before it shipped. The first
@@ -67,24 +66,25 @@ enum Settings {
             Key.ghost: true,
             Key.fireworks: true,
             Key.peacock: true,
+            Key.haunting: true,
+            Key.spirits: true,
             // Fall stays on the Dock until the person picks Halloween or the calendar.
             Key.theme: ThemeChoice.keep(.fall).rawValue,
             Key.showMenuBarIcon: true,
             Key.sound: true,
             Key.fullness: Fullness.plenty.rawValue,
-            Key.smashCount: 0,
             Key.wallpaperEnabled: false,
             Key.wallpaperMode: WallpaperMode.matchDock.rawValue,
         ])
     }
 
-    /// Puts every option back the way it was on first launch and clears every theme's count.
+    /// Puts every option back the way it was on first launch and clears the smash count.
     /// The welcome isn't shown again.
     static func resetAll() {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
                     Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.festivalLead, Key.wallpaperEnabled, Key.wallpaperMode,
-                    Key.bats, Key.ghost, Key.fireworks, Key.peacock] + Theme.allCases.map(Key.count)
+                    Key.bats, Key.ghost, Key.haunting, Key.spirits, Key.fireworks, Key.peacock] + Theme.allCases.map(smashCountKey)
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -156,28 +156,18 @@ enum Settings {
         set { defaults.set(newValue.rawValue, forKey: Key.fullness) }
     }
 
-    /// Fall's count of smashed pumpkins. (Before each theme kept its own count, every smash counted here.)
-    static var smashCount: Int {
-        get { defaults.integer(forKey: Key.smashCount) }
-        set { defaults.set(newValue, forKey: Key.smashCount) }
+    /// Each theme counts its own smashes. Fall keeps the original count, which was all Fall's before
+    /// there were other themes.
+    static func smashCountKey(for theme: Theme) -> String {
+        theme == .fall ? Key.smashCount : "\(Key.smashCount).\(theme.rawValue)"
     }
 
-    /// How many of a theme's main thing have been clicked, on the Dock or in the app window: pumpkins
-    /// smashed at Fall, jack-o'-lanterns smashed at Halloween, diyas lit at Diwali.
-    static func count(_ theme: Theme) -> Int {
-        defaults.integer(forKey: Key.count(theme))
+    static func smashCount(for theme: Theme) -> Int {
+        defaults.integer(forKey: smashCountKey(for: theme))
     }
 
-    static func setCount(_ count: Int, for theme: Theme) {
-        defaults.set(count, forKey: Key.count(theme))
-    }
-
-    /// One more for `theme`'s count. Returns the new count.
-    @discardableResult
-    static func addToCount(_ theme: Theme) -> Int {
-        let total = count(theme) + 1
-        setCount(total, for: theme)
-        return total
+    static func setSmashCount(_ count: Int, for theme: Theme) {
+        defaults.set(count, forKey: smashCountKey(for: theme))
     }
 
     static var hasSeenWelcome: Bool {
@@ -230,6 +220,20 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.peacock) }
     }
 
+    /// Haunting while you're away: at Halloween, ghosts gather over the Dock while nobody's at the Mac,
+    /// and scatter when someone's back.
+    static var haunting: Bool {
+        get { defaults.bool(forKey: Key.haunting) }
+        set { defaults.set(newValue, forKey: Key.haunting) }
+    }
+
+    /// Spirits of quit apps: at Halloween, a quit app's ghost rises out of its spot in the Dock, and
+    /// swoops back in when the app opens again.
+    static var spirits: Bool {
+        get { defaults.bool(forKey: Key.spirits) }
+        set { defaults.set(newValue, forKey: Key.spirits) }
+    }
+
     /// The current theme's visitor: the squirrel in fall, the ghost at Halloween, the peacock at Diwali.
     static var visitor: Bool {
         switch theme {
@@ -271,32 +275,13 @@ enum Settings {
             }
         }
 
-        /// The main thing on the Dock, which the Home page counts, and what clicking one does to it.
-        private var counted: (one: String, many: String, done: String) {
-            switch self {
-            case .fall: return ("Pumpkin", "Pumpkins", "Smashed")
-            case .halloween: return ("Jack-o'-Lantern", "Jack-o'-Lanterns", "Smashed")
-            case .diwali: return ("Diya", "Diyas", "Lit")
-            }
-        }
-
-        /// The Home page's count: "No Pumpkins Smashed Yet", "1 Diya Lit", "12 Jack-o'-Lanterns Smashed".
-        func countTitle(_ count: Int) -> String {
-            let (one, many, done) = counted
-            switch count {
-            case 0: return "No \(many) \(done) Yet"
-            case 1: return "1 \(one) \(done)"
-            default: return "\(count) \(many) \(done)"
-            }
-        }
-
         /// The theme's main thing in a sentence, which its menu bar icon shows: "pumpkin", "jack-o'-lantern", "diya".
-        var thing: String { counted.one.lowercased() }
-
-        /// What the count is, as a setting's name: "Pumpkins smashed", "Jack-o'-lanterns smashed", "Diyas lit".
-        var countName: String {
-            let (_, many, done) = counted
-            return String(many.prefix(1)) + many.dropFirst().lowercased() + " " + done.lowercased()
+        var thing: String {
+            switch self {
+            case .fall: return "pumpkin"
+            case .halloween: return "jack-o'-lantern"
+            case .diwali: return "diya"
+            }
         }
 
         var subtitle: String {
@@ -305,6 +290,27 @@ enum Settings {
             case .halloween: return "Glowing jack-o'-lanterns, tombstones, candy, bats and a friendly ghost."
             case .diwali: return "Glowing diyas, rangoli, sweets, crackers, a marigold garland and a visiting peacock."
             }
+        }
+
+        /// How many of what gets smashed in this theme, like "1 pumpkin" or "3 jack-o'-lanterns".
+        func smashed(_ count: Int) -> String {
+            switch self {
+            case .fall: return count == 1 ? "1 pumpkin" : "\(count) pumpkins"
+            case .halloween: return count == 1 ? "1 jack-o'-lantern" : "\(count) jack-o'-lanterns"
+            case .diwali: return count == 1 ? "1 diya" : "\(count) diyas"
+            }
+        }
+
+        /// The Home card's title for the count, like "0 Pumpkins Smashed", "3 Lanterns Smashed" or "2 Diyas Lit"
+        /// (short, so it fits the card). A diya isn't smashed: clicking one lights up the sky.
+        func smashedTitle(_ count: Int) -> String {
+            let things: String
+            switch self {
+            case .fall: things = count == 1 ? "Pumpkin" : "Pumpkins"
+            case .halloween: things = count == 1 ? "Lantern" : "Lanterns"
+            case .diwali: return count == 1 ? "1 Diya Lit" : "\(count) Diyas Lit"
+            }
+            return "\(count) \(things) Smashed"
         }
 
         /// This theme's extras, in the order their tiles show.

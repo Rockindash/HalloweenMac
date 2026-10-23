@@ -60,6 +60,15 @@ final class OverlayController {
     private var dockWatchTimer: Timer?
     private var spaceSwitchTimer: Timer?
     private var healthTimer: Timer?
+    private var hauntTimer: Timer?
+    private var haunting = HauntingClock()
+    private var spiritLedger = SpiritLedger()
+    /// The apps open now that have a Dock icon, by `SpiritLedger.key(for:)`, with their icons. Noted
+    /// while they run, since a quit app may no longer say what it was.
+    private var dockApps: [String: NSImage] = [:]
+    /// Whether the icon spots last came from the Dock itself, to log when that changes.
+    private var lastIconsExact: Bool?
+    private var hauntTicks = 0
     /// The scene's frame count at the last health check, while the harvest was showing.
     private var lastFrameCount: Int?
     private var lastRebuild: TimeInterval = 0
@@ -187,6 +196,13 @@ final class OverlayController {
             (workspace, workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main, using: onChange)),
             (workspace, workspace.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main, using: onChange)),
+            // Spirits of quit apps.
+            (workspace, workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+                Task { @MainActor in self?.appQuit(note) }
+            }),
+            (workspace, workspace.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] note in
+                Task { @MainActor in self?.appLaunched(note) }
+            }),
             // Reduce Motion turned on or off: grow the harvest again with or without the movement.
             (workspace, workspace.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil,
                                               queue: .main) { [weak self] _ in
@@ -225,6 +241,12 @@ final class OverlayController {
             Task { @MainActor in self?.checkHealth() }
         }
         healthTimer?.tolerance = 1
+
+        // Haunting while you're away: check now and then how long the Mac has been left alone.
+        hauntTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkHaunting() }
+        }
+        hauntTimer?.tolerance = 0.3
 
         // The Dock slides away in full-screen apps (and with auto-hide), so check often
         // whether it's on screen (watchDock decides how often it's worth it).
@@ -555,9 +577,130 @@ final class OverlayController {
         }
     }
 
+    /// Haunting while you're away: the ghosts gather once the Mac has been left alone for a while at
+    /// Halloween, and scatter the moment anyone's back.
+    func checkHaunting() {
+        // Every few seconds, note where the Dock's app icons are, for the spirits of quit apps.
+        hauntTicks &+= 1
+        if hauntTicks % 3 == 0, spiritsAllowed { noteDockApps() }
+        let allowed = Settings.haunting && Settings.theme == .halloween && isLicensed && !isPaused
+            && panel?.isVisible == true && !isHiding && !isMissionControlShowing
+        let change = haunting.update(idle: HauntingClock.secondsSinceInput(), now: ProcessInfo.processInfo.systemUptime, allowed: allowed)
+        switch change {
+        case .gather?:
+            log.debug("Nobody's at the Mac: haunting the Dock")
+            scene?.haunt()
+        case .scatter?:
+            scene?.unhaunt()
+        case nil:
+            // A fresh harvest (the Dock changed, say) clears the ghosts away; bring them straight back.
+            if haunting.isHaunting, scene?.isHaunted == false { scene?.haunt(animated: false) }
+        }
+    }
+
+    // MARK: Spirits of quit apps
+
+    private var spiritsAllowed: Bool {
+        Settings.spirits && Settings.theme == .halloween && isLicensed && !isPaused && panel?.isVisible == true && !isHiding
+    }
+
+    /// Notes the open apps with Dock icons, and where their icons are: exactly, from the Dock itself
+    /// with Accessibility allowed, or else worked out from the Dock's settings and the open apps.
+    private func noteDockApps() {
+        let apps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular && $0.bundleURL != nil }
+        for app in apps {
+            let key = SpiritLedger.key(for: app.bundleURL!)
+            if dockApps[key] == nil { dockApps[key] = app.icon ?? NSWorkspace.shared.icon(forFile: app.bundleURL!.path) }
+        }
+        // The worked-out spots first, then the exact ones over them wherever the Dock gives them.
+        if let dock = currentDock {
+            let settings = UserDefaults(suiteName: "com.apple.dock")
+            // Every kept tile takes a spot, spacers and all, so ones without an app hold their place too.
+            let kept = (settings?.array(forKey: "persistent-apps") as? [[String: Any]] ?? []).enumerated().map { i, entry in
+                (entry["tile-data"] as? [String: Any])?["bundle-identifier"] as? String ?? "#tile-\(i)"
+            }
+            let guesses = SpiritLedger.estimatedIconX(kept: kept, open: apps.compactMap(\.bundleIdentifier), dockFrame: dock.dockFrame,
+                                                      tileSize: CGFloat(settings?.double(forKey: "tilesize") ?? 0))
+            var xs: [String: CGFloat] = [:]
+            for app in apps {
+                if let id = app.bundleIdentifier, let x = guesses[id] { xs[SpiritLedger.key(for: app.bundleURL!)] = x }
+            }
+            spiritLedger.noteIconX(xs)
+        }
+        let exact = DockLocator.appIconFrames()
+        var found: [String: CGRect] = [:]
+        for app in apps {
+            let key = SpiritLedger.key(for: app.bundleURL!)
+            if let frame = exact[key] ?? app.localizedName.flatMap({ exact[SpiritLedger.titleKey($0)] }) { found[key] = frame }
+        }
+        let isExact = !exact.isEmpty
+        if lastIconsExact != isExact {
+            log.info("Spirits: icon spots \(isExact ? "read from the Dock" : "worked out from the Dock's settings (no Accessibility)", privacy: .public)")
+            lastIconsExact = isExact
+        }
+        spiritLedger.noteIcons(found)
+    }
+
+    /// The app a launch or quit notification is about, if it has (or had) a Dock icon and isn't Dockorate.
+    private func dockApp(in note: Notification) -> (key: String, icon: NSImage)? {
+        guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier, let url = app.bundleURL else { return nil }
+        let key = SpiritLedger.key(for: url)
+        // A quit app can report no activation policy any more, so one noted while it ran counts too.
+        guard app.activationPolicy == .regular || dockApps[key] != nil else {
+            log.debug("Spirits: \(url.lastPathComponent, privacy: .public) has no Dock icon")
+            return nil
+        }
+        let icon = dockApps[key] ?? app.icon ?? NSWorkspace.shared.icon(forFile: url.path)
+        return (key, icon)
+    }
+
+    /// The icon's middle across the scene, from its middle across the screen.
+    private func sceneX(_ screenX: CGFloat?) -> CGFloat? {
+        guard let screenX, let panel else { return nil }
+        return screenX - panel.frame.minX
+    }
+
+    /// An app quit: its spirit rises out of where its icon was.
+    private func appQuit(_ note: Notification) {
+        guard let app = dockApp(in: note) else { return }
+        dockApps[app.key] = nil
+        let x = spiritLedger.quit(app.key, now: ProcessInfo.processInfo.systemUptime)
+        guard spiritsAllowed else {
+            log.debug("Spirits: an app quit, but spirits can't show now")
+            return
+        }
+        let source = x == nil ? "unknown" : spiritLedger.exact.contains(app.key) ? "read from the Dock" : "worked out (no Accessibility)"
+        log.info("Spirits: \(app.key, privacy: .public) quit; its spirit rises at x \(x ?? -1, privacy: .public), icon spot \(source, privacy: .public)")
+        scene?.releaseSpirit(icon: app.icon, key: app.key, atSceneX: sceneX(x))
+    }
+
+    /// An app opened: if its spirit left a little while ago, it swoops back in once the app's icon is in the Dock.
+    private func appLaunched(_ note: Notification) {
+        guard let app = dockApp(in: note) else { return }
+        dockApps[app.key] = app.icon
+        let returning = spiritLedger.launched(app.key, now: ProcessInfo.processInfo.systemUptime)
+        // Note where its icon is once it's in the Dock, even if it quits again before the next check.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard let self, self.spiritsAllowed else { return }
+            self.noteDockApps()
+            guard returning else { return }
+            log.info("Spirits: an app came back; its spirit returns")
+            self.scene?.returnSpirit(icon: app.icon, key: app.key, toSceneX: self.sceneX(self.spiritLedger.iconX[app.key]))
+        }
+    }
+
+    /// Try It: haunt the Dock as soon as the Mac is left alone for a moment.
+    func tryHaunting() {
+        haunting.tryIt(now: ProcessInfo.processInfo.systemUptime)
+    }
+
     /// Tells the scene where the pointer is, and lets clicks through everywhere except right on top
     /// of a pumpkin or something else that reacts to a click.
     private func updateHover() {
+        // The pointer moving is someone back at the Mac: scatter the ghosts without waiting.
+        if haunting.isHaunting { checkHaunting() }
         guard let panel, let scene, panel.isVisible, !isHiding else {
             hoverTimer?.invalidate()
             hoverTimer = nil
@@ -699,6 +842,7 @@ final class OverlayController {
     func stop() {
         timer?.invalidate()
         healthTimer?.invalidate()
+        hauntTimer?.invalidate()
         dockWatchTimer?.invalidate()
         spaceSwitchTimer?.invalidate()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }

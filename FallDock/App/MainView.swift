@@ -89,7 +89,8 @@ struct MainView: View {
                     LicensePage(license: model.license)
                 case .home:
                     HomePage(model: model, state: state, openCustomize: { pageName = Page.customize.rawValue },
-                             openThemes: { pageName = Page.themes.rawValue })
+                             openThemes: { pageName = Page.themes.rawValue },
+                             openBackground: { pageName = Page.background.rawValue })
                 case .themes: ThemesPage(model: model)
                 case .customize: CustomizePage(model: model)
                 case .background: BackgroundPage(model: model)
@@ -218,8 +219,8 @@ struct HomePage: View {
     var state: HarvestState
     var openCustomize: () -> Void
     var openThemes: () -> Void
+    var openBackground: () -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 280), spacing: 20)]
 
     private var status: String {
         switch state {
@@ -252,6 +253,40 @@ struct HomePage: View {
         }
     }
 
+    /// The count for the theme on the Dock: each theme keeps its own.
+    private var smashed: String { model.theme.smashedTitle(model.smashCount) }
+
+    /// The pictures on the four cards, in order: each card has its own, whatever the theme.
+    enum CardArt: Hashable {
+        case pumpkin, jackOLantern, diya, leafPile, blackCat, rangoli, squirrel, ghost, peacock, desktop(Settings.Theme, Palette.Appearance)
+
+        var image: NSImage {
+            switch self {
+            case .pumpkin: return ExtraArt.pumpkin()
+            case .jackOLantern: return ExtraArt.jackOLantern()
+            case .diya: return ExtraArt.diya()
+            case .leafPile: return ExtraArt.image(for: .leafPile)
+            case .blackCat: return ExtraArt.image(for: .blackCat)
+            case .rangoli: return ExtraArt.image(for: .rangoli)
+            case .squirrel: return ExtraArt.squirrel()
+            case .ghost: return ExtraArt.ghost()
+            case .peacock: return ExtraArt.peacock()
+            case .desktop(let theme, let appearance): return WallpaperArt.preview(for: theme, appearance)
+            }
+        }
+    }
+
+    /// Your harvest (what gets smashed), Theme, Customize (the visitor) and Background (the desktop picture).
+    static func cardArt(for theme: Settings.Theme, _ appearance: Palette.Appearance) -> [CardArt] {
+        switch theme {
+        case .fall: return [.pumpkin, .leafPile, .squirrel, .desktop(theme, appearance)]
+        case .halloween: return [.jackOLantern, .blackCat, .ghost, .desktop(theme, appearance)]
+        case .diwali: return [.diya, .rangoli, .peacock, .desktop(theme, appearance)]
+        }
+    }
+
+    private var art: [CardArt] { Self.cardArt(for: model.theme, model.appearance) }
+
     var body: some View {
         // Checked every minute, so the greeting changes if the window stays open past noon or 5pm.
         TimelineView(.everyMinute) { context in
@@ -260,27 +295,40 @@ struct HomePage: View {
 
                 controls
 
-                LazyVGrid(columns: columns, spacing: 20) {
-                    // Only the count for the theme that's on; each theme keeps its own.
-                    FeatureCard(eyebrow: "Your harvest", title: model.theme.countTitle(model.themeCount),
-                                subtitle: countSummary,
-                                image: ExtraArt.themeImage(model.theme), imageBackground: Color.harvestMustard.opacity(0.22))
-                    Button(action: openThemes) {
-                        FeatureCard(eyebrow: "Theme", title: model.theme.title,
-                                    subtitle: ThemeSchedule.summary(model.themeChoice),
-                                    image: ExtraArt.themeImage(model.theme),
-                                    imageBackground: Color.harvestNight.opacity(0.2))
-                            .contentShape(RoundedRectangle(cornerRadius: 16))
+                // Two by two, and not lazy: there are only four, and all of them are there for VoiceOver.
+                Grid(horizontalSpacing: 20, verticalSpacing: 20) {
+                    GridRow {
+                        FeatureCard(eyebrow: "Your harvest", title: smashed,
+                                    subtitle: countSummary,
+                                    image: art[0].image, imageBackground: Color.harvestMustard.opacity(0.22))
+                        Button(action: openThemes) {
+                            FeatureCard(eyebrow: "Theme", title: model.theme.title,
+                                        subtitle: ThemeSchedule.summary(model.themeChoice),
+                                        image: art[1].image, imageBackground: Color.harvestNight.opacity(0.2))
+                                .contentShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(PressableStyle())
                     }
-                    .buttonStyle(PressableStyle())
-                    Button(action: openCustomize) {
-                        FeatureCard(eyebrow: "Customize", title: "Make It Yours",
-                                    subtitle: customizeSummary,
-                                    image: ExtraArt.visitor(model.theme),
-                                    imageBackground: Color.harvestRust.opacity(0.2))
-                            .contentShape(RoundedRectangle(cornerRadius: 16))
+                    GridRow {
+                        Button(action: openCustomize) {
+                            FeatureCard(eyebrow: "Customize", title: "Make It Yours",
+                                        subtitle: customizeSummary,
+                                        image: art[2].image, imageBackground: Color.harvestRust.opacity(0.2))
+                                .contentShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(PressableStyle())
+                        Button(action: openBackground) {
+                            FeatureCard(eyebrow: "Background", title: "A Desktop to Match",
+                                        subtitle: model.wallpaperEnabled
+                                            ? "Your desktop shows the \(model.theme.title) picture."
+                                            : "A soft sky and rolling hills behind your Dock. Off until you switch it on.",
+                                        image: art[3].image,
+                                        imageBackground: Color.harvestPlum.opacity(0.2), fillsCircle: true)
+                                .contentShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(PressableStyle())
+                        .accessibilityIdentifier("home-background")
                     }
-                    .buttonStyle(PressableStyle())
                 }
             }
         }
@@ -341,7 +389,13 @@ struct SettingsPage: View {
     @ObservedObject var model: AppModel
     @State private var hasAccessibility = DockLocator.hasAccessibility
     @State private var dockAtBottom = SettingsPage.isDockAtBottom
-    @State private var confirmingCountReset = false
+    @State private var confirmingSmashReset = false
+
+    /// Each theme's count, like "12 pumpkins and 3 jack-o'-lanterns".
+    private var smashedSoFar: String {
+        let counts = Settings.Theme.allCases.map { $0.smashed(model.smashCounts[$0] ?? 0) }
+        return ListFormatter.localizedString(byJoining: counts)
+    }
     @State private var confirmingResetAll = false
     @State private var confirmingLicenseRemoval = false
     private let tick = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
@@ -435,30 +489,29 @@ struct SettingsPage: View {
             }
 
             Card(title: "Reset") {
-                // The count for the theme that's on, like the one on Home.
-                SettingRow(symbol: model.theme == .diwali ? "sparkles" : "hammer.fill", color: .pumpkin, title: model.theme.countName,
-                           detail: "\(model.themeCount) so far. Each theme keeps its own count.") {
-                    Button("Reset Count") { confirmingCountReset = true }
-                        .disabled(model.themeCount == 0)
+                SettingRow(symbol: "hammer.fill", color: .pumpkin, title: "Smash count",
+                           detail: "\(smashedSoFar) smashed so far.") {
+                    Button("Reset Smash Count") { confirmingSmashReset = true }
+                        .disabled(model.totalSmashCount == 0)
                 }
                 Divider()
                 SettingRow(symbol: "arrow.counterclockwise", color: .red, title: "Reset everything",
-                           detail: "Puts every option back how it started, clears every theme's count and grows a fresh harvest.") {
+                           detail: "Puts every option back how it started, clears the smash count and grows a fresh harvest.") {
                     Button("Reset Everything", role: .destructive) { confirmingResetAll = true }
                         .tint(.red)
                 }
             }
-            .alert("Reset the \(model.theme.title) count?", isPresented: $confirmingCountReset) {
-                Button("Reset", role: .destructive) { model.resetCount() }
+            .alert("Reset the smash count?", isPresented: $confirmingSmashReset) {
+                Button("Reset", role: .destructive) { model.resetSmashCount() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("The \(model.theme.title) count of \(model.themeCount) goes back to zero. The other themes keep theirs. This can't be undone.")
+                Text("Every theme's count goes back to zero: \(smashedSoFar). This can't be undone.")
             }
             .alert("Reset everything?", isPresented: $confirmingResetAll) {
                 Button("Reset Everything", role: .destructive) { model.resetEverything() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("All of Dockorate's options go back to how they started, every theme's count goes back to zero, and a fresh harvest grows. Open at login stays as it is. This can't be undone.")
+                Text("All of Dockorate's options go back to how they started, the smash count goes back to zero, and a fresh harvest grows. Open at login stays as it is. This can't be undone.")
             }
 
             Card(title: "About") {

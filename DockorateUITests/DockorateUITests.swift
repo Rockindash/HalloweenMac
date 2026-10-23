@@ -247,18 +247,47 @@ final class DockorateUITests: XCTestCase {
     func testHomeShowsOnlyTheCountForTheThemeThatsOn() {
         launch()
         open("home")
-        XCTAssertTrue(find(text("No Pumpkins Smashed Yet"), onPageWith: "Show on Dock"), "Fall counts its smashed pumpkins")
+        XCTAssertTrue(find(text("0 Pumpkins Smashed"), onPageWith: "Show on Dock"), "Fall counts its smashed pumpkins")
         open("themes")
         let diwali = app.buttons["theme-diwali"].firstMatch
         reveal(diwali)
         diwali.click()
         open("home")
-        XCTAssertTrue(find(text("No Diyas Lit Yet"), onPageWith: "Show on Dock"), "Diwali counts its own diyas")
-        XCTAssertFalse(text("No Pumpkins Smashed Yet").exists, "Fall's count stays out of sight")
+        XCTAssertTrue(find(text("0 Diyas Lit"), onPageWith: "Show on Dock"), "Diwali counts its own diyas")
+        XCTAssertFalse(text("0 Pumpkins Smashed").exists, "Fall's count stays out of sight")
         open("settings")
-        XCTAssertTrue(element("Diyas lit").waitForExistence(timeout: 5), "Settings resets Diwali's count")
-        XCTAssertFalse(element("Pumpkins smashed").exists)
-        XCTAssertTrue(element("Show the diya in the menu bar").exists, "the menu bar switch names Diwali's icon")
+        XCTAssertTrue(element("Show the diya in the menu bar").waitForExistence(timeout: 5), "the menu bar switch names Diwali's icon")
+    }
+
+    func testHauntingAndSpiritsHaveSwitchesAndTryIt() {
+        launch()
+        open("themes")
+        let halloween = app.buttons["theme-halloween"].firstMatch
+        reveal(halloween)
+        halloween.click()
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5))
+        let haunting = toggle("Haunting while you're away")
+        XCTAssertTrue(isOn(haunting), "on to start with")
+        let tryIt = app.buttons["haunt-try"].firstMatch
+        reveal(tryIt)
+        XCTAssertTrue(tryIt.isEnabled, "Try It works while Halloween is on the Dock")
+        tryIt.click()
+        XCTAssertTrue(text("Let go of the mouse and keyboard and watch the Dock.").waitForExistence(timeout: 3))
+
+        // Spirits of quit apps has its own switch, on to start with.
+        XCTAssertTrue(isOn(toggle("Spirits of quit apps")))
+        setSwitch("Spirits of quit apps", on: false)
+
+        // Switched off, Try It goes away, and it stays off after a relaunch.
+        setSwitch("Haunting while you're away", on: false)
+        let gone = NSPredicate { _, _ in !self.app.buttons["haunt-try"].firstMatch.exists }
+        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
+        launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5))
+        XCTAssertFalse(isOn(toggle("Haunting while you're away")))
+        XCTAssertFalse(isOn(toggle("Spirits of quit apps")))
     }
 
     func testChangeAutomaticallyIsKept() {
@@ -269,13 +298,29 @@ final class DockorateUITests: XCTestCase {
         launch(["-UITestingSkipWelcome", "-UITestingKeepSettings"])
         open("themes")
         XCTAssertTrue(isOn(toggle("Change automatically")))
-        // Picking a theme keeps it, which switches changing automatically off.
+        // Switching it off keeps the theme that's on, and brings back the themes to pick from.
+        setSwitch("Change automatically", on: false)
         let halloween = app.buttons["theme-halloween"].firstMatch
+        XCTAssertTrue(halloween.waitForExistence(timeout: 5))
         reveal(halloween)
         halloween.click()
-        let automatic = toggle("Change automatically")
-        let off = NSPredicate { _, _ in !self.isOn(automatic) }
-        wait(for: [expectation(for: off, evaluatedWith: nil)], timeout: 5)
+        open("customize")
+        XCTAssertTrue(element("Graveyard dirt").waitForExistence(timeout: 5), "the picked theme is on the Dock")
+    }
+
+    func testPickAThemeShowsOnlyWhenChangeAutomaticallyIsOff() {
+        launch()
+        open("themes")
+        XCTAssertFalse(isOn(toggle("Change automatically")))
+        XCTAssertTrue(element("pick-a-theme").waitForExistence(timeout: 5), "themes to pick from while it's off")
+        XCTAssertTrue(app.buttons["theme-fall"].firstMatch.exists)
+
+        setSwitch("Change automatically", on: true)
+        let gone = NSPredicate { _, _ in !self.element("pick-a-theme").exists && !self.app.buttons["theme-fall"].firstMatch.exists }
+        wait(for: [expectation(for: gone, evaluatedWith: nil)], timeout: 5)
+
+        setSwitch("Change automatically", on: false)
+        XCTAssertTrue(element("pick-a-theme").waitForExistence(timeout: 5), "back once it's off again")
     }
 
     func testThemesPageShowsChangeAutomaticallyFirstAndThemesTwoToARow() {
@@ -299,6 +344,7 @@ final class DockorateUITests: XCTestCase {
 
         setSwitch("Change automatically", on: true)
         XCTAssertTrue(element("theme-year").waitForExistence(timeout: 5), "the year at a glance")
+        XCTAssertTrue(text("THEMES IT SWITCHES BETWEEN").waitForExistence(timeout: 5), "the rotation says plainly what it is")
         let fall = toggle("rotation-fall"), halloween = toggle("rotation-halloween")
         XCTAssertTrue(isOn(fall))
         XCTAssertTrue(isOn(halloween), "every theme starts out in the rotation")
@@ -378,9 +424,13 @@ final class DockorateUITests: XCTestCase {
     func testCustomizeHasAThemeMenu() {
         launch()
         open("customize")
-        let menu = app.popUpButtons["customize-theme"].firstMatch
+        let menu = element("customize-theme")
         XCTAssertTrue(menu.waitForExistence(timeout: 5), "a drop-down menu of themes")
-        XCTAssertTrue((menu.value as? String)?.contains("Fall") == true, "showing the theme on the Dock: \(menu.debugDescription)")
+        func shows(_ title: String) -> Bool { ((menu.value as? String) ?? "").contains(title) || menu.label.contains(title) }
+        XCTAssertTrue(shows("Fall"), "showing the theme on the Dock: \(menu.debugDescription)")
+        // On the right, across from the page's title.
+        let window = app.windows.firstMatch
+        XCTAssertGreaterThan(menu.frame.midX, window.frame.midX, "the menu sits on the right: \(menu.frame) in \(window.frame)")
         // It follows the theme on the Dock. (XCUITest can't open the menu itself on the CI Mac: its
         // click waits for a menu-open notification that never arrives there.)
         open("themes")
@@ -389,10 +439,20 @@ final class DockorateUITests: XCTestCase {
         halloween.click()
         open("customize")
         XCTAssertTrue(menu.waitForExistence(timeout: 5))
-        let showsHalloween = NSPredicate { _, _ in (menu.value as? String)?.contains("Halloween") == true }
+        let showsHalloween = NSPredicate { _, _ in shows("Halloween") }
         wait(for: [expectation(for: showsHalloween, evaluatedWith: nil)], timeout: 5)
         XCTAssertTrue(element("Graveyard dirt").exists)
         XCTAssertTrue(element("Bats").exists)
+    }
+
+    func testHomeHasABackgroundShortcut() {
+        launch()
+        open("home")
+        let card = element("home-background")
+        reveal(card)
+        XCTAssertTrue(card.waitForExistence(timeout: 5), "a Background card under Your harvest, Theme and Customize")
+        card.click()
+        XCTAssertTrue(element("Match my desktop to the Dock").waitForExistence(timeout: 5), "it opens the Background page")
     }
 
     func testBackgroundIsOffUntilSwitchedOn() {

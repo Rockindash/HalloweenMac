@@ -110,6 +110,7 @@ enum ArtCache {
         CozyArt.clearCache()
         SpookyArt.clearCache()
         DiwaliArt.clearCache()
+        HauntingArt.clearCache()
     }
 }
 

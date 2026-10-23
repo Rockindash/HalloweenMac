@@ -20,8 +20,11 @@ final class AppModel: ObservableObject {
     let license = LicenseManager()
     let updater = Updater()
 
-    /// How many of each theme's main thing have been clicked (see `Settings.count`).
-    @Published private(set) var counts: [Settings.Theme: Int]
+    /// Each theme's own count of smashes.
+    @Published private(set) var smashCounts: [Settings.Theme: Int]
+    /// The count for the theme on the Dock.
+    var smashCount: Int { smashCounts[theme] ?? 0 }
+    var totalSmashCount: Int { smashCounts.values.reduce(0, +) }
     /// The app's window is in full screen (its pages then start below the toolbar).
     @Published var isFullScreen = false
     @Published private(set) var isPaused = false
@@ -120,6 +123,21 @@ final class AppModel: ObservableObject {
         didSet { Settings.peacock = peacock; overlay.refresh(force: true) }
     }
 
+    /// Haunting while you're away (Halloween). Switched off mid-haunting, the ghosts scatter at once.
+    @Published var haunting: Bool {
+        didSet { Settings.haunting = haunting; overlay.checkHaunting() }
+    }
+
+    /// Spirits of quit apps (Halloween).
+    @Published var spirits: Bool {
+        didSet { Settings.spirits = spirits }
+    }
+
+    /// Try It: haunt the Dock as soon as the Mac is left alone for a moment.
+    func tryHaunting() {
+        overlay.tryHaunting()
+    }
+
     /// The desktop picture goes with the theme (the Background page).
     @Published var wallpaperEnabled: Bool {
         didSet { Settings.wallpaperEnabled = wallpaperEnabled; wallpaper.refresh() }
@@ -158,7 +176,7 @@ final class AppModel: ObservableObject {
 
     private init() {
         Settings.registerDefaults()
-        counts = AppModel.savedCounts()
+        smashCounts = Self.savedSmashCounts()
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras
@@ -173,6 +191,8 @@ final class AppModel: ObservableObject {
         ghost = Settings.ghost
         fireworks = Settings.fireworks
         peacock = Settings.peacock
+        haunting = Settings.haunting
+        spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
@@ -184,8 +204,8 @@ final class AppModel: ObservableObject {
     }
 
     func start() {
-        overlay.onSmash = { [weak self] in self?.addToCount() }
-        overlay.onLightUp = { [weak self] in self?.addToCount() }
+        overlay.onSmash = { [weak self] in self?.recordSmash() }
+        overlay.onLightUp = { [weak self] in self?.recordSmash() }
         overlay.isLicensed = license.isActive
         // The harvest comes and goes with the license, and the window and menu follow it too.
         licenseWatch = license.$key.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] key in
@@ -242,30 +262,28 @@ final class AppModel: ObservableObject {
         overlay.refresh()
     }
 
-    private static func savedCounts() -> [Settings.Theme: Int] {
-        Dictionary(uniqueKeysWithValues: Settings.Theme.allCases.map { ($0, Settings.count($0)) })
+    /// A pumpkin was smashed, on the Dock or in the app window's little harvest.
+    /// It counts for the theme on the Dock, which is also the one in the app window.
+    func recordSmash() {
+        Settings.setSmashCount(Settings.smashCount(for: theme) + 1, for: theme)
+        smashCounts = Self.savedSmashCounts()
     }
 
-    /// The count for the theme on the Dock now, which Home and Settings show.
-    var themeCount: Int { counts[theme] ?? 0 }
-
-    /// A pumpkin was smashed (or at Diwali, a diya lit), on the Dock or in the app window's little harvest:
-    /// one more for the theme that's showing.
-    func addToCount() {
-        counts[theme] = Settings.addToCount(theme)
+    /// Every theme's count back to zero.
+    func resetSmashCount() {
+        Settings.Theme.allCases.forEach { Settings.setSmashCount(0, for: $0) }
+        smashCounts = Self.savedSmashCounts()
     }
 
-    /// The count for the theme that's showing goes back to zero; the other themes keep theirs.
-    func resetCount() {
-        Settings.setCount(0, for: theme)
-        counts[theme] = 0
+    private static func savedSmashCounts() -> [Settings.Theme: Int] {
+        Dictionary(uniqueKeysWithValues: Settings.Theme.allCases.map { ($0, Settings.smashCount(for: $0)) })
     }
 
-    /// Every option back to how it started, every theme's count back to zero, and a fresh harvest.
+    /// Every option back to how it started, the smash count back to zero, and a fresh harvest.
     /// Open at login is left alone: it's a Mac setting the person chose in System Settings too.
     func resetEverything() {
         Settings.resetAll()
-        counts = AppModel.savedCounts()
+        smashCounts = Self.savedSmashCounts()
         showPumpkins = Settings.showPumpkins
         showVines = Settings.showVines
         cozyExtras = Settings.cozyExtras
@@ -279,6 +297,8 @@ final class AppModel: ObservableObject {
         ghost = Settings.ghost
         fireworks = Settings.fireworks
         peacock = Settings.peacock
+        haunting = Settings.haunting
+        spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled
         wallpaperMode = Settings.wallpaperMode
         fallingLeaves = Settings.fallingLeaves
