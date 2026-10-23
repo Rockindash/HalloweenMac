@@ -197,4 +197,27 @@ final class SettingsTests: SettingsTestCase {
             XCTAssertNotNil(NSImage(systemSymbolName: theme.symbol, accessibilityDescription: nil), "\(theme.symbol) isn't an SF Symbol")
         }
     }
+
+    func testDiwaliKeepsItsOwnSmashCount() {
+        Settings.setSmashCount(5, for: .fall)
+        Settings.setSmashCount(2, for: .diwali)
+        XCTAssertEqual(Settings.smashCount(for: .diwali), 2)
+        XCTAssertEqual(Settings.smashCount(for: .fall), 5, "lighting diyas doesn't add to Fall's count")
+        XCTAssertEqual(Settings.smashCount(for: .halloween), 0)
+        Settings.resetAll()
+        XCTAssertEqual(Settings.smashCount(for: .diwali), 0, "Reset Everything clears Diwali's count too")
+    }
+
+    func testDiwalisCountSaysTheDiyasWereLit() {
+        XCTAssertEqual(Settings.Theme.diwali.smashedTitle(0), "0 Diyas Lit")
+        XCTAssertEqual(Settings.Theme.diwali.smashedTitle(1), "1 Diya Lit")
+        XCTAssertEqual(Settings.Theme.diwali.smashedTitle(40), "40 Diyas Lit")
+        XCTAssertEqual(Settings.Theme.diwali.smashed(1), "1 diya")
+        XCTAssertEqual(Settings.Theme.diwali.smashed(3), "3 diyas")
+
+        // The menu bar switch names the icon that's there.
+        XCTAssertEqual(Settings.Theme.fall.thing, "pumpkin")
+        XCTAssertEqual(Settings.Theme.halloween.thing, "jack-o'-lantern")
+        XCTAssertEqual(Settings.Theme.diwali.thing, "diya")
+    }
 }

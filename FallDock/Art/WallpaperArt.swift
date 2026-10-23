@@ -6,7 +6,9 @@ import UniformTypeIdentifiers
 // minimal and quiet, so the Dock is the star: every theme has the same small sun or moon in the same
 // spot, and nothing big or bright pulls the eye. Fall's is a soft sky and two rolling hills along the bottom.
 // Halloween's is its own scene: a haunted house on a hill, a few bats by the moon, a gnarled tree and
-// a graveyard. Every theme has a light and a dark picture, to go with a light or dark Dock. They're
+// a graveyard. Diwali's is a quiet town at dusk or on a starry night: rooftops and a temple in silhouette
+// with a few lit windows, and a few faint fireworks.
+// Every theme has a light and a dark picture, to go with a light or dark Dock. They're
 // drawn at each display's exact size, so they stay sharp on any screen.
 
 enum WallpaperArt {
@@ -21,6 +23,21 @@ enum WallpaperArt {
         var frontHill: CGColor
         /// Halloween's own scene, instead of the plain hills.
         var spooky: Spooky?
+        /// Diwali's own scene, instead of the plain hills.
+        var festive: Festive?
+    }
+
+    /// The extra colors of Diwali's scene. The town is drawn in `backHill` and the ground in front in `frontHill`.
+    struct Festive {
+        /// The sky between the top and the horizon.
+        var skyMiddle: CGColor
+        /// Lit windows.
+        var light: CGColor
+        /// The fireworks.
+        var sparks: [CGColor]
+        var stars: Bool
+        /// How strongly the faint fireworks show.
+        var fireworkAlpha: CGFloat
     }
 
     /// The extra colors of Halloween's scene.
@@ -37,7 +54,8 @@ enum WallpaperArt {
     }
 
     /// Bump this when the pictures change, so Macs that already have the old files draw them again.
-    static let version = 3
+    /// (4: Diwali's picture lost its diyas, strings of lights and the burst around the moon.)
+    static let version = 4
 
     static func look(for theme: Settings.Theme, _ appearance: Palette.Appearance) -> Look {
         switch (theme, appearance) {
@@ -63,6 +81,20 @@ enum WallpaperArt {
                         glow: .hex(0xD8F0C8, alpha: 0.18), backHill: .hex(0x0F1A20), frontHill: .hex(0x05090C),
                         spooky: Spooky(skyMiddle: .hex(0x10202B), moonShade: .hex(0xDCE4C8), light: .hex(0xFFC23D),
                                        mist: .hex(0xBFE3D0, alpha: 0.16), stars: true))
+        case (.diwali, .light):
+            // Diwali dusk: a plum sky turning coral, then saffron at the horizon, a low gold sun, and the town in
+            // deep plum silhouette with its lights coming on. (Warmer and pinker than Halloween's violet dusk.)
+            return Look(skyTop: .hex(0x7A3E7E), skyBottom: .hex(0xFBC46A), orb: .hex(0xFFF0C8),
+                        glow: .hex(0xFFE2A8, alpha: 0.32), backHill: .hex(0x3E2352), frontHill: .hex(0x24132F),
+                        festive: Festive(skyMiddle: .hex(0xE57A6E), light: .hex(0xFFC857),
+                                         sparks: [.hex(0xFFD36E), .hex(0xF27BB0), .hex(0x7FE0D2)], stars: false, fireworkAlpha: 0.3))
+        case (.diwali, .dark):
+            // Diwali night: a deep indigo starry sky glowing magenta over the town, with a soft gold glow where
+            // the moon would be.
+            return Look(skyTop: .hex(0x1A1240), skyBottom: .hex(0x7A2E52), orb: .hex(0xFFE09A),
+                        glow: .hex(0xFFC870, alpha: 0.16), backHill: .hex(0x170E24), frontHill: .hex(0x0B0712),
+                        festive: Festive(skyMiddle: .hex(0x3D1E5C), light: .hex(0xFFB847),
+                                         sparks: [.hex(0xF2A11F), .hex(0xDB4F93), .hex(0x2EA3A3)], stars: true, fireworkAlpha: 0.45))
         }
     }
 
@@ -95,6 +127,10 @@ enum WallpaperArt {
     static func draw(_ look: Look, in ctx: CGContext, size: CGSize) {
         if let spooky = look.spooky {
             drawHalloween(look, spooky, in: ctx, size: size)
+            return
+        }
+        if let festive = look.festive {
+            drawDiwali(look, festive, in: ctx, size: size)
             return
         }
         let w = size.width, h = size.height
@@ -361,6 +397,165 @@ enum WallpaperArt {
                 ctx.addLine(to: CGPoint(x: last.x, y: last.y + rail * u))
                 ctx.strokePath()
             }
+        }
+    }
+
+    // MARK: Diwali
+
+    /// Where the temple stands among the rooftops, and the top of the ground in front (fractions, y from the top).
+    static let templeX: CGFloat = 0.34
+    static let groundTop: CGFloat = 0.905
+
+    private static func drawDiwali(_ look: Look, _ festive: Festive, in ctx: CGContext, size: CGSize) {
+        let w = size.width, h = size.height
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * w, y: (1 - y) * h) }
+        ctx.setShouldAntialias(true)
+
+        // Sky, in three colors from the top down to the horizon.
+        if let sky = CGGradient(colorsSpace: nil, colors: [look.skyTop, festive.skyMiddle, look.skyBottom] as CFArray, locations: [0, 0.6, 1]) {
+            ctx.drawLinearGradient(sky, start: CGPoint(x: 0, y: h), end: CGPoint(x: 0, y: h * 0.12),
+                                   options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+        }
+
+        // Stars, scattered over the upper sky but not over the orb.
+        if festive.stars {
+            for i in 0..<60 {
+                let n = CGFloat(i)
+                let x = (n * 0.618034 + 0.41).truncatingRemainder(dividingBy: 1)
+                let y = (n * 0.7548777 + 0.17).truncatingRemainder(dividingBy: 1) * 0.5
+                if hypot(x - orbCenter.x, (y - orbCenter.y) * h / w) < orbSize * 1.6 { continue }
+                let r = w * 0.0006 * (0.6 + (n * 0.381966).truncatingRemainder(dividingBy: 1) * 1.1)
+                ctx.setFillColor(CGColor.hex(0xFFFFFF, alpha: 0.3 + (n * 0.2357).truncatingRemainder(dividingBy: 1) * 0.4))
+                let c = point(x, y)
+                ctx.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+            }
+        }
+
+        // A few faint fireworks, far from the orb.
+        ctx.saveGState()
+        ctx.setAlpha(festive.fireworkAlpha)
+        let bursts: [(x: CGFloat, y: CGFloat, r: CGFloat)] = [(0.16, 0.2, 0.03), (0.47, 0.12, 0.022), (0.58, 0.3, 0.018)]
+        for (i, (x, y, r)) in bursts.enumerated() {
+            let colors = [festive.sparks[i % festive.sparks.count], festive.sparks[(i + 1) % festive.sparks.count]]
+            DiwaliArt.drawFirework(ctx, center: point(x, y), radius: r * w, colors: colors, rays: 14, seed: i + 5)
+        }
+        ctx.restoreGState()
+
+        // The sun or moon, like every theme's.
+        let center = point(orbCenter.x, orbCenter.y)
+        let radius = w * orbSize / 2
+        if let glow = CGGradient(colorsSpace: nil, colors: [look.glow, look.glow.withAlpha(0)] as CFArray, locations: [0, 1]) {
+            ctx.drawRadialGradient(glow, startCenter: center, startRadius: 0, endCenter: center, endRadius: w * glowSize, options: [])
+        }
+        ctx.setFillColor(look.orb)
+        ctx.fillEllipse(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
+
+        drawTown(look, festive, in: ctx, size: size)
+
+        // Plain ground in front.
+        ctx.setFillColor(look.frontHill)
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: (1 - groundTop) * h))
+    }
+
+    /// The town's rooftops, with the temple among them, and a few lit windows.
+    private static func drawTown(_ look: Look, _ festive: Festive, in ctx: CGContext, size: CGSize) {
+        let w = size.width, h = size.height, u = w * 0.001
+        let ground = (1 - groundTop) * h - 2 * u
+        var rng = SeededRandom(seed: 2026)
+        var x: CGFloat = -0.01
+        let templeHalf: CGFloat = 0.05
+        while x < 1.01 {
+            var width = rng.float(0.032...0.07)
+            let top = rng.float(0.745...0.805)
+            // Leave room for the temple: stop short of it, or start again past it.
+            if x < templeX + templeHalf && x + width > templeX - templeHalf {
+                let room = templeX - templeHalf - x - 0.004
+                guard room > 0.025 else {
+                    x = templeX + templeHalf
+                    continue
+                }
+                width = room
+            }
+            let rect = CGRect(x: x * w, y: ground, width: width * w, height: (1 - top) * h - ground)
+            ctx.setFillColor(look.backHill)
+            ctx.fill(rect)
+            // Flat with a parapet, a pitched roof, or a little dome.
+            let style = Int(rng.next() % 3)
+            switch style {
+            case 1:
+                let roof = CGMutablePath()
+                roof.addLines(between: [CGPoint(x: rect.minX - 2 * u, y: rect.maxY), CGPoint(x: rect.midX, y: rect.maxY + rect.width * 0.3),
+                                        CGPoint(x: rect.maxX + 2 * u, y: rect.maxY)])
+                roof.closeSubpath()
+                ctx.addPath(roof)
+                ctx.fillPath()
+            case 2:
+                let r = min(rect.width * 0.22, 14 * u)
+                ctx.fillEllipse(in: CGRect(x: rect.midX - r, y: rect.maxY - r * 0.6, width: r * 2, height: r * 2))
+                ctx.fill(CGRect(x: rect.midX - 0.8 * u, y: rect.maxY + r * 1.3, width: 1.6 * u, height: r * 0.5))
+            default:
+                ctx.fill(CGRect(x: rect.minX - 1.5 * u, y: rect.maxY, width: rect.width + 3 * u, height: 3 * u))
+            }
+            // A few lit windows.
+            ctx.setFillColor(festive.light)
+            let columns = max(1, Int(rect.width / (16 * u)))
+            for c in 0..<columns {
+                for row in 0..<2 where rng.float(0...1) < 0.4 {
+                    let wx = rect.minX + (CGFloat(c) + 0.5) * rect.width / CGFloat(columns) - 3 * u
+                    let wy = rect.maxY - (14 + CGFloat(row) * 15) * u
+                    if wy > ground + 6 * u { ctx.fill(CGRect(x: wx, y: wy, width: 6 * u, height: 8 * u)) }
+                }
+            }
+            x += width + rng.float(0...0.006)
+        }
+        drawTemple(at: templeX * w, ground: ground, unit: u, look: look, light: festive.light, in: ctx)
+    }
+
+    /// A temple: a hall with a small dome, and the tall curved spire (shikhara) with its crown and a flag.
+    private static func drawTemple(at x: CGFloat, ground: CGFloat, unit u: CGFloat, look: Look, light: CGColor, in ctx: CGContext) {
+        ctx.setFillColor(look.backHill)
+        let base = ground
+        // The hall in front, on the left, with a little dome.
+        ctx.fill(CGRect(x: x - 62 * u, y: base, width: 52 * u, height: 58 * u))
+        ctx.fillEllipse(in: CGRect(x: x - 50 * u, y: base + 44 * u, width: 28 * u, height: 28 * u))
+        ctx.fill(CGRect(x: x - 36.8 * u, y: base + 70 * u, width: 1.6 * u, height: 8 * u))
+        // The sanctum, and the shikhara rising from it in a curve to a narrow top.
+        ctx.fill(CGRect(x: x - 22 * u, y: base, width: 44 * u, height: 70 * u))
+        let spire = CGMutablePath()
+        spire.move(to: CGPoint(x: x - 24 * u, y: base + 68 * u))
+        spire.addCurve(to: CGPoint(x: x - 8 * u, y: base + 150 * u), control1: CGPoint(x: x - 25 * u, y: base + 110 * u),
+                       control2: CGPoint(x: x - 16 * u, y: base + 138 * u))
+        spire.addLine(to: CGPoint(x: x + 8 * u, y: base + 150 * u))
+        spire.addCurve(to: CGPoint(x: x + 24 * u, y: base + 68 * u), control1: CGPoint(x: x + 16 * u, y: base + 138 * u),
+                       control2: CGPoint(x: x + 25 * u, y: base + 110 * u))
+        spire.closeSubpath()
+        ctx.addPath(spire)
+        ctx.fillPath()
+        // The crown: a ribbed disc and a pointed pot, then the flagpole and its pennant.
+        ctx.fillEllipse(in: CGRect(x: x - 11 * u, y: base + 147 * u, width: 22 * u, height: 8 * u))
+        let pot = CGMutablePath()
+        pot.addLines(between: [CGPoint(x: x - 5 * u, y: base + 154 * u), CGPoint(x: x, y: base + 168 * u), CGPoint(x: x + 5 * u, y: base + 154 * u)])
+        pot.closeSubpath()
+        ctx.addPath(pot)
+        ctx.fillPath()
+        ctx.fill(CGRect(x: x + 7 * u, y: base + 150 * u, width: 1.4 * u, height: 30 * u))
+        let flag = CGMutablePath()
+        flag.addLines(between: [CGPoint(x: x + 8.4 * u, y: base + 180 * u), CGPoint(x: x + 24 * u, y: base + 175 * u), CGPoint(x: x + 8.4 * u, y: base + 170 * u)])
+        flag.closeSubpath()
+        ctx.addPath(flag)
+        ctx.fillPath()
+        // Its lit doorway and the hall's windows.
+        ctx.setFillColor(light)
+        let door = CGMutablePath()
+        door.move(to: CGPoint(x: x - 7 * u, y: base))
+        door.addLine(to: CGPoint(x: x - 7 * u, y: base + 22 * u))
+        door.addQuadCurve(to: CGPoint(x: x + 7 * u, y: base + 22 * u), control: CGPoint(x: x, y: base + 34 * u))
+        door.addLine(to: CGPoint(x: x + 7 * u, y: base))
+        door.closeSubpath()
+        ctx.addPath(door)
+        ctx.fillPath()
+        for wx in [-54, -42, -30] as [CGFloat] {
+            ctx.fill(CGRect(x: x + wx * u, y: base + 28 * u, width: 6 * u, height: 10 * u))
         }
     }
 

@@ -225,13 +225,31 @@ struct HomePage: View {
     private var status: String {
         switch state {
         case .showing:
-            return model.theme == .halloween
-                ? "Click a jack-o'-lantern to smash it. The cat, the cauldron and the candles do things too."
-                : "Click a pumpkin to smash it. Hay bales, leaf piles and the latte do things too."
+            switch model.theme {
+            case .fall: return "Click a pumpkin to smash it. Hay bales, leaf piles and the latte do things too."
+            case .halloween: return "Click a jack-o'-lantern to smash it. The cat, the cauldron and the candles do things too."
+            case .diwali: return "Click a diya to light up the sky. The crackers, sweets and rangoli do things too."
+            }
         case .dockHidden: return "Your Dock is hidden right now. Changes show up when it's back."
         case .paused: return "Paused for an hour, then it comes back by itself."
         case .hidden: return "Switched off. Turn it on to bring the harvest back."
         case .unlicensed: return "Enter your license key to bring the harvest to your Dock."
+        }
+    }
+
+    private var customizeSummary: String {
+        switch model.theme {
+        case .fall: return "Vines, falling leaves, hay bales, a latte and a visiting squirrel."
+        case .halloween: return "Graveyard dirt, bats, tombstones, candy and a friendly ghost."
+        case .diwali: return "A marigold garland, rangoli, sweets, crackers and a visiting peacock."
+        }
+    }
+
+    /// Under the theme's count: what clicking its main thing does.
+    private var countSummary: String {
+        switch model.theme {
+        case .fall, .halloween: return "Smash one on your Dock and another grows in its place."
+        case .diwali: return "Click one on your Dock and it sends a firework into the sky."
         }
     }
 
@@ -240,16 +258,19 @@ struct HomePage: View {
 
     /// The pictures on the four cards, in order: each card has its own, whatever the theme.
     enum CardArt: Hashable {
-        case pumpkin, jackOLantern, leafPile, blackCat, squirrel, ghost, desktop(Settings.Theme, Palette.Appearance)
+        case pumpkin, jackOLantern, diya, leafPile, blackCat, rangoli, squirrel, ghost, peacock, desktop(Settings.Theme, Palette.Appearance)
 
         var image: NSImage {
             switch self {
             case .pumpkin: return ExtraArt.pumpkin()
             case .jackOLantern: return ExtraArt.jackOLantern()
+            case .diya: return ExtraArt.diya()
             case .leafPile: return ExtraArt.image(for: .leafPile)
             case .blackCat: return ExtraArt.image(for: .blackCat)
+            case .rangoli: return ExtraArt.image(for: .rangoli)
             case .squirrel: return ExtraArt.squirrel()
             case .ghost: return ExtraArt.ghost()
+            case .peacock: return ExtraArt.peacock()
             case .desktop(let theme, let appearance): return WallpaperArt.preview(for: theme, appearance)
             }
         }
@@ -260,6 +281,7 @@ struct HomePage: View {
         switch theme {
         case .fall: return [.pumpkin, .leafPile, .squirrel, .desktop(theme, appearance)]
         case .halloween: return [.jackOLantern, .blackCat, .ghost, .desktop(theme, appearance)]
+        case .diwali: return [.diya, .rangoli, .peacock, .desktop(theme, appearance)]
         }
     }
 
@@ -277,7 +299,7 @@ struct HomePage: View {
                 Grid(horizontalSpacing: 20, verticalSpacing: 20) {
                     GridRow {
                         FeatureCard(eyebrow: "Your harvest", title: smashed,
-                                    subtitle: "Smash one on your Dock and another grows in its place.",
+                                    subtitle: countSummary,
                                     image: art[0].image, imageBackground: Color.harvestMustard.opacity(0.22))
                         Button(action: openThemes) {
                             FeatureCard(eyebrow: "Theme", title: model.theme.title,
@@ -290,9 +312,7 @@ struct HomePage: View {
                     GridRow {
                         Button(action: openCustomize) {
                             FeatureCard(eyebrow: "Customize", title: "Make It Yours",
-                                        subtitle: model.theme == .halloween
-                                            ? "Graveyard dirt, bats, tombstones, candy and a friendly ghost."
-                                            : "Vines, falling leaves, hay bales, a latte and a visiting squirrel.",
+                                        subtitle: customizeSummary,
                                         image: art[2].image, imageBackground: Color.harvestRust.opacity(0.2))
                                 .contentShape(RoundedRectangle(cornerRadius: 16))
                         }
@@ -400,7 +420,7 @@ struct SettingsPage: View {
                     Toggle("", isOn: $model.openAtLogin).labelsHidden().toggleStyle(.switch)
                 }
                 Divider()
-                SettingRow(symbol: "menubar.rectangle", color: .pumpkin, title: "Show the pumpkin in the menu bar",
+                SettingRow(symbol: "menubar.rectangle", color: .pumpkin, title: "Show the \(model.theme.thing) in the menu bar",
                            detail: model.showMenuBarIcon ? "Quick controls, one click away." : "To come back here, open Dockorate from Applications.") {
                     Toggle("", isOn: $model.showMenuBarIcon).labelsHidden().toggleStyle(.switch)
                 }

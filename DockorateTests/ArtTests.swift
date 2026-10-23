@@ -75,6 +75,42 @@ final class ArtTests: XCTestCase {
         XCTAssertGreaterThan(ExtraArt.menuBarPumpkin().size.width, 0)
     }
 
+    /// The menu bar icon follows the theme: Fall's pumpkin, Halloween's jack-o'-lantern, Diwali's diya.
+    @MainActor func testTheMenuBarIconFollowsTheTheme() throws {
+        XCTAssertEqual(try alphas(of: ExtraArt.menuBarIcon(.fall)), try alphas(of: ExtraArt.menuBarPumpkin()), "Fall keeps its pumpkin")
+        var drawn: [Settings.Theme: [UInt8]] = [:]
+        for theme in Settings.Theme.allCases {
+            let icon = ExtraArt.menuBarIcon(theme)
+            XCTAssertTrue(icon.isTemplate, "\(theme): macOS colors it to suit the menu bar")
+            XCTAssertEqual(icon.size, CGSize(width: 20, height: 18), "\(theme)")
+            let opacity = try alphas(of: icon)
+            XCTAssertGreaterThan(opacity.filter { $0 > 128 }.count, opacity.count / 6, "\(theme) draws something")
+            drawn[theme] = opacity
+        }
+        let themes = Settings.Theme.allCases
+        for (i, a) in themes.enumerated() {
+            for b in themes[(i + 1)...] {
+                let different = zip(drawn[a]!, drawn[b]!).filter { abs(Int($0) - Int($1)) > 128 }.count
+                XCTAssertGreaterThan(different, 60, "\(a) and \(b) have icons of their own")
+            }
+        }
+    }
+
+    /// How opaque each pixel of `image` is, drawn at twice its size.
+    @MainActor private func alphas(of image: NSImage) throws -> [UInt8] {
+        let width = Int(image.size.width * 2), height = Int(image.size.height * 2)
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        try bytes.withUnsafeMutableBytes { buffer in
+            let ctx = try XCTUnwrap(CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                              space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+            image.draw(in: NSRect(x: 0, y: 0, width: width, height: height))
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        return stride(from: 3, to: bytes.count, by: 4).map { bytes[$0] }
+    }
+
     @MainActor func testThemePreviewsDraw() {
         for theme in Settings.Theme.allCases {
             XCTAssertGreaterThan(ThemePreview.image(for: theme).size.width, 0)

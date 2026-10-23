@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The pumpkin menu in the menu bar. Finer settings live in the app window.
+/// The menu in the menu bar, under the theme's pumpkin, jack-o'-lantern or diya. Finer settings live in the app window.
 struct MenuContent: View {
     @ObservedObject var model: AppModel
 

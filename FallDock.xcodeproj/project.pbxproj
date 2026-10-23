@@ -82,6 +82,12 @@
 		A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002036 /* ThemeTests.swift */; };
 		A1C0FFEE0000000000005022 /* HauntingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005021 /* HauntingTests.swift */; };
 		A1C0FFEE0000000000005042 /* SpiritsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000005041 /* SpiritsTests.swift */; };
+		A1C0FFEE0000000000006001 /* DiwaliArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000006021 /* DiwaliArt.swift */; };
+		A1C0FFEE0000000000006011 /* DiwaliArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000006021 /* DiwaliArt.swift */; };
+		A1C0FFEE0000000000006002 /* PumpkinScene+Diwali.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000006022 /* PumpkinScene+Diwali.swift */; };
+		A1C0FFEE0000000000006012 /* PumpkinScene+Diwali.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000006022 /* PumpkinScene+Diwali.swift */; };
+		A1C0FFEE0000000000002027 /* DiwaliTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002037 /* DiwaliTests.swift */; };
+		A1C0FFEE0000000000002028 /* ArtPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000002038 /* ArtPreviews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -150,6 +156,10 @@
 		A1C0FFEE0000000000002036 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000005021 /* HauntingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HauntingTests.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000005041 /* SpiritsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritsTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000006021 /* DiwaliArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DiwaliArt.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000006022 /* PumpkinScene+Diwali.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpkinScene+Diwali.swift"; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002037 /* DiwaliTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiwaliTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000002038 /* ArtPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtPreviews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -197,6 +207,7 @@
 				A1C0FFEE0000000000004022 /* PumpkinScene+Spooky.swift */,
 				A1C0FFEE0000000000005011 /* PumpkinScene+Haunting.swift */,
 				A1C0FFEE0000000000005031 /* PumpkinScene+Spirits.swift */,
+				A1C0FFEE0000000000006022 /* PumpkinScene+Diwali.swift */,
 			);
 			path = Overlay;
 			sourceTree = "<group>";
@@ -235,6 +246,7 @@
 				A1C0FFEE0000000000001011 /* WallpaperArt.swift */,
 				A1C0FFEE0000000000004021 /* SpookyArt.swift */,
 				A1C0FFEE0000000000005001 /* HauntingArt.swift */,
+				A1C0FFEE0000000000006021 /* DiwaliArt.swift */,
 			);
 			path = Art;
 			sourceTree = "<group>";
@@ -283,6 +295,8 @@
 				A1C0FFEE0000000000002036 /* ThemeTests.swift */,
 				A1C0FFEE0000000000005021 /* HauntingTests.swift */,
 				A1C0FFEE0000000000005041 /* SpiritsTests.swift */,
+				A1C0FFEE0000000000002037 /* DiwaliTests.swift */,
+				A1C0FFEE0000000000002038 /* ArtPreviews.swift */,
 			);
 			path = DockorateTests;
 			sourceTree = "<group>";
@@ -489,6 +503,8 @@
 				A1C0FFEE0000000000004002 /* PumpkinScene+Spooky.swift in Sources */,
 				A1C0FFEE0000000000005012 /* PumpkinScene+Haunting.swift in Sources */,
 				A1C0FFEE0000000000005032 /* PumpkinScene+Spirits.swift in Sources */,
+				A1C0FFEE0000000000006001 /* DiwaliArt.swift in Sources */,
+				A1C0FFEE0000000000006002 /* PumpkinScene+Diwali.swift in Sources */,
 				A1C0FFEE0000000000004003 /* ThemesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -506,6 +522,8 @@
 				A1C0FFEE0000000000002026 /* ThemeTests.swift in Sources */,
 				A1C0FFEE0000000000005022 /* HauntingTests.swift in Sources */,
 				A1C0FFEE0000000000005042 /* SpiritsTests.swift in Sources */,
+				A1C0FFEE0000000000002027 /* DiwaliTests.swift in Sources */,
+				A1C0FFEE0000000000002028 /* ArtPreviews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -549,6 +567,8 @@
 				A1C0FFEE0000000000004012 /* PumpkinScene+Spooky.swift in Sources */,
 				A1C0FFEE0000000000005013 /* PumpkinScene+Haunting.swift in Sources */,
 				A1C0FFEE0000000000005033 /* PumpkinScene+Spirits.swift in Sources */,
+				A1C0FFEE0000000000006011 /* DiwaliArt.swift in Sources */,
+				A1C0FFEE0000000000006012 /* PumpkinScene+Diwali.swift in Sources */,
 				A1C0FFEE0000000000004013 /* ThemesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

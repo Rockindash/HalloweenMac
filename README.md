@@ -58,6 +58,20 @@ Each theme is a case of `Settings.Theme`: a season says the day it starts, and a
 
 ![Halloween on the Dock](docs/halloween-preview.png)
 
+### Diwali
+
+Diwali follows the moon, so its day moves between mid October and mid November (the days of Lakshmi Puja are listed in `Settings.Theme.diwaliDays`). When its week runs into Halloween's, the festival that ends first goes first.
+
+- The pumpkins become **lit diyas**: little clay, painted and brass lamps with a flame at the spout, a pink **lotus diya** and now and then a tall **brass lamp** with three flames. Their flames flicker, and flare up when you point at one. Diyas never smash: click one and its flames leap and it sends a **firework** whooshing up to burst in the sky.
+- A **marigold garland** with mango leaves runs along the Dock instead of a vine, with **strings of marigolds** hanging in each top corner, swaying a little.
+- Festive extras, each with a click: **gift boxes** with a diya on top (petals burst out), **rangoli** with a little diya at each end (it sparkles), a plate of **laddoos** and an open **mithai box** (sweets fly out), crackers (an **anar** that throws up a fountain of sparks, a **rocket** in a bottle that shoots up and bursts, and a **chakri** that whirls), a **kandil** lantern swinging from its stand, and a brass **flower bowl** with petals and a floating diya.
+- Little **fireworks** burst over the Dock now and then instead of falling leaves.
+- A **peacock** struts by instead of the squirrel, stopping to fan out its tail (it shows off when you point at it, and hurries off when clicked).
+- With Background on, a quiet town: rooftops and a temple with its spire and flag in silhouette, a few lit windows, and a few faint fireworks in the sky. The light picture is a plum, coral and saffron dusk with a low sun; the dark one is a starry indigo night.
+- Religious symbols are left out on purpose, so the theme is about the lights, the sweets and the celebration.
+
+![Diwali on the Dock](docs/diwali-preview.png)
+
 ## What you need
 
 - A Mac running macOS 13 Ventura or newer.
@@ -81,21 +95,25 @@ Open **Dockorate** from your Applications folder (or choose **Open Dockorate…*
 While it's open, Dockorate shows in the Dock and the app switcher like any app; close it and it goes back to living in the menu bar.
 When Dockorate starts by itself at login, the window stays closed.
 
-- **Home**: a live little harvest on a pretend Dock (click its pumpkins to smash them), whether the harvest is on your Dock right now, your smash count, and buttons to pause it for an hour, grow new pumpkins, or show or hide it.
+- **Home**: a live little harvest on a pretend Dock (click its pumpkins to smash them), whether the harvest is on your Dock right now, the count for the theme that's on (pumpkins smashed at Fall, jack-o'-lanterns smashed at Halloween, diyas lit at Diwali; each theme keeps its own), and buttons to pause it for an hour, grow new pumpkins, or show or hide it.
 - **Themes**: the theme on your Dock now, **Change automatically** with the year at a glance and what's coming up, and a picture card for each theme, two to a row (Fall is marked as the original).
 - **Customize**: the theme on the Dock, with a drop-down menu to set up any other theme. For Fall: the vine, falling leaves and cozy extras, with a picture tile for each extra (hay bales, leaf piles, acorns, the latte, the lantern, the apples and the squirrel) to switch it on or off. With falling leaves on:
   - **Amount**: how many leaves fall, from a few to lots. The mark in the middle is the usual amount, and the slider snaps to it.
   - **Fill the whole screen** (off by default): leaves drift down across the whole screen the Dock is on and settle behind the Dock, instead of only just above it.
 
   For Halloween: the graveyard dirt, bats and spooky extras, with a tile for each (crypt pedestals, tombstones, the black cat, the cauldron, candy, candles, the skull and the ghost).
+
+  For Diwali: the marigold garland, fireworks and festive extras, with a tile for each (gift boxes, rangoli, laddoos, the mithai box, the anar, the rocket, the chakri, the kandil, the flower bowl and the peacock).
 - **Background** (off by default): sets your desktop picture to go with the theme. The pictures stay minimal so the Dock is the star: every theme's sun or moon is small and in the same spot, with nothing big or bright to pull the eye. Each theme has a light and a dark picture. **Switch with Light and Dark** (on by default) shows the light one when the Dock is light and the dark one when it's dark; clicking a picture keeps that one instead. The pictures are drawn at each display's exact size and saved in `~/Library/Application Support/Dockorate/Wallpapers`. Your own picture for each display is saved first and comes back when Background is switched off (or by Reset everything). macOS only changes the desktop of the space you're on, so the picture is set again as you move between spaces, plug in displays or switch Light and Dark.
 - **Settings**:
-  - **General**: open at login, the 🎃 in the menu bar, and the smash sound.
+  - **General**: open at login, the theme's icon in the menu bar, and the smash sound.
   - **Dock**: how full the harvest is, and the Accessibility permission for an exact fit.
-  - **Reset**: reset the smash count, or reset everything (every option back to how it started, the smash count back to zero, and a fresh harvest; open at login stays as it is). Both ask first.
+  - **Reset**: reset the count for the theme that's on, or reset everything (every option back to how it started, every theme's count back to zero, and a fresh harvest; open at login stays as it is). Both ask first.
   - **About**: the version, the welcome window again, and Quit.
 
 ## The 🎃 menu
+
+Its icon follows the theme: a pumpkin for Fall, a jack-o'-lantern for Halloween and a diya for Diwali, each drawn plainly like the system's own menu bar icons.
 
 - **Open Dockorate…**: the app window.
 - **Show Pumpkins**: hides or shows everything.
@@ -148,14 +166,16 @@ Like Festivitas, Dockorate doesn't change the Dock itself. It floats a transpare
 | `Overlay/PumpkinScene+Spooky.swift` | Halloween: jack-o'-lanterns, the spooky extras, zombie hands, the ghost, bats and cobwebs |
 | `Overlay/PumpkinScene+Haunting.swift` | Haunting while you're away: when the Mac's been left alone, and the ghosts, eyes and green candles |
 | `Overlay/PumpkinScene+Spirits.swift` | Spirits of quit apps: where each app's Dock icon is, which spirits left, and the spirits rising and coming back |
+| `Overlay/PumpkinScene+Diwali.swift` | Diwali: lit diyas and lamps, fireworks, what the festive extras do, the strings of marigolds and the peacock |
 | `Overlay/ScreenLeafScene.swift` | Leaves falling across the whole screen, for Fill the whole screen |
 | `Overlay/DockSprite.swift` | The Dock's magnification curve, and the base class for everything that sits on the Dock |
 | `Art/Art.swift` | Draws the pumpkins, the vine and the leaves |
 | `Art/CozyArt.swift` | Draws the hay bales, leaf piles, acorns, apples, pumpkin spice latte, lantern and squirrel |
 | `Art/SpookyArt.swift` | Draws Halloween: jack-o'-lantern faces, crypt pedestals, tombstones, the black cat, the cauldron, candy, candles, the skull, the zombie hand, the ghost, bats, the spider, cobwebs and purple dirt |
 | `Art/HauntingArt.swift` | Draws the haunting's glowing eyes and wispy ghosts, and quit apps' spirits |
+| `Art/DiwaliArt.swift` | Draws Diwali: diyas, the lotus diya and brass lamp, gift boxes, rangoli, laddoos, the mithai box, the anar, the rocket, the chakri, the kandil, the flower bowl, marigold garlands, the peacock and fireworks |
 | `Art/WallpaperArt.swift` | Draws each theme's light and dark desktop pictures |
-| `Art/SmashSound.swift` | Makes the smash sound and the cat's meow from scratch |
+| `Art/SmashSound.swift` | Makes the smash sound, the cat's meow and the fireworks from scratch |
 
 The menu and app are SwiftUI. The overlay above the Dock uses AppKit and SpriteKit, because SwiftUI windows can't float above the Dock or let clicks pass through them.
 
@@ -169,8 +189,8 @@ xcodebuild test -project FallDock.xcodeproj -scheme FallDock -destination 'platf
 
 They also run on GitHub (see `.github/workflows/tests.yml`) for every pull request and every push to `main`, `version-*` and `dockorate-*` branches, so a new feature can't quietly break an old one.
 
-- **DockorateTests** (unit tests): settings and their defaults, carrying settings over from older versions, Reset Everything, how the harvest is laid out on Docks of different lengths, what each Customize and Settings switch changes, smashing, the Dock's magnification math, the art in light and dark, the Background pictures (each sun or moon small and in Fall's spot, Halloween's looking nothing like Fall's), and themes (Fall staying the default, festivals a week before their day or as early as picked, the rotation, each theme's harvest, the cobwebs in the Dock's top corners, and the crossfade between them).
-- **DockorateUITests** (UI tests): open every page, flip the main switches, check choices survive a relaunch, Background starting off, picking a theme, changing automatically (and its year and rotation showing only while it's on, a festival's details only when pointed at or clicked, the year running January through December, picking how early festivals show up), the Themes page's layout, the Customize theme menu, Reset Everything asking first, and the license page when there's no license.
+- **DockorateTests** (unit tests): settings and their defaults, carrying settings over from older versions, Reset Everything, how the harvest is laid out on Docks of different lengths, what each Customize and Settings switch changes, smashing, each theme keeping its own count, the Dock's magnification math, the art in light and dark, the Background pictures (each sun or moon small and in Fall's spot, Halloween's and Diwali's looking nothing like Fall's, Diwali's without diyas or strings of lights), themes (Fall staying the default, festivals a week before their day or as early as picked, the rotation, each theme's harvest, the cobwebs in the Dock's top corners, and the crossfade between them), and Diwali (its days each year, its overlap with Halloween, lit lamps that send up fireworks and count as lit instead of smashing, what each cracker, sweet and decoration does when clicked, the strings of marigolds, the peacock and its art).
+- **DockorateUITests** (UI tests): open every page, flip the main switches, check choices survive a relaunch, Background starting off, picking a theme (Halloween and Diwali), Home and Settings showing only the count for the theme that's on, changing automatically (and its year and rotation showing only while it's on, a festival's details only when pointed at or clicked, the year running January through December, picking how early festivals show up), the Themes page's layout, the Customize theme menu, Reset Everything asking first, and the license page when there's no license.
 
 The tests never touch your own settings, license key, desktop picture or login items. Unit tests keep their settings in a throwaway place. UI tests start the app with `-UITesting` (see `App/AppEnvironment.swift`), which gives it fresh settings of its own and a pretend license, and stops it from changing the desktop or login items. The first UI test run asks to let Xcode control the app (System Settings → Privacy & Security → Accessibility).
 

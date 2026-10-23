@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The app: a window you open from the Applications folder, and a pumpkin in the menu bar. The pumpkins
+/// The app: a window you open from the Applications folder, and a menu in the menu bar. The pumpkins
 /// themselves live in a see-through AppKit window above the Dock (see Overlay/), because SwiftUI
 /// windows can't float over the Dock or let clicks pass through.
 @main
@@ -20,8 +20,8 @@ struct FallDockApp: App {
         MenuBarExtra(isInserted: showMenuBarIcon) {
             MenuContent(model: model)
         } label: {
-            // The harvest's own plain pumpkin, not the jack-o'-lantern emoji.
-            Image(nsImage: ExtraArt.menuBarPumpkin())
+            // The theme's own thing, drawn plainly like the system's icons: a pumpkin, a jack-o'-lantern or a diya.
+            Image(nsImage: ExtraArt.menuBarIcon(model.theme))
         }
         .menuBarExtraStyle(.menu)
     }

@@ -9,6 +9,8 @@ final class PumpkinNode: DockSprite {
     var isSmashing = false
     /// Carved into a glowing jack-o'-lantern (at Halloween).
     var isLantern = false
+    /// A Diwali lamp with its flames lit.
+    var isLit = false
 
     init(kind: PumpkinKind, slot: Int, slotHeight: CGFloat, variant: Int, texture: SKTexture, size: CGSize) {
         self.kind = kind
@@ -29,8 +31,10 @@ final class PumpkinNode: DockSprite {
 /// Scene coordinates match the window: (0, 0) is the window's bottom-left corner.
 @MainActor
 final class PumpkinScene: SKScene {
-    /// Called after every smash (used for the counter in the menu).
+    /// Called after every smash (for the theme's count on the Home page).
     var onSmash: (() -> Void)?
+    /// Called when a diya is clicked and sends up a firework (Diwali's count).
+    var onLightUp: (() -> Void)?
     /// True for the scene over the real Dock, false for the little harvest in the app window.
     var isOnDock = false
 
@@ -93,6 +97,7 @@ final class PumpkinScene: SKScene {
     /// Size unit for the vine: 1 for a typical 60 pt pumpkin.
     var unit: CGFloat { pumpkinHeight / 60 }
     private let sound = SmashSound()
+    let fireworkSound = FireworkSound()
     /// The next fresh harvest is a new theme: the old one fades away as the new one grows in.
     var crossfadeNextHarvest = false
     /// While a new theme grows in, things pop up one after another from left to right.
@@ -217,7 +222,7 @@ final class PumpkinScene: SKScene {
         // Something in the gaps between pumpkins only if some of those extras are switched on.
         let gapsOn = extras && !Self.gapCycle.isEmpty
         let minSpace = h * Settings.fullness.spacing
-        // Hay bales in fall, crypt pedestals at Halloween.
+        // Hay bales in fall, crypt pedestals at Halloween, gift boxes at Diwali.
         let perch = Settings.theme.perch
         let bale = CozyArt.size(of: perch, unit: h)
         slotKinds = []; slotScale = []; slotPerch = []; gapKinds = []
@@ -276,6 +281,8 @@ final class PumpkinScene: SKScene {
         switch Settings.theme {
         case .fall: kinds = onBale ? [.roundOrange, .roundMustard, .squatOrange, .squatMustard] : PumpkinKind.fall
         case .halloween: kinds = onBale ? [.roundOrange, .squatOrange] : PumpkinKind.halloween
+        // Diyas on the gift boxes; the lotus diya and the tall brass lamp stay on the Dock.
+        case .diwali: kinds = onBale ? [.diyaClay, .diyaBrass, .diyaPink] : PumpkinKind.diwali
         }
         return kinds[Int(rng.next() % UInt64(kinds.count))]
     }
@@ -394,7 +401,8 @@ final class PumpkinScene: SKScene {
         dockRect.maxY - 3 - (slotPerch[slot] > 0 ? 0 : (1 - slotScale[slot]) * 5)
     }
 
-    /// A vine running along the top of the Dock, behind the pumpkins (purple dirt at Halloween).
+    /// A vine running along the top of the Dock, behind the pumpkins (purple dirt at Halloween, a
+    /// marigold garland at Diwali).
     private func layoutVine() {
         vineLayer.removeAllChildren()
         vine = nil
@@ -402,7 +410,20 @@ final class PumpkinScene: SKScene {
         let k = unit
         vineOrigin = CGPoint(x: dockRect.minX + 4, y: dockRect.maxY - 2 - VineArt.baseLevel(unit: k))
         guard Settings.showVines, dockRect.width > 40 else {
-            layoutCobwebs()
+            layoutCorners()
+            return
+        }
+        if Settings.theme == .diwali {
+            // A marigold garland instead of a vine.
+            let height = (pumpkinHeight * 0.34).rounded()
+            let garland = SKSpriteNode(texture: DiwaliArt.garlandTexture(width: dockRect.width.rounded(), height: height, seed: Int(harvestSeed % 997),
+                                                                        unit: k, scale: pixelScale),
+                                       size: CGSize(width: dockRect.width.rounded(), height: height))
+            garland.anchorPoint = .zero
+            garland.position = CGPoint(x: dockRect.minX, y: dockRect.maxY - 8)
+            vineLayer.addChild(garland)
+            vine = garland
+            layoutCorners()
             return
         }
         if Settings.theme == .halloween {
@@ -415,7 +436,7 @@ final class PumpkinScene: SKScene {
             dirt.position = CGPoint(x: dockRect.minX, y: dockRect.maxY - 6)
             vineLayer.addChild(dirt)
             vine = dirt
-            layoutCobwebs()
+            layoutCorners()
             return
         }
         let width = (dockRect.width - 8).rounded()
@@ -426,10 +447,10 @@ final class PumpkinScene: SKScene {
         vine.position = vineOrigin
         vineLayer.addChild(vine)
         self.vine = vine
-        layoutCobwebs()
+        layoutCorners()
     }
 
-    /// The new theme's vine (or graveyard dirt) and cobwebs fade in under the old harvest as it fades away.
+    /// The new theme's vine (or graveyard dirt, or garland) and cobwebs fade in under the old harvest as it fades away.
     private func fadeInVine() {
         for child in vineLayer.children {
             let alpha = child.alpha
@@ -571,8 +592,9 @@ final class PumpkinScene: SKScene {
 
         if grow { popIn(pumpkin) }
         startWobble(pumpkin)
-        // At Halloween, the orange pumpkins are jack-o'-lanterns.
+        // At Halloween, the orange pumpkins are jack-o'-lanterns; at Diwali, the lamps are lit.
         if Settings.theme == .halloween && kind.isCarvable { carve(pumpkin, animated: grow) }
+        if kind.isLamp { lightLamp(pumpkin, animated: grow) }
     }
 
     /// With Reduce Motion on (System Settings → Accessibility → Display), nothing moves by itself:
@@ -615,6 +637,7 @@ final class PumpkinScene: SKScene {
             sprite.run(DockSprite.animate(\.hoverScale, to: 1.08, duration: 0.12, curve: .easeOut), withKey: "hover")
             if let pumpkin = sprite as? PumpkinNode { flare(pumpkin) }
             if let decor = sprite as? DecorNode, decor.kind == .blackCat { catNotices(decor) }
+            if let peacock = sprite as? PeacockNode { peacockDisplays(peacock) }
         }
     }
 
@@ -622,10 +645,13 @@ final class PumpkinScene: SKScene {
 
     override func mouseDown(with event: NSEvent) {
         switch target(at: event.location(in: self)) {
+        // Diwali's lamps light up the sky rather than smashing.
+        case let pumpkin as PumpkinNode where pumpkin.kind.isLamp: lightUp(pumpkin)
         case let pumpkin as PumpkinNode: smash(pumpkin)
         case let decor as DecorNode: poke(decor)
         case let squirrel as SquirrelNode: squirrelFlee(squirrel)
         case let ghost as GhostNode: ghostFlee(ghost)
+        case let peacock as PeacockNode: peacockFlee(peacock)
         default: break
         }
     }
@@ -797,16 +823,17 @@ final class PumpkinScene: SKScene {
         }
     }
 
-    // MARK: Falling leaves (or bats)
+    // MARK: Falling leaves (or bats, or fireworks)
 
-    /// The season's drifting things: a leaf falling now and then in fall, a bat fluttering past at Halloween.
+    /// The season's drifting things: a leaf falling now and then in fall, a bat fluttering past at
+    /// Halloween, a little firework bursting in the sky at Diwali.
     private func startAmbient() {
         removeAction(forKey: "leaves")
         guard !Self.reduceMotion else { return }
-        if Settings.theme == .halloween {
-            scheduleNextBat()
-        } else {
-            scheduleNextLeaf()
+        switch Settings.theme {
+        case .fall: scheduleNextLeaf()
+        case .halloween: scheduleNextBat()
+        case .diwali: scheduleNextFirework()
         }
     }
 

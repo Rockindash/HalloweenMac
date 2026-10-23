@@ -113,6 +113,16 @@ final class AppModel: ObservableObject {
         didSet { Settings.ghost = ghost; overlay.refresh(force: true) }
     }
 
+    /// Little fireworks over the Dock at Diwali.
+    @Published var fireworks: Bool {
+        didSet { Settings.fireworks = fireworks }
+    }
+
+    /// The peacock that struts by at Diwali.
+    @Published var peacock: Bool {
+        didSet { Settings.peacock = peacock; overlay.refresh(force: true) }
+    }
+
     /// Haunting while you're away (Halloween). Switched off mid-haunting, the ghosts scatter at once.
     @Published var haunting: Bool {
         didSet { Settings.haunting = haunting; overlay.checkHaunting() }
@@ -179,6 +189,8 @@ final class AppModel: ObservableObject {
         theme = Settings.theme
         bats = Settings.bats
         ghost = Settings.ghost
+        fireworks = Settings.fireworks
+        peacock = Settings.peacock
         haunting = Settings.haunting
         spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled
@@ -193,6 +205,7 @@ final class AppModel: ObservableObject {
 
     func start() {
         overlay.onSmash = { [weak self] in self?.recordSmash() }
+        overlay.onLightUp = { [weak self] in self?.recordSmash() }
         overlay.isLicensed = license.isActive
         // The harvest comes and goes with the license, and the window and menu follow it too.
         licenseWatch = license.$key.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] key in
@@ -282,6 +295,8 @@ final class AppModel: ObservableObject {
         festivalLead = Settings.festivalLead
         bats = Settings.bats
         ghost = Settings.ghost
+        fireworks = Settings.fireworks
+        peacock = Settings.peacock
         haunting = Settings.haunting
         spirits = Settings.spirits
         wallpaperEnabled = Settings.wallpaperEnabled

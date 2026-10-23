@@ -109,6 +109,7 @@ final class OverlayController {
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
     var onSmash: (() -> Void)?
+    var onLightUp: (() -> Void)?
 
     /// Without an activated license the harvest stays off the Dock.
     var isLicensed = false {
@@ -443,6 +444,7 @@ final class OverlayController {
                 self?.onSmash?()
                 self?.updateHover()
             }
+            scene.onLightUp = { [weak self] in self?.onLightUp?() }
             view.presentScene(scene)
             panel.contentView = view
             self.panel = panel

@@ -25,6 +25,8 @@ enum Settings {
         static let festivalLead = "festivalLead"
         static let bats = "bats"
         static let ghost = "ghost"
+        static let fireworks = "fireworks"
+        static let peacock = "peacock"
         static let haunting = "haunting"
         static let spirits = "spirits"
         static let wallpaperEnabled = "wallpaperEnabled"
@@ -62,6 +64,8 @@ enum Settings {
             Key.squirrel: true,
             Key.bats: true,
             Key.ghost: true,
+            Key.fireworks: true,
+            Key.peacock: true,
             Key.haunting: true,
             Key.spirits: true,
             // Fall stays on the Dock until the person picks Halloween or the calendar.
@@ -80,7 +84,7 @@ enum Settings {
         let keys = [Key.showPumpkins, Key.fallingLeaves, Key.leafAmount, Key.leavesFillScreen, Key.showVines,
                     Key.cozyExtras, Key.sound, Key.pumpkinCount, Key.fullness, Key.smashCount, Key.disabledExtras,
                     Key.squirrel, Key.showMenuBarIcon, Key.theme, Key.themesLeftOut, Key.festivalLead, Key.wallpaperEnabled, Key.wallpaperMode,
-                    Key.bats, Key.ghost, Key.haunting, Key.spirits] + Theme.allCases.map(smashCountKey)
+                    Key.bats, Key.ghost, Key.haunting, Key.spirits, Key.fireworks, Key.peacock] + Theme.allCases.map(smashCountKey)
         keys.forEach(defaults.removeObject(forKey:))
     }
 
@@ -204,6 +208,18 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.ghost) }
     }
 
+    /// Little fireworks bursting in the sky over the Dock now and then (Diwali's version of falling leaves).
+    static var fireworks: Bool {
+        get { defaults.bool(forKey: Key.fireworks) }
+        set { defaults.set(newValue, forKey: Key.fireworks) }
+    }
+
+    /// The peacock that struts by (Diwali's version of the squirrel).
+    static var peacock: Bool {
+        get { defaults.bool(forKey: Key.peacock) }
+        set { defaults.set(newValue, forKey: Key.peacock) }
+    }
+
     /// Haunting while you're away: at Halloween, ghosts gather over the Dock while nobody's at the Mac,
     /// and scatter when someone's back.
     static var haunting: Bool {
@@ -218,19 +234,27 @@ enum Settings {
         set { defaults.set(newValue, forKey: Key.spirits) }
     }
 
-    /// The current theme's visitor: the squirrel in fall, the ghost at Halloween.
-    static var visitor: Bool { theme == .halloween ? ghost : squirrel }
+    /// The current theme's visitor: the squirrel in fall, the ghost at Halloween, the peacock at Diwali.
+    static var visitor: Bool {
+        switch theme {
+        case .fall: return squirrel
+        case .halloween: return ghost
+        case .diwali: return peacock
+        }
+    }
 
     /// The season or festival on the Dock. Each one has its own art, extras and desktop pictures.
     enum Theme: String, CaseIterable {
         /// The original look, and still the one Dockorate starts with.
         case fall
         case halloween
+        case diwali
 
         var title: String {
             switch self {
             case .fall: return "Fall"
             case .halloween: return "Halloween"
+            case .diwali: return "Diwali"
             }
         }
 
@@ -238,6 +262,7 @@ enum Settings {
             switch self {
             case .fall: return "leaf.fill"
             case .halloween: return "moon.stars.fill"
+            case .diwali: return "flame.fill"
             }
         }
 
@@ -246,6 +271,16 @@ enum Settings {
             switch self {
             case .fall: return "Pumpkins, Hay and Falling Leaves"
             case .halloween: return "Jack-o'-Lanterns, Candy and a Friendly Ghost"
+            case .diwali: return "Diyas, Rangoli, Sweets and Fireworks"
+            }
+        }
+
+        /// The theme's main thing in a sentence, which its menu bar icon shows: "pumpkin", "jack-o'-lantern", "diya".
+        var thing: String {
+            switch self {
+            case .fall: return "pumpkin"
+            case .halloween: return "jack-o'-lantern"
+            case .diwali: return "diya"
             }
         }
 
@@ -253,6 +288,7 @@ enum Settings {
             switch self {
             case .fall: return "Pumpkins, hay bales, a latte and falling leaves."
             case .halloween: return "Glowing jack-o'-lanterns, tombstones, candy, bats and a friendly ghost."
+            case .diwali: return "Glowing diyas, rangoli, sweets, crackers, a marigold garland and a visiting peacock."
             }
         }
 
@@ -261,16 +297,18 @@ enum Settings {
             switch self {
             case .fall: return count == 1 ? "1 pumpkin" : "\(count) pumpkins"
             case .halloween: return count == 1 ? "1 jack-o'-lantern" : "\(count) jack-o'-lanterns"
+            case .diwali: return count == 1 ? "1 diya" : "\(count) diyas"
             }
         }
 
-        /// The Home card's title for the count, like "0 Pumpkins Smashed" or "3 Lanterns Smashed" (short, so it
-        /// fits the card).
+        /// The Home card's title for the count, like "0 Pumpkins Smashed", "3 Lanterns Smashed" or "2 Diyas Lit"
+        /// (short, so it fits the card). A diya isn't smashed: clicking one lights up the sky.
         func smashedTitle(_ count: Int) -> String {
             let things: String
             switch self {
             case .fall: things = count == 1 ? "Pumpkin" : "Pumpkins"
             case .halloween: things = count == 1 ? "Lantern" : "Lanterns"
+            case .diwali: return count == 1 ? "1 Diya Lit" : "\(count) Diyas Lit"
             }
             return "\(count) \(things) Smashed"
         }
@@ -280,11 +318,18 @@ enum Settings {
             switch self {
             case .fall: return [.hayBale, .leafPile, .acorns, .mug, .lantern, .apples]
             case .halloween: return [.crypt, .tombstone, .blackCat, .cauldron, .candy, .candles, .skull]
+            case .diwali: return [.giftBoxes, .rangoli, .laddoos, .mithai, .anar, .rocket, .chakri, .kandil, .flowerBowl]
             }
         }
 
-        /// What some pumpkins sit up high on.
-        var perch: DecorKind { self == .halloween ? .crypt : .hayBale }
+        /// What some pumpkins (or lamps) sit up high on.
+        var perch: DecorKind {
+            switch self {
+            case .fall: return .hayBale
+            case .halloween: return .crypt
+            case .diwali: return .giftBoxes
+            }
+        }
 
         /// The order extras fill the gaps between pumpkins; it starts at a random point each time the
         /// pumpkins are regrown, so the special ones turn up in different spots.
@@ -294,23 +339,55 @@ enum Settings {
                 return [.leafPile, .acorns, .mug, .apples, .leafPile, .lantern, .acorns, .apples, .leafPile, .acorns]
             case .halloween:
                 return [.tombstone, .candy, .cauldron, .skull, .blackCat, .candles, .candy, .tombstone, .skull, .candy]
+            case .diwali:
+                return [.rangoli, .laddoos, .anar, .flowerBowl, .mithai, .rocket, .rangoli, .chakri, .kandil, .laddoos]
             }
         }
 
         /// Extras special enough to show up at most once every eight gaps.
-        var specials: Set<DecorKind> { self == .halloween ? [.cauldron, .blackCat] : [.mug, .lantern] }
+        var specials: Set<DecorKind> {
+            switch self {
+            case .fall: return [.mug, .lantern]
+            case .halloween: return [.cauldron, .blackCat]
+            case .diwali: return [.kandil, .flowerBowl]
+            }
+        }
 
-        var vineTitle: String { self == .halloween ? "Graveyard dirt" : "Vine" }
+        var vineTitle: String {
+            switch self {
+            case .fall: return "Vine"
+            case .halloween: return "Graveyard dirt"
+            case .diwali: return "Marigold garland"
+            }
+        }
         var vineDetail: String {
-            self == .halloween ? "Purple dirt along the top of the Dock, with a cobweb in each top corner."
-                               : "Curling along the top of the Dock, behind the pumpkins."
+            switch self {
+            case .fall: return "Curling along the top of the Dock, behind the pumpkins."
+            case .halloween: return "Purple dirt along the top of the Dock, with a cobweb in each top corner."
+            case .diwali: return "Marigolds and mango leaves along the top of the Dock, with strings of flowers hanging at each end."
+            }
         }
-        var extrasTitle: String { self == .halloween ? "Spooky extras" : "Cozy extras" }
+        var extrasTitle: String {
+            switch self {
+            case .fall: return "Cozy extras"
+            case .halloween: return "Spooky extras"
+            case .diwali: return "Festive extras"
+            }
+        }
         var extrasDetail: String {
-            self == .halloween ? "Tombstones, candy, a cauldron and more between the pumpkins."
-                               : "Hay bales, leaf piles and more between the pumpkins."
+            switch self {
+            case .fall: return "Hay bales, leaf piles and more between the pumpkins."
+            case .halloween: return "Tombstones, candy, a cauldron and more between the pumpkins."
+            case .diwali: return "Rangoli, sweets, crackers and more between the diyas."
+            }
         }
-        var visitorTitle: String { self == .halloween ? "Ghost" : "Squirrel" }
+        var visitorTitle: String {
+            switch self {
+            case .fall: return "Squirrel"
+            case .halloween: return "Ghost"
+            case .diwali: return "Peacock"
+            }
+        }
 
         /// Seasons take turns through the year; a festival takes over for the week before its day.
         enum Kind: CaseIterable {
@@ -319,14 +396,14 @@ enum Settings {
             var title: String { self == .season ? "Seasons" : "Festivals" }
         }
 
-        var kind: Kind { self == .halloween ? .festival : .season }
+        var kind: Kind { self == .fall ? .season : .festival }
 
         /// The day a season starts each year, as (month, day). It stays on until the next season starts,
         /// so with Fall the only season so far, Fall is on all year between festivals.
         var seasonStart: (month: Int, day: Int)? {
             switch self {
             case .fall: return (9, 1)
-            case .halloween: return nil
+            case .halloween, .diwali: return nil
             }
         }
 
@@ -335,8 +412,18 @@ enum Settings {
             switch self {
             case .fall: return nil
             case .halloween: return calendar.date(from: DateComponents(year: year, month: 10, day: 31))
+            case .diwali: return Self.diwaliDays[year].flatMap { calendar.date(from: DateComponents(year: year, month: $0.month, day: $0.day)) }
             }
         }
+
+        /// Diwali follows the moon: it's on the new moon of the Hindu month of Kartik, in October or
+        /// November. These are the days of Lakshmi Puja, the main day, as most of India keeps it.
+        static let diwaliDays: [Int: (month: Int, day: Int)] = [
+            2025: (10, 20), 2026: (11, 8), 2027: (10, 29), 2028: (10, 17), 2029: (11, 5), 2030: (10, 26),
+            2031: (11, 14), 2032: (11, 2), 2033: (10, 22), 2034: (11, 10), 2035: (10, 30), 2036: (10, 19),
+            2037: (11, 7), 2038: (10, 27), 2039: (10, 17), 2040: (11, 4), 2041: (10, 25), 2042: (11, 12),
+            2043: (11, 1),
+        ]
 
         /// The days a festival is on the Dock in `year`: from `lead` days before its day (the person's
         /// pick, a week to start with), through the day itself.

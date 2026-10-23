@@ -200,3 +200,134 @@ final class MeowSound {
         return buffer
     }
 }
+
+/// Diwali's crackers, made from scratch: a firework (the whoosh of a shell going up, the pop as it
+/// bursts and a shower of crackles) and the fizz of an anar or chakri (a hiss with crackles in it).
+@MainActor
+final class FireworkSound {
+    private let engine = AVAudioEngine()
+    private let player = AVAudioPlayerNode()
+    private let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
+    private var bursts: [AVAudioPCMBuffer] = []
+    private var fizzes: [AVAudioPCMBuffer] = []
+    private var stopWork: DispatchWorkItem?
+
+    init() {
+        engine.attach(player)
+        engine.connect(player, to: engine.mainMixerNode, format: format)
+        engine.mainMixerNode.outputVolume = 0.35
+        let tones: [(pitch: Float, seed: UInt32)] = [(1.0, 7), (0.85, 19), (1.15, 31)]
+        bursts = tones.compactMap { makeBurst(pitch: $0.pitch, seed: $0.seed) }
+        let seeds: [UInt32] = [3, 11]
+        fizzes = seeds.compactMap { makeFizz(seed: $0) }
+    }
+
+    /// A shell going up and bursting.
+    func play() { schedule(bursts.randomElement(), for: 2) }
+
+    /// The fizz of a fountain or a spinning chakri.
+    func fizz() { schedule(fizzes.randomElement(), for: 2.2) }
+
+    private func schedule(_ buffer: AVAudioPCMBuffer?, for seconds: Double) {
+        guard let buffer else { return }
+        if !engine.isRunning {
+            do { try engine.start() } catch { return }
+        }
+        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        if !player.isPlaying { player.play() }
+        stopWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            Task { @MainActor in
+                self?.player.stop()
+                self?.engine.pause()
+            }
+        }
+        stopWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
+    }
+
+    /// White noise from a seed, so each buffer sounds the same every time.
+    private struct Noise {
+        var state: UInt32
+        mutating func next() -> Float {
+            state = state &* 1_664_525 &+ 1_013_904_223
+            return Float(state >> 8) / Float(1 << 24) * 2 - 1
+        }
+    }
+
+    private func normalize(_ samples: UnsafeMutablePointer<Float>, count: Int, to level: Float) {
+        var peak: Float = 0
+        for i in 0..<count { peak = max(peak, abs(samples[i])) }
+        guard peak > 0 else { return }
+        for i in 0..<count { samples[i] *= level / peak }
+    }
+
+    private func makeBurst(pitch: Float, seed: UInt32) -> AVAudioPCMBuffer? {
+        let sampleRate = Float(format.sampleRate)
+        let length = AVAudioFrameCount(sampleRate * 1.4)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: length),
+              let samples = buffer.floatChannelData?[0] else { return nil }
+        buffer.frameLength = length
+        var noise = Noise(state: seed)
+        let rise: Float = 0.42 // the whoosh, then the burst
+        var lowpass: Float = 0, bandLow: Float = 0
+        var phase: Float = 0
+        var crackle: Float = 0
+        for i in 0..<Int(length) {
+            let t = Float(i) / sampleRate
+            let white = noise.next()
+            var sample: Float = 0
+            if t < rise {
+                // A whistling whoosh that rises and swells.
+                let u = t / rise
+                let cutoff = 0.02 + 0.12 * u
+                lowpass += cutoff * (white - lowpass)
+                bandLow += 0.01 * (lowpass - bandLow)
+                sample = (lowpass - bandLow) * u * u * 1.6
+                phase += 2 * .pi * (900 + 1400 * u) * pitch / sampleRate
+                sample += sin(phase) * 0.06 * u
+            } else {
+                let b = t - rise
+                // The pop: a deep thump and a bright crack.
+                phase += 2 * .pi * 70 * pitch * (1 - 0.4 * min(b / 0.15, 1)) / sampleRate
+                sample += sin(phase) * exp(-b * 14) * 0.9
+                sample += white * exp(-b * 40) * 0.8
+                // Then crackles scattered through the falling sparks.
+                if noise.next() > 0.996 - 0.006 * exp(-b * 2) { crackle = 1 }
+                crackle *= 0.86
+                sample += white * crackle * 0.6 * exp(-b * 2.2)
+            }
+            let attack = min(1, t / 0.01)
+            let release = min(1, (1.4 - t) / 0.1)
+            samples[i] = sample * attack * release
+        }
+        normalize(samples, count: Int(length), to: 0.7)
+        return buffer
+    }
+
+    private func makeFizz(seed: UInt32) -> AVAudioPCMBuffer? {
+        let sampleRate = Float(format.sampleRate)
+        let duration: Float = 1.7
+        let length = AVAudioFrameCount(sampleRate * duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: length),
+              let samples = buffer.floatChannelData?[0] else { return nil }
+        buffer.frameLength = length
+        var noise = Noise(state: seed)
+        var lowpass: Float = 0
+        var crackle: Float = 0
+        for i in 0..<Int(length) {
+            let t = Float(i) / sampleRate
+            let white = noise.next()
+            // A bright hiss (noise with its low end taken out), with a little flutter.
+            lowpass += 0.3 * (white - lowpass)
+            let hiss = (white - lowpass) * (0.8 + 0.2 * sin(2 * .pi * 13 * t))
+            if noise.next() > 0.9975 { crackle = 1 }
+            crackle *= 0.8
+            let attack = min(1, t / 0.05)
+            let release = min(1, (duration - t) / 0.4)
+            samples[i] = (hiss * 0.35 + white * crackle * 0.7) * attack * release
+        }
+        normalize(samples, count: Int(length), to: 0.55)
+        return buffer
+    }
+}

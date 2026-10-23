@@ -100,6 +100,7 @@ extension Settings.Theme {
         switch self {
         case .fall: return .pumpkin
         case .halloween: return Color(cgColor: .hex(0x7A4FA3))
+        case .diwali: return Color(cgColor: .hex(0xD8337F))
         }
     }
 }
