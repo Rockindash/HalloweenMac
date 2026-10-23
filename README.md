@@ -1,6 +1,6 @@
 # Dockorate 🎃
 
-**[dockorate.com](https://dockorate.com)**: download Dockorate for your Mac.
+Dockorate for your Mac's dock at **[dockorate.com](https://dockorate.com)**
 
 *Decorate your Dock for every season.*
 
