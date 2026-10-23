@@ -1,5 +1,7 @@
 # Dockorate 🎃
 
+**[dockorate.com](https://dockorate.com)**: download Dockorate for your Mac.
+
 *Decorate your Dock for every season.*
 
 A cozy little Mac app that decorates the top of your Dock for the season. Fall is the first: a harvest of flat, hand-drawn pumpkins on a
